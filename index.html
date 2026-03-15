@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B-Roll Editor Web App Workspace</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+    body { 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+        line-height: 1.8; color: #2c3e50; font-size: 19px;
+        background-color: #f4f5f7; 
+        background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+        background-size: 24px 24px;
+        margin: 0; padding: 0; overflow: auto; 
+        overscroll-behavior: none; 
+    }
+    
+    #zoom-container {
+        position: relative; width: 6000px; height: 6000px;
+        background-color: #f4f5f7; 
+        background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+        background-size: 24px 24px; 
+        transform-origin: 0 0; box-shadow: 0 0 50px rgba(0,0,0,0.1);
+    }
+
+    .document-block {
+        background: #ffffff; 
+        position: absolute; 
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08), 0 2px 10px rgba(0,0,0,0.04);
+        z-index: 100; 
+        display: flex; flex-direction: column;
+        border: 1px solid #e2e8f0;
+        overflow: visible; 
+    }
+
+    .document-header {
+        position: relative; z-index: 1; 
+        background: #f8fafc; padding: 10px 20px;
+        border-radius: 12px 12px 0 0; border-bottom: 1px solid #e2e8f0;
+        display: flex; justify-content: space-between; align-items: center;
+        cursor: grab; user-select: none; color: #64748b; font-size: 14px; font-weight: 600;
+    }
+    .document-header:active { cursor: grabbing; }
+    
+    .delete-btn {
+        background: transparent; border: none; cursor: pointer; font-size: 14px;
+        color: #94a3b8; transition: color 0.2s; padding: 4px;
+    }
+    .delete-btn:hover { color: #f43f5e; }
+
+    .document-content {
+        position: relative; z-index: 10; 
+        padding: 40px 50px; outline: none; flex-grow: 1; 
+    }
+
+    .resize-handle {
+        position: absolute; right: 0; bottom: 0;
+        width: 24px; height: 24px; cursor: se-resize;
+        background: linear-gradient(135deg, transparent 50%, #cbd5e1 50%);
+        border-radius: 0 0 12px 0; opacity: 0.5; transition: opacity 0.2s;
+        z-index: 20;
+    }
+    .document-block:hover .resize-handle { opacity: 1; }
+
+    .block-export-btn {
+        position: absolute; bottom: 12px; right: 35px; 
+        background: #10b981; color: #fff; border: none; border-radius: 6px;
+        padding: 4px 10px; font-size: 13px; font-weight: bold; cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background 0.2s; z-index: 20;
+    }
+    .block-export-btn:hover { background: #059669; }
+
+    h2 { margin-top: 0; color: #1a252f; font-weight: 700; }
+    hr.clip-divider { border: 0; height: 2px; background: #e2e8f0; margin: 40px 0; border-radius: 2px; }
+
+    .highlight-container { position: relative; display: inline; }
+    .highlight-text {
+        background-color: #fff3cd; border-bottom: 2px dashed #e6a800;
+        cursor: pointer; padding: 0 1px; border-radius: 3px;
+        transition: background-color 0.2s ease;
+        box-decoration-break: clone; -webkit-box-decoration-break: clone;
+    }
+    .highlight-container:hover .highlight-text, .highlight-container.active .highlight-text {
+        background-color: #ffe69c;
+    }
+
+    .broll-card {
+        visibility: hidden; opacity: 0; position: absolute; bottom: 120%; left: 50%;
+        transform: translateX(-50%) translateY(10px); background-color: #ffffff; color: #333;
+        padding: 16px 20px; border-radius: 12px; font-size: 15px; width: 360px; z-index: 500;
+        box-shadow: 0 12px 35px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0; transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+        line-height: 1.5; cursor: default;
+    }
+    .broll-card.visible { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(0); }
+    
+    .broll-card-header {
+        display: flex; justify-content: space-between; align-items: flex-start;
+        margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;
+    }
+    .broll-title { color: #1e293b; font-size: 16px; font-weight: 700; margin: 0; }
+    .btn-edit-note {
+        background: transparent; border: none; cursor: pointer; font-size: 14px; 
+        padding: 4px; border-radius: 4px; transition: background 0.1s;
+    }
+    .btn-edit-note:hover { background: #f1f5f9; }
+    .broll-note-text { margin-bottom: 14px; color: #475569; white-space: pre-wrap; font-family: sans-serif; }
+
+    .action-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+    .btn {
+        display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border-radius: 8px;
+        font-size: 14px; font-weight: 600; color: #fff; border: none; cursor: pointer; transition: transform 0.1s ease, opacity 0.2s; text-decoration: none;
+        white-space: nowrap;
+    }
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn-motionarray { background-color: #6C5CE7; }
+    .btn-youtube { background-color: #FF0000; }
+    .btn-google { background-color: #4285F4; }
+    .btn-flaticon { background-color: #00CBA9; }
+    .btn-ai { background-color: #2D3436; }
+    .prompt-box {
+        background: #f8fafc; padding: 10px; border-radius: 6px; color: #334155;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; margin-bottom: 12px; border: 1px solid #cbd5e1; 
+    }
+
+    #drawing-layer {
+        position: absolute; top: 0; left: 0; 
+        width: 6000px; height: 6000px; 
+        z-index: 150; pointer-events: none; touch-action: none; 
+    }
+
+    .drawing-toolbar {
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+        background: #1e293b; padding: 16px 24px; border-radius: 24px;
+        display: flex; flex-direction: column; gap: 14px; align-items: center;
+        box-shadow: 0 16px 40px rgba(0,0,0,0.3); z-index: 1000; border: 1px solid #334155;
+        width: max-content; 
+    }
+    .toolbar-row { display: flex; gap: 8px; align-items: center; justify-content: center; width: 100%; }
+
+    .tool-btn {
+        background: transparent; border: 2px solid transparent; color: #cbd5e1;
+        padding: 8px 14px; border-radius: 50px; cursor: pointer; font-size: 15px;
+        font-weight: 600; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center;
+        white-space: nowrap; 
+    }
+    .tool-btn:hover { background: #334155; color: #fff; }
+    .tool-btn.active { background: #6366f1; color: #fff; border-color: #6366f1; }
+    .tool-btn.danger { color: #f43f5e; }
+    .tool-btn.danger:hover { background: rgba(244, 63, 94, 0.15); }
+    .tool-btn.capture { background: #eab308; color: #1e293b; border-color: #ca8a04; }
+    .tool-btn.capture:hover { background: #facc15; }
+    .tool-btn.io-btn { background: #475569; color: #fff; border-color: #475569; }
+    .tool-btn.io-btn:hover { background: #64748b; }
+
+    .zoom-group { display: flex; align-items: center; background: #0f172a; border-radius: 50px; padding: 4px; }
+    .zoom-btn { padding: 6px 12px; font-size: 16px; }
+    #zoom-level { color: #fff; font-size: 13px; font-weight: 700; min-width: 50px; text-align: center; user-select: none; }
+
+    .divider { width: 1px; height: 24px; background: #334155; margin: 0 4px; }
+
+    .mode-btn { background: #334155; color: #fff; border: 2px solid #475569; }
+    .mode-btn.active-draw { background: #f43f5e; border-color: #f43f5e; box-shadow: 0 0 15px rgba(244, 63, 94, 0.4); }
+    .mode-btn.active-comment { background: #10b981; border-color: #10b981; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+
+    .color-picker-group { display: flex; align-items: center; gap: 8px; background: #0f172a; padding: 6px 14px; border-radius: 50px; }
+    .color-btn { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; transition: transform 0.1s; }
+    .color-btn:hover { transform: scale(1.15); }
+    .color-btn.active { border-color: #fff; box-shadow: 0 0 0 2px #6366f1; }
+    .custom-color-input { width: 26px; height: 26px; padding: 0; border: none; border-radius: 6px; cursor: pointer; background: transparent; }
+    .custom-color-input::-webkit-color-swatch-wrapper { padding: 0; }
+    .custom-color-input::-webkit-color-swatch { border: 2px solid #fff; border-radius: 6px; }
+
+    #comment-popup {
+        display: none; position: absolute; z-index: 800; background: #ffffff; padding: 8px;
+        border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #e2e8f0;
+        gap: 8px; transform: translate(-50%, -100%); margin-top: -10px;
+        width: max-content; flex-direction: row; align-items: center; flex-wrap: nowrap;
+    }
+    
+    #comment-popup .btn {
+        white-space: nowrap !important;
+        flex-shrink: 0;
+    }
+
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
+        z-index: 9999; display: none; align-items: center; justify-content: center;
+    }
+    .custom-modal {
+        background: #fff; padding: 30px; border-radius: 16px; width: 450px; max-width: 90vw;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.2); border: 1px solid #e2e8f0;
+    }
+    .custom-modal h3 { margin-top: 0; margin-bottom: 8px; color: #1e293b; font-size: 22px; }
+    .custom-modal p.subtitle { margin-top: 0; margin-bottom: 20px; font-size: 14px; color: #64748b; line-height: 1.4; }
+    .input-label { display: block; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    .custom-modal input, .custom-modal textarea {
+        width: 100%; box-sizing: border-box; padding: 12px; border: 2px solid #cbd5e1;
+        border-radius: 8px; font-family: inherit; color: #1e293b; margin-bottom: 24px;
+    }
+    .custom-modal input { font-size: 16px; font-weight: 600; }
+    .custom-modal textarea { font-size: 15px; resize: vertical; min-height: 120px; line-height: 1.5; }
+    .custom-modal input:focus, .custom-modal textarea:focus { outline: none; border-color: #6366f1; }
+    
+    .modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
+    .modal-btn { padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; border: none; transition: background 0.1s; }
+    .modal-btn-cancel { background: #f1f5f9; color: #475569; }
+    .modal-btn-cancel:hover { background: #e2e8f0; }
+    .modal-btn-save { background: #6366f1; color: #fff; }
+    .modal-btn-save:hover { background: #4f46e5; }
+
+    #export-content {
+        flex-grow: 1; overflow-y: auto; background: #f8fafc; padding: 16px; 
+        border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 20px; 
+        font-size: 15px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; 
+        white-space: pre-wrap; color: #1e293b; max-height: 400px;
+    }
+
+</style>
+</head>
+<body>
+
+    <!-- Hidden Input for Loading Project Files -->
+    <input type="file" id="file-import" accept=".json" style="display: none;">
+
+    <!-- Transcript Paste/Edit Modal -->
+    <div id="transcript-modal-overlay" class="modal-overlay">
+        <div class="custom-modal" style="width: 750px;">
+            <h3>Add Transcript Block</h3>
+            <p class="subtitle">Paste your transcript text. The block will appear in the editor ready to highlight.</p>
+            
+            <label class="input-label">Block Label</label>
+            <input type="text" id="transcript-title-input" placeholder="e.g. Clip 1: Introduction">
+            
+            <label class="input-label">Transcript Text</label>
+            <textarea id="transcript-input" style="min-height: 250px;" placeholder="Paste or type transcript text here..."></textarea>
+            
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" id="transcript-btn-cancel">Cancel</button>
+                <button class="modal-btn modal-btn-save" id="transcript-btn-save">Add Block</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- The Editable B-Roll Note Modal -->
+    <div id="note-modal-overlay" class="modal-overlay">
+        <div class="custom-modal">
+            <h3 id="note-modal-header">Edit Note</h3>
+            <label class="input-label">Note Description</label>
+            <textarea id="note-modal-input" placeholder="Type your detailed visual notes here..."></textarea>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" id="note-modal-cancel">Cancel</button>
+                <button class="modal-btn modal-btn-save" id="note-modal-save">Save Note</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Notes Modal -->
+    <div id="export-modal-overlay" class="modal-overlay">
+        <div class="custom-modal" style="width: 650px;">
+            <h3>Exported Notes</h3>
+            <p class="subtitle">Here are all your highlighted phrases and their associated notes.</p>
+            <div id="export-content"></div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" id="export-btn-close">Close</button>
+                <button class="modal-btn modal-btn-save" id="export-btn-copy">Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Massive Infinite Canvas Container (6000x6000) -->
+    <div id="zoom-container">
+        <!-- Drawing Canvas -->
+        <canvas id="drawing-layer" width="6000" height="6000"></canvas>
+
+        <!-- Container holding all dynamic text blocks -->
+        <div id="blocks-container">
+            <!-- Default First Block -->
+            <div class="document-block" style="left: 2550px; top: 600px; width: 900px;">
+                <div class="document-header">
+                    <span>⠿ Drag to move block</span>
+                    <button class="delete-btn" title="Delete Block">❌</button>
+                </div>
+                <div class="document-content" contenteditable="true" spellcheck="false" title="Click to edit text natively">
+                    <h2>Podcast Transcript</h2>
+                    <p><strong>Clip 1: Introduction</strong></p>
+                    <p>
+                        <span class="highlight-container">
+                            <span class="highlight-text">Genesis</span>
+                            <div class="broll-card">
+                                <div class="broll-card-header">
+                                    <strong class="broll-title">B-Roll Note</strong>
+                                    <button class="btn-edit-note" title="Edit Note" contenteditable="false">✏️</button>
+                                </div>
+                                <div class="broll-note-text">Look for Genesis hospital B-roll.</div>
+                            </div>
+                        </span> 
+                        serves as one of Ohio's, serves some of the most 
+                        <span class="highlight-container">
+                            <span class="highlight-text">rural people in Ohio</span>
+                            <div class="broll-card">
+                                <div class="broll-card-header">
+                                    <strong class="broll-title">B-Roll Note</strong>
+                                    <button class="btn-edit-note" title="Edit Note" contenteditable="false">✏️</button>
+                                </div>
+                                <div class="broll-note-text">Find B-rolls showing rural people/towns in Ohio.</div>
+                            </div>
+                        </span>, 
+                        and they deliver 
+                        <span class="highlight-container">
+                            <span class="highlight-text">high-quality care at lower cost</span>
+                            <div class="broll-card">
+                                <div class="broll-card-header">
+                                    <strong class="broll-title">B-Roll Note</strong>
+                                    <button class="btn-edit-note" title="Edit Note" contenteditable="false">✏️</button>
+                                </div>
+                                <div class="broll-note-text">B-roll of Genesis hospitals or healthcare icons.</div>
+                            </div>
+                        </span> 
+                        than major metro systems. 
+                        <span class="highlight-container">
+                            <span class="highlight-text">Yet a major insurance carrier once told Mike that Genesis was, quote, not relevant to their network.</span>
+                            <div class="broll-card" style="width: 380px;">
+                                <div class="broll-card-header">
+                                    <strong class="broll-title">B-Roll Note</strong>
+                                    <button class="btn-edit-note" title="Edit Note" contenteditable="false">✏️</button>
+                                </div>
+                                <div class="broll-note-text">Show a professional person talking to Mike, OR generate this AI Image:</div>
+                            </div>
+                        </span> 
+                        <span class="highlight-container">
+                            <span class="highlight-text">Despite the fact that they're a low-cost, high-value provider.</span>
+                            <div class="broll-card">
+                                <div class="broll-card-header">
+                                    <strong class="broll-title">B-Roll Note</strong>
+                                    <button class="btn-edit-note" title="Edit Note" contenteditable="false">✏️</button>
+                                </div>
+                                <div class="broll-note-text">Genesis B-rolls or high-value icons.</div>
+                            </div>
+                        </span> 
+                        And that moment really catalyzed a transformation that now has 
+                        <span class="highlight-container">
+                            <span class="highlight-text">30 rural Ohio hospitals watching closely</span>
+                            <div class="broll-card">
+                                <div class="broll-card-header">
+                                    <strong class="broll-title">B-Roll Note</strong>
+                                    <button class="btn-edit-note" title="Edit Note" contenteditable="false">✏️</button>
+                                </div>
+                                <div class="broll-note-text">Look for a map showing all the 30 rural hospitals in Ohio.</div>
+                            </div>
+                        </span> 
+                        and following Genesis' lead. So this conversation really matters a ton in general, but 
+                        <span class="highlight-container">
+                            <span class="highlight-text">particularly for community hospitals</span>
+                            <div class="broll-card">
+                                <div class="broll-card-header">
+                                    <strong class="broll-title">B-Roll Note</strong>
+                                    <button class="btn-edit-note" title="Edit Note" contenteditable="false">✏️</button>
+                                </div>
+                                <div class="broll-note-text">B-roll of a generic hospital (e.g. maternity ward).</div>
+                            </div>
+                        </span> 
+                        who are a critical part of our healthcare system. And 
+                        <span class="highlight-container">
+                            <span class="highlight-text">when they thrive, communities can thrive</span>
+                            <div class="broll-card">
+                                <div class="broll-card-header">
+                                    <strong class="broll-title">B-Roll Note</strong>
+                                    <button class="btn-edit-note" title="Edit Note" contenteditable="false">✏️</button>
+                                </div>
+                                <div class="broll-note-text">B-roll of a thriving community; happy people walking.</div>
+                            </div>
+                        </span>, 
+                        and when they fail, that can really hurt a community. And 
+                        <span class="highlight-container">
+                            <span class="highlight-text">Mike's showing us a third path</span>
+                            <div class="broll-card">
+                                <div class="broll-card-header">
+                                    <strong class="broll-title">B-Roll Note</strong>
+                                    <button class="btn-edit-note" title="Edit Note" contenteditable="false">✏️</button>
+                                </div>
+                                <div class="broll-note-text">Keep as talking head. Let the camera focus on Mike.</div>
+                            </div>
+                        </span> 
+                        beyond just consolidation or closure.
+                    </p>
+                </div>
+                <button class="block-export-btn" title="Export this block">📤 Export Block</button>
+                <div class="resize-handle"></div>
+            </div>
+        </div>
+    </div> 
+
+    <!-- Text Selection Popup Menu -->
+    <div id="comment-popup">
+        <button id="btn-add-comment" class="btn" style="background-color: #10b981;">💬 Add Note</button>
+        <button id="btn-sentence-select" class="btn" style="background-color: #475569;">⬌ Select Sentence</button>
+    </div>
+
+    <!-- TWO-ROW COLLAPSIBLE TOOLBAR -->
+    <div class="drawing-toolbar">
+        <div class="toolbar-row">
+            <div class="zoom-group">
+                <button id="zoom-out" class="tool-btn zoom-btn">➖</button>
+                <span id="zoom-level">100%</span>
+                <button id="zoom-in" class="tool-btn zoom-btn">➕</button>
+            </div>
+            
+            <div class="divider"></div>
+            <button id="toggle-comment" class="tool-btn mode-btn">💬 Comment</button>
+            <button id="toggle-draw" class="tool-btn mode-btn">✏️ Draw</button>
+            
+            <div class="divider"></div>
+            <button id="btn-transcript" class="tool-btn">📄 +Transcript</button>
+            
+            <!-- NEW SAVE AND LOAD BUTTONS -->
+            <button id="btn-save-project" class="tool-btn io-btn" title="Save your workspace to your computer">💾 Save Proj</button>
+            <button id="btn-load-project" class="tool-btn io-btn" title="Load a saved workspace">📂 Load Proj</button>
+            
+            <div class="divider"></div>
+            <button id="btn-export" class="tool-btn" style="background: #10b981; color: white; border-color: #10b981;">📤 Export Text</button>
+            <button id="btn-screenshot" class="tool-btn capture" title="Takes a high-res shot of the visible area">📸 Capture Frame</button>
+        </div>
+
+        <div class="toolbar-row" id="draw-tools" style="display: none; margin-top: 6px;">
+            <div class="color-picker-group">
+                <button class="color-btn active" style="background: #f43f5e;" data-color="#f43f5e"></button>
+                <button class="color-btn" style="background: #10b981;" data-color="#10b981"></button>
+                <button class="color-btn" style="background: #3b82f6;" data-color="#3b82f6"></button>
+                <button class="color-btn" style="background: #0f172a;" data-color="#0f172a"></button>
+                <input type="color" id="custom-color" class="custom-color-input" value="#f43f5e" title="Custom Picker">
+            </div>
+            <div class="divider"></div>
+            <button id="tool-pen" class="tool-btn active draw-tool" data-tool="pen">Pen</button>
+            <button id="tool-arrow" class="tool-btn draw-tool" data-tool="arrow">Arrow</button>
+            <button id="tool-eraser" class="tool-btn draw-tool" data-tool="eraser">Eraser</button>
+            <div class="divider"></div>
+            <button id="tool-undo" class="tool-btn">↩ Undo</button>
+            <button id="tool-clear" class="tool-btn danger">Clear Drawings</button>
+        </div>
+    </div>
+
+    <script>
+        // Start scroll perfectly centered
+        window.onload = () => {
+            window.scrollTo((6000 - window.innerWidth)/2, 400);
+        };
+
+        const exportModal = document.getElementById('export-modal-overlay');
+        const exportContent = document.getElementById('export-content');
+
+        // Helper function to format a single block's export text (Transcript + Notes)
+        function generateExportTextForBlock(block) {
+            const contentClone = block.querySelector('.document-content').cloneNode(true);
+            contentClone.querySelectorAll('.broll-card').forEach(card => card.remove());
+            
+            contentClone.innerHTML = contentClone.innerHTML.replace(/[\n\r\t]+/g, ' ');
+
+            contentClone.innerHTML = contentClone.innerHTML
+                .replace(/<br\s*[\/]?>/gi, '\n')
+                .replace(/<\/p>|<\/div>|<\/h[1-6]>/gi, '\n\n');
+
+            let rawTranscript = contentClone.textContent;
+
+            rawTranscript = rawTranscript
+                .replace(/ {2,}/g, ' ') 
+                .replace(/\s+([.,!?;:])/g, '$1') 
+                .replace(/\n\s*\n/g, '\n\n') 
+                .trim();
+
+            let notesText = "";
+            const highlights = block.querySelectorAll('.highlight-container');
+            highlights.forEach(container => {
+                const phraseSpan = container.querySelector('.highlight-text');
+                const noteDiv = container.querySelector('.broll-note-text');
+                
+                if (phraseSpan && noteDiv) {
+                    const phrase = phraseSpan.textContent.trim();
+                    const note = noteDiv.textContent.trim();
+                    if (phrase && note) {
+                        notesText += `"${phrase}"\n- ${note}\n\n`;
+                    }
+                }
+            });
+
+            if (!notesText) notesText = "No notes added.";
+
+            return `${rawTranscript}\n\n--- B-ROLL NOTES ---\n\n${notesText}`;
+        }
+
+        /* =========================================
+           0. ZOOM LOGIC
+        ========================================= */
+        const zoomContainer = document.getElementById('zoom-container');
+        const zoomLevelText = document.getElementById('zoom-level');
+        let zoomLevel = 1;
+
+        function applyZoom() {
+            zoomContainer.style.transform = `scale(${zoomLevel})`;
+            zoomLevelText.innerText = `${Math.round(zoomLevel * 100)}%`;
+        }
+
+        document.addEventListener('wheel', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                const oldZoom = zoomLevel;
+                const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
+                zoomLevel += zoomDelta;
+                if (zoomLevel < 0.3) zoomLevel = 0.3;
+                if (zoomLevel > 4) zoomLevel = 4;
+                
+                const mouseX = e.clientX, mouseY = e.clientY;
+                const unscaledMouseX = (window.scrollX + mouseX) / oldZoom;
+                const unscaledMouseY = (window.scrollY + mouseY) / oldZoom;
+                
+                applyZoom();
+                window.scrollTo(unscaledMouseX * zoomLevel - mouseX, unscaledMouseY * zoomLevel - mouseY);
+            }
+        }, { passive: false });
+
+        document.getElementById('zoom-in').addEventListener('click', () => { zoomLevel += 0.2; if(zoomLevel > 4) zoomLevel = 4; applyZoom(); });
+        document.getElementById('zoom-out').addEventListener('click', () => { zoomLevel -= 0.2; if(zoomLevel < 0.3) zoomLevel = 0.3; applyZoom(); });
+
+        /* =========================================
+           1. BLOCK DRAG & RESIZE LOGIC
+        ========================================= */
+        let isDraggingBlock = false;
+        let isResizingBlock = false;
+        let activeBlock = null;
+        let blockStartX = 0, blockStartY = 0, blockStartW = 0, mouseStartX = 0, mouseStartY = 0;
+
+        function makeBlockInteractive(block) {
+            const header = block.querySelector('.document-header');
+            const resizeHandle = block.querySelector('.resize-handle');
+            const deleteBtn = block.querySelector('.delete-btn');
+            const exportBtn = block.querySelector('.block-export-btn');
+
+            deleteBtn.addEventListener('click', () => block.remove());
+
+            if (exportBtn) {
+                exportBtn.addEventListener('click', () => {
+                    exportContent.innerText = generateExportTextForBlock(block);
+                    exportModal.style.display = 'flex';
+                });
+            }
+
+            header.addEventListener('mousedown', (e) => {
+                if (e.target === deleteBtn || appMode === 'draw') return;
+                isDraggingBlock = true; activeBlock = block;
+                blockStartX = parseFloat(block.style.left) || 0;
+                blockStartY = parseFloat(block.style.top) || 0;
+                mouseStartX = e.clientX; mouseStartY = e.clientY;
+                e.stopPropagation(); 
+            });
+
+            resizeHandle.addEventListener('mousedown', (e) => {
+                if (appMode === 'draw') return;
+                isResizingBlock = true; activeBlock = block;
+                blockStartW = block.offsetWidth;
+                mouseStartX = e.clientX;
+                e.stopPropagation();
+            });
+        }
+
+        document.querySelectorAll('.document-block').forEach(makeBlockInteractive);
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDraggingBlock && activeBlock) {
+                const dx = (e.clientX - mouseStartX) / zoomLevel;
+                const dy = (e.clientY - mouseStartY) / zoomLevel;
+                activeBlock.style.left = `${blockStartX + dx}px`;
+                activeBlock.style.top = `${blockStartY + dy}px`;
+            } else if (isResizingBlock && activeBlock) {
+                const dx = (e.clientX - mouseStartX) / zoomLevel;
+                activeBlock.style.width = `${Math.max(300, blockStartW + dx)}px`; 
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDraggingBlock = false; isResizingBlock = false; activeBlock = null;
+        });
+
+        /* =========================================
+           2. TRANSCRIPT CREATION LOGIC (Keyboard Enabled)
+        ========================================= */
+        const transcriptModal = document.getElementById('transcript-modal-overlay');
+        const transcriptInput = document.getElementById('transcript-input');
+        const transcriptTitleInput = document.getElementById('transcript-title-input');
+        const blocksContainer = document.getElementById('blocks-container');
+        const transcriptBtnSave = document.getElementById('transcript-btn-save');
+
+        document.getElementById('btn-transcript').addEventListener('click', () => {
+            transcriptInput.value = '';
+            transcriptTitleInput.value = '';
+            transcriptModal.style.display = 'flex';
+            transcriptTitleInput.focus();
+        });
+
+        document.getElementById('transcript-btn-cancel').addEventListener('click', () => transcriptModal.style.display = 'none');
+
+        transcriptTitleInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); transcriptBtnSave.click(); }
+        });
+
+        transcriptInput.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); transcriptBtnSave.click(); }
+        });
+
+        transcriptBtnSave.addEventListener('click', () => {
+            const title = transcriptTitleInput.value.trim() || 'New Transcript';
+            const text = transcriptInput.value.trim();
+            if (text) {
+                const paragraphs = text.split(/\n\n+/).map(p => `<p>${p}</p>`).join('');
+                
+                const centerX = (window.scrollX + window.innerWidth / 2) / zoomLevel;
+                const centerY = (window.scrollY + window.innerHeight / 2) / zoomLevel;
+
+                const newBlock = document.createElement('div');
+                newBlock.className = 'document-block';
+                newBlock.style.left = `${centerX - 350}px`; 
+                newBlock.style.top = `${centerY - 100}px`;
+                newBlock.style.width = '700px';
+
+                newBlock.innerHTML = `
+                    <div class="document-header">
+                        <span>⠿ Drag to move block</span>
+                        <button class="delete-btn" title="Delete Block">❌</button>
+                    </div>
+                    <div class="document-content" contenteditable="true" spellcheck="false" title="Click to edit text natively">
+                        <p><strong>${title}</strong></p>
+                        ${paragraphs}
+                    </div>
+                    <button class="block-export-btn" title="Export this block">📤 Export Block</button>
+                    <div class="resize-handle"></div>
+                `;
+
+                blocksContainer.appendChild(newBlock);
+                makeBlockInteractive(newBlock);
+            }
+            transcriptModal.style.display = 'none';
+        });
+
+        /* =========================================
+           3. EDITABLE NOTES MODAL
+        ========================================= */
+        const noteModal = document.getElementById('note-modal-overlay');
+        const noteHeader = document.getElementById('note-modal-header');
+        const noteInput = document.getElementById('note-modal-input');
+        let noteModalCallback = null;
+
+        function openNoteModal(headerText, defaultContent, callback) {
+            noteHeader.innerText = headerText;
+            noteInput.value = defaultContent;
+            noteModal.style.display = 'flex';
+            noteInput.focus();
+            noteModalCallback = callback;
+        }
+
+        document.getElementById('note-modal-cancel').addEventListener('click', () => noteModal.style.display = 'none');
+        document.getElementById('note-modal-save').addEventListener('click', () => {
+            noteModal.style.display = 'none';
+            if (noteModalCallback && noteInput.value.trim() !== '') {
+                noteModalCallback(noteInput.value.trim());
+            }
+        });
+
+        /* =========================================
+           4. COMMENT MODE & TEXT SELECTION 
+        ========================================= */
+        let appMode = 'view';
+        const commentPopup = document.getElementById('comment-popup');
+        let savedSelectionRange = null;
+
+        function bindHoverEvents(container) {
+            let timeout;
+            container.addEventListener('mouseenter', () => {
+                if(appMode === 'draw') return; 
+                container.style.zIndex = '9999';
+                
+                const card = container.querySelector('.broll-card');
+                if (!card) return; 
+                clearTimeout(timeout);
+                card.style.left = '50%'; card.style.transform = 'translateX(-50%) translateY(0)';
+                card.classList.add('visible'); container.classList.add('active');
+            });
+            container.addEventListener('mouseleave', () => {
+                container.style.zIndex = '';
+                
+                const card = container.querySelector('.broll-card');
+                if (!card) return; 
+                timeout = setTimeout(() => {
+                    card.classList.remove('visible'); container.classList.remove('active');
+                    card.style.transform = 'translateX(-50%) translateY(10px)'; 
+                }, 250); 
+            });
+        }
+        document.querySelectorAll('.highlight-container').forEach(bindHoverEvents);
+
+        document.addEventListener('mouseup', (e) => {
+            if (appMode !== 'comment') return;
+            if (e.target.closest('#comment-popup') || e.target.closest('.modal-overlay')) return;
+            const selection = window.getSelection();
+            if (!selection.isCollapsed && selection.toString().trim().length > 0) {
+                savedSelectionRange = selection.getRangeAt(0).cloneRange();
+                commentPopup.style.display = 'flex';
+                commentPopup.style.left = `${e.pageX}px`; commentPopup.style.top = `${e.pageY - 25}px`;
+            } else {
+                commentPopup.style.display = 'none';
+            }
+        });
+
+        document.getElementById('btn-sentence-select').addEventListener('mousedown', (e) => {
+            e.preventDefault(); 
+            const sel = window.getSelection(); if (sel.isCollapsed) return;
+            try {
+                sel.modify("move", "backward", "sentence"); sel.modify("extend", "forward", "sentence");
+                savedSelectionRange = sel.getRangeAt(0).cloneRange();
+            } catch (err) {}
+        });
+
+        document.getElementById('btn-add-comment').addEventListener('mousedown', (e) => { 
+            e.preventDefault(); 
+            if (!savedSelectionRange) return;
+            commentPopup.style.display = 'none';
+            
+            openNoteModal("Add New Note", "", (userNote) => {
+                const container = document.createElement('span'); container.className = 'highlight-container';
+                const textSpan = document.createElement('span'); textSpan.className = 'highlight-text';
+                try {
+                    const content = savedSelectionRange.extractContents();
+                    textSpan.appendChild(content); container.appendChild(textSpan);
+                    
+                    const card = document.createElement('div'); card.className = 'broll-card';
+                    card.innerHTML = `
+                        <div class="broll-card-header">
+                            <strong class="broll-title">B-Roll Note</strong>
+                            <button class="btn-edit-note" title="Edit Note" contenteditable="false">✏️</button>
+                        </div>
+                        <div class="broll-note-text">${userNote}</div>
+                    `;
+                    
+                    container.appendChild(card);
+                    savedSelectionRange.insertNode(container);
+                    bindHoverEvents(container);
+                    window.getSelection().removeAllRanges(); savedSelectionRange = null;
+                } catch (err) {
+                    alert("Please select text carefully within a single paragraph.");
+                }
+            });
+        });
+
+        document.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.btn-edit-note');
+            if (editBtn) {
+                const card = editBtn.closest('.broll-card');
+                const textEl = card.querySelector('.broll-note-text');
+                openNoteModal("Edit Note", textEl.innerText, (newText) => {
+                    textEl.innerText = newText;
+                });
+            }
+        });
+
+        /* =========================================
+           4.5 EXPORT NOTES LOGIC
+        ========================================= */
+        document.getElementById('btn-export').addEventListener('click', () => {
+            const blocks = document.querySelectorAll('.document-block');
+            let fullExportText = "";
+            
+            if (blocks.length === 0) {
+                fullExportText = "No transcript blocks found. Add a transcript to begin!";
+            } else {
+                blocks.forEach((block, index) => {
+                    fullExportText += generateExportTextForBlock(block);
+                    if (index < blocks.length - 1) {
+                        fullExportText += "\n\n========================================\n\n";
+                    }
+                });
+            }
+            
+            exportContent.innerText = fullExportText.trim();
+            exportModal.style.display = 'flex';
+        });
+
+        document.getElementById('export-btn-close').addEventListener('click', () => {
+            exportModal.style.display = 'none';
+        });
+
+        document.getElementById('export-btn-copy').addEventListener('click', (e) => {
+            const textToCopy = exportContent.innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = textToCopy;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                const btn = e.target; const orig = btn.innerText;
+                btn.innerText = "✅ Copied!";
+                setTimeout(() => btn.innerText = orig, 2000);
+            } catch (err) { console.error('Failed to copy', err); }
+            document.body.removeChild(textarea);
+        });
+
+        /* =========================================
+           5. ZERO-LATENCY DRAWING ENGINE
+        ========================================= */
+        const canvas = document.getElementById('drawing-layer');
+        const ctx = canvas.getContext('2d');
+        
+        let shapes = []; let undoStack = [];
+        let isDrawing = false; let currentTool = 'pen'; let currentColor = '#f43f5e'; 
+        let startX = 0, startY = 0, lastX = 0, lastY = 0;
+
+        const colorBtns = document.querySelectorAll('.color-btn');
+        const customColorInput = document.getElementById('custom-color');
+        function updateColor(color) {
+            currentColor = color; colorBtns.forEach(b => b.classList.remove('active'));
+            const matched = Array.from(colorBtns).find(b => b.getAttribute('data-color') === color);
+            if (matched) matched.classList.add('active');
+        }
+        colorBtns.forEach(btn => btn.addEventListener('click', () => {
+            updateColor(btn.getAttribute('data-color')); customColorInput.value = currentColor;
+            if (appMode !== 'draw') document.getElementById('toggle-draw').click(); 
+        }));
+        customColorInput.addEventListener('input', (e) => {
+            updateColor(e.target.value); if (appMode !== 'draw') document.getElementById('toggle-draw').click();
+        });
+
+        function renderAllShapes() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            shapes.forEach(shape => {
+                ctx.globalCompositeOperation = shape.type === 'eraser' ? 'destination-out' : 'source-over';
+                ctx.strokeStyle = shape.color; ctx.lineWidth = shape.width || 3; 
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+                if (shape.type === 'pen' || shape.type === 'eraser') {
+                    if (shape.points.length === 0) return;
+                    ctx.beginPath(); ctx.moveTo(shape.points[0].x, shape.points[0].y);
+                    for (let i = 1; i < shape.points.length; i++) ctx.lineTo(shape.points[i].x, shape.points[i].y);
+                    ctx.stroke();
+                } else if (shape.type === 'arrow') {
+                    drawArrowObj(ctx, shape.startX, shape.startY, shape.endX, shape.endY, shape.color);
+                } 
+            });
+        }
+
+        function drawArrowObj(context, fromx, fromy, tox, toy, color) {
+            const headlen = 16; const angle = Math.atan2(toy - fromy, tox - fromx);
+            context.strokeStyle = color; context.lineWidth = 3;
+            context.beginPath(); context.moveTo(fromx, fromy); context.lineTo(tox, toy);
+            context.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+            context.moveTo(tox, toy);
+            context.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+            context.stroke();
+        }
+
+        function getCanvasCoords(e) {
+            const rect = zoomContainer.getBoundingClientRect();
+            return { x: (e.clientX - rect.left) / zoomLevel, y: (e.clientY - rect.top) / zoomLevel };
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+            if (appMode !== 'draw' || (typeof isSpacePanning !== 'undefined' && isSpacePanning)) return;
+            const coords = getCanvasCoords(e);
+            startX = coords.x; startY = coords.y; lastX = startX; lastY = startY;
+
+            isDrawing = true;
+            let newShape = { type: currentTool, color: currentColor, width: currentTool === 'eraser' ? 40 : 3 };
+            if (currentTool === 'pen' || currentTool === 'eraser') newShape.points = [{x: startX, y: startY}];
+            else { newShape.startX = startX; newShape.startY = startY; newShape.endX = startX; newShape.endY = startY; }
+            shapes.push(newShape);
+        });
+
+        canvas.addEventListener('pointermove', (e) => {
+            if (!isDrawing || appMode !== 'draw') return;
+            e.preventDefault();
+            const coords = getCanvasCoords(e);
+            let currentShape = shapes[shapes.length - 1];
+
+            if (currentTool === 'pen' || currentTool === 'eraser') {
+                currentShape.points.push({x: coords.x, y: coords.y});
+                ctx.globalCompositeOperation = currentTool === 'eraser' ? 'destination-out' : 'source-over';
+                ctx.strokeStyle = currentTool === 'eraser' ? 'rgba(0,0,0,1)' : currentColor;
+                ctx.lineWidth = currentShape.width; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(coords.x, coords.y); ctx.stroke();
+                lastX = coords.x; lastY = coords.y;
+            } else {
+                currentShape.endX = coords.x; currentShape.endY = coords.y;
+                renderAllShapes(); 
+            }
+        });
+
+        canvas.addEventListener('pointerup', () => { if (isDrawing) saveDrawingState(); isDrawing = false; });
+
+        /* =========================================
+           6. PROJECT SAVE / LOAD LOGIC
+        ========================================= */
+        function saveDrawingState() {
+            undoStack.push(JSON.parse(JSON.stringify(shapes)));
+            if (undoStack.length > 50) undoStack.shift(); 
+        }
+        function undo() {
+            if (undoStack.length > 0) { undoStack.pop(); shapes = undoStack.length ? JSON.parse(JSON.stringify(undoStack[undoStack.length - 1])) : []; }
+            else { shapes = []; }
+            renderAllShapes();
+        }
+
+        // SAVE PROJECT
+        document.getElementById('btn-save-project').addEventListener('click', () => {
+            const projectData = {
+                version: 1,
+                viewport: { zoom: zoomLevel, scrollX: window.scrollX, scrollY: window.scrollY },
+                shapes: shapes,
+                blocks: []
+            };
+
+            document.querySelectorAll('.document-block').forEach(block => {
+                projectData.blocks.push({
+                    left: block.style.left,
+                    top: block.style.top,
+                    width: block.style.width,
+                    content: block.querySelector('.document-content').innerHTML
+                });
+            });
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(projectData));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "broll_project.json");
+            document.body.appendChild(downloadAnchorNode); 
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        });
+
+        // LOAD PROJECT
+        const fileImport = document.getElementById('file-import');
+        document.getElementById('btn-load-project').addEventListener('click', () => {
+            fileImport.click();
+        });
+
+        fileImport.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const projectData = JSON.parse(event.target.result);
+                    
+                    // 1. Restore Blocks
+                    blocksContainer.innerHTML = ''; 
+                    if (projectData.blocks && projectData.blocks.length > 0) {
+                        projectData.blocks.forEach(blockData => {
+                            const newBlock = document.createElement('div');
+                            newBlock.className = 'document-block';
+                            newBlock.style.left = blockData.left;
+                            newBlock.style.top = blockData.top;
+                            newBlock.style.width = blockData.width;
+
+                            newBlock.innerHTML = `
+                                <div class="document-header">
+                                    <span>⠿ Drag to move block</span>
+                                    <button class="delete-btn" title="Delete Block">❌</button>
+                                </div>
+                                <div class="document-content" contenteditable="true" spellcheck="false" title="Click to edit text natively">
+                                    ${blockData.content}
+                                </div>
+                                <button class="block-export-btn" title="Export this block">📤 Export Block</button>
+                                <div class="resize-handle"></div>
+                            `;
+
+                            blocksContainer.appendChild(newBlock);
+                            makeBlockInteractive(newBlock);
+                            newBlock.querySelectorAll('.highlight-container').forEach(bindHoverEvents);
+                        });
+                    }
+
+                    // 2. Restore Drawings
+                    shapes = projectData.shapes || [];
+                    undoStack = []; 
+                    renderAllShapes();
+
+                    // 3. Restore Viewport
+                    if (projectData.viewport) {
+                        zoomLevel = projectData.viewport.zoom || 1;
+                        applyZoom();
+                        setTimeout(() => {
+                            window.scrollTo(projectData.viewport.scrollX || 0, projectData.viewport.scrollY || 0);
+                        }, 50);
+                    }
+
+                } catch(err) {
+                    alert("Invalid project file! Make sure you are loading a valid .json workspace.");
+                    console.error(err);
+                }
+            };
+            reader.readAsText(file);
+            this.value = ''; // Reset input
+        });
+
+        // --- SPACEBAR PANNING & CTRL+0 RESET VIEW ---
+        let isSpacePanning = false;
+        let hasPannedDuringSpace = false;
+        let panStartX = 0, panStartY = 0, scrollStartX = 0, scrollStartY = 0;
+
+        document.addEventListener('keydown', (e) => { 
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { 
+                e.preventDefault(); undo(); 
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+                e.preventDefault(); zoomLevel = 1; applyZoom();
+                window.scrollTo((6000 - window.innerWidth)/2, 400); 
+            }
+
+            if (e.code === 'Space') {
+                if (!isSpacePanning) {
+                    isSpacePanning = true; hasPannedDuringSpace = false; document.body.style.cursor = 'grab';
+                }
+                e.preventDefault(); 
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') {
+                isSpacePanning = false; document.body.style.cursor = 'default';
+                if (!hasPannedDuringSpace) {
+                    const target = e.target;
+                    const isEditable = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+                    if (isEditable && document.activeElement === target) {
+                        if (target.isContentEditable) { document.execCommand("insertText", false, " "); } 
+                        else {
+                            const start = target.selectionStart; const end = target.selectionEnd;
+                            target.value = target.value.substring(0, start) + " " + target.value.substring(end);
+                            target.selectionStart = target.selectionEnd = start + 1;
+                        }
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('mousedown', (e) => {
+            if (isSpacePanning || e.button === 1) {
+                if (e.button === 1) e.preventDefault(); 
+                document.body.style.cursor = 'grabbing';
+                panStartX = e.clientX; panStartY = e.clientY;
+                scrollStartX = window.scrollX; scrollStartY = window.scrollY;
+                if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if ((isSpacePanning && e.buttons === 1) || e.buttons === 4) {
+                e.preventDefault(); hasPannedDuringSpace = true;
+                window.scrollTo(scrollStartX - (e.clientX - panStartX), scrollStartY - (e.clientY - panStartY));
+            }
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (isSpacePanning || e.button === 1) document.body.style.cursor = isSpacePanning ? 'grab' : 'default';
+        });
+        // --------------------------------------------------
+
+        const btnToggleComment = document.getElementById('toggle-comment');
+        const btnToggleDraw = document.getElementById('toggle-draw');
+        const drawToolsRow = document.getElementById('draw-tools');
+        const toolBtns = document.querySelectorAll('.draw-tool');
+
+        function setAppMode(newMode) {
+            appMode = newMode;
+            btnToggleComment.className = 'tool-btn mode-btn'; btnToggleComment.innerHTML = '💬 Comment';
+            btnToggleDraw.className = 'tool-btn mode-btn'; btnToggleDraw.innerHTML = '✏️ Draw';
+            canvas.style.pointerEvents = 'none'; commentPopup.style.display = 'none'; window.getSelection().removeAllRanges();
+            drawToolsRow.style.display = 'none'; 
+            renderAllShapes(); 
+
+            if (appMode === 'comment') {
+                btnToggleComment.classList.add('active-comment'); btnToggleComment.innerHTML = '🟢 Comment: ON';
+            } else if (appMode === 'draw') {
+                btnToggleDraw.classList.add('active-draw'); btnToggleDraw.innerHTML = '🔴 Draw: ON';
+                drawToolsRow.style.display = 'flex'; 
+                canvas.style.pointerEvents = 'auto'; 
+            }
+        }
+
+        btnToggleComment.addEventListener('click', () => setAppMode(appMode === 'comment' ? 'view' : 'comment'));
+        btnToggleDraw.addEventListener('click', () => setAppMode(appMode === 'draw' ? 'view' : 'draw'));
+
+        toolBtns.forEach(btn => btn.addEventListener('click', () => {
+            if (appMode !== 'draw') setAppMode('draw');
+            toolBtns.forEach(b => b.classList.remove('active')); btn.classList.add('active');
+            currentTool = btn.getAttribute('data-tool');
+        }));
+
+        document.getElementById('tool-undo').addEventListener('click', undo);
+        document.getElementById('tool-clear').addEventListener('click', () => { shapes = []; saveDrawingState(); renderAllShapes(); });
+
+        document.getElementById('btn-screenshot').addEventListener('click', (e) => {
+            const btn = e.target; const origText = btn.innerHTML;
+            btn.innerHTML = '⏳ Processing...';
+            document.querySelector('.drawing-toolbar').style.display = 'none';
+
+            setTimeout(() => {
+                html2canvas(document.body, { 
+                    scale: 2, useCORS: true, backgroundColor: '#f4f5f7', 
+                    x: window.scrollX, y: window.scrollY, width: window.innerWidth, height: window.innerHeight 
+                }).then(renderedCanvas => {
+                    const link = document.createElement('a'); link.download = 'BRoll_Workspace_Screenshot.png';
+                    link.href = renderedCanvas.toDataURL('image/png'); link.click();
+                    document.querySelector('.drawing-toolbar').style.display = 'flex'; btn.innerHTML = origText;
+                }).catch(err => {
+                    document.querySelector('.drawing-toolbar').style.display = 'flex';
+                    btn.innerHTML = '❌ Error'; setTimeout(() => btn.innerHTML = origText, 2000);
+                });
+            }, 100);
+        });
+
+    </script>
+</body>
+</html>
