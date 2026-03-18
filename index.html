@@ -74,7 +74,6 @@
 
     h2 { margin-top: 0; color: #1a252f; font-weight: 700; }
 
-    /* ---- HIGHLIGHTS ---- */
     .highlight-container { position: relative; display: inline; }
     .highlight-text {
         background-color: #fff3cd; border-bottom: 2px solid #fbbf24;
@@ -82,7 +81,6 @@
         transition: background-color 0.2s ease;
         box-decoration-break: clone; -webkit-box-decoration-break: clone;
     }
-    /* Has a note attached: dashed border */
     .highlight-container.has-note .highlight-text {
         border-bottom: 2px dashed #e6a800;
     }
@@ -181,10 +179,15 @@
         z-index: 9999; display: none; align-items: center; justify-content: center;
     }
 
+    /* Floating modal: positioned to the RIGHT side by default */
     .floating-modal {
-        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        position: fixed; 
+        top: 50%; 
+        right: 24px;
+        left: auto;
+        transform: translateY(-50%);
         z-index: 10000; display: none; background: #fff; border-radius: 16px;
-        width: 450px; max-width: 90vw;
+        width: 420px; max-width: 90vw;
         box-shadow: 0 24px 60px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.06);
         border: 1px solid #e2e8f0; overflow: visible;
     }
@@ -278,7 +281,7 @@
         </div>
     </div>
 
-    <!-- Floating Note Modal (draggable, no overlay) -->
+    <!-- Floating Note Modal (draggable, opens on the RIGHT side) -->
     <div id="note-modal-floating" class="floating-modal">
         <div class="drag-handle">
             <h3 id="note-modal-header" style="margin:0; color:#1e293b; font-size:20px;">Production Note</h3>
@@ -319,8 +322,8 @@
                 <div class="document-content" contenteditable="true" spellcheck="false">
                     <h2>Episode Title</h2>
                     <p><strong>Segment: Cold Open</strong></p>
-                    <p>Paste your transcript here. Select any phrase and click "Mark" to flag it for B-roll. Then click the highlighted mark anytime to attach a production note describing the visual you need.</p>
-                    <p style="color:#94a3b8; font-size:15px; margin-top:24px;"><em>Quick start: Select text &#x2192; Mark &#x2192; Click the mark &#x2192; Add note. Ctrl+V pastes screenshots directly onto the canvas. Ctrl+Z undoes text edits.</em></p>
+                    <p>Paste your transcript here. Select any phrase and click "Mark" to flag it for B-roll, or "Add Note" to mark and write a production note in one step. Click any existing highlight to edit its note.</p>
+                    <p style="color:#94a3b8; font-size:15px; margin-top:24px;"><em>Quick start: Select text &#x2192; Mark or Add Note &#x2192; Ctrl+Z to undo. Ctrl+V pastes screenshots onto the canvas.</em></p>
                 </div>
                 <button class="block-export-btn" title="Export this block">&#x1F4E4; Export Block</button>
                 <div class="resize-handle"></div>
@@ -328,9 +331,10 @@
         </div>
     </div> 
 
-    <!-- Selection Popup -->
+    <!-- Selection Popup: 3 buttons -->
     <div id="comment-popup">
         <button id="btn-mark" class="btn" style="background-color: #eab308; color: #1e293b;">&#x1F4CC; Mark</button>
+        <button id="btn-add-note" class="btn" style="background-color: #10b981;">&#x1F4AC; Add Note</button>
         <button id="btn-sentence-select" class="btn" style="background-color: #475569;">&#x2B0C; Sentence</button>
     </div>
 
@@ -344,6 +348,7 @@
             </div>
             <div class="divider"></div>
             <button id="toggle-draw" class="tool-btn mode-btn">&#x270F;&#xFE0F; Draw</button>
+            <button id="btn-hide-drawings" class="tool-btn" title="Toggle drawing visibility">&#x1F441; Hide Drawings</button>
             <div class="divider"></div>
             <button id="btn-transcript" class="tool-btn">&#x1F4C4; +Transcript</button>
             <button id="btn-save-project" class="tool-btn io-btn" title="Save workspace">&#x1F4BE; Save</button>
@@ -493,7 +498,7 @@
             transcriptModal.style.display = 'none';
         });
 
-        /* === FLOATING DRAGGABLE NOTE MODAL === */
+        /* === FLOATING DRAGGABLE NOTE MODAL (opens on right side) === */
         const noteModal = document.getElementById('note-modal-floating');
         const noteHeader = document.getElementById('note-modal-header');
         const noteInput = document.getElementById('note-modal-input');
@@ -504,18 +509,28 @@
             h.addEventListener('mousedown', (e) => {
                 if(['INPUT','TEXTAREA','BUTTON'].includes(e.target.tagName)) return;
                 drag=true; const r=el.getBoundingClientRect(); ol=r.left;ot=r.top;sx=e.clientX;sy=e.clientY;
-                el.style.transform='none'; el.style.left=ol+'px'; el.style.top=ot+'px'; e.preventDefault();
+                // Switch to left/top positioning for dragging
+                el.style.right='auto'; el.style.transform='none';
+                el.style.left=ol+'px'; el.style.top=ot+'px';
+                e.preventDefault();
             });
             document.addEventListener('mousemove', (e) => { if(!drag) return; el.style.left=(ol+e.clientX-sx)+'px'; el.style.top=(ot+e.clientY-sy)+'px'; });
             document.addEventListener('mouseup', () => { drag=false; });
         }
         makeFloatingDraggable(noteModal);
 
-        function resetPos(el) { el.style.left='50%'; el.style.top='50%'; el.style.transform='translate(-50%,-50%)'; }
+        // Reset to right side position
+        function resetNoteModalPos() {
+            noteModal.style.left='auto';
+            noteModal.style.right='24px';
+            noteModal.style.top='50%';
+            noteModal.style.transform='translateY(-50%)';
+        }
 
         function openNoteModal(header, def, cb) {
             noteHeader.innerText=header; noteInput.value=def;
-            resetPos(noteModal); noteModal.style.display='block'; noteInput.focus();
+            resetNoteModalPos();
+            noteModal.style.display='block'; noteInput.focus();
             noteModalCallback=cb;
         }
         document.getElementById('note-modal-cancel').addEventListener('click', () => { noteModal.style.display='none'; noteModalCallback=null; });
@@ -525,18 +540,34 @@
             noteModalCallback=null;
         });
 
-        /* === HIGHLIGHT + CLICK-TO-ANNOTATE ===
-         *
-         *  How it works (no modes needed):
-         *    1. Select text -> popup: "Mark" + "Sentence"
-         *    2. "Mark" wraps text in yellow highlight
-         *    3. Click ANY highlight anytime -> opens note modal to add/edit note
-         *    4. Hover highlights with notes -> shows the card
+        /* === MARK UNDO STACK ===
+         * The browser's native Ctrl+Z doesn't work for DOM manipulations done via JS
+         * (like wrapping text in highlight spans). So we keep our own undo stack that
+         * stores the block's innerHTML before each mark/note operation.
          */
-        let appMode = 'view'; // only 'view' or 'draw'
+        let markUndoStack = []; // { blockEl, prevHTML }
+
+        function pushMarkUndo(contentEl) {
+            markUndoStack.push({ el: contentEl, html: contentEl.innerHTML });
+            if (markUndoStack.length > 50) markUndoStack.shift();
+        }
+
+        function popMarkUndo() {
+            if (!markUndoStack.length) return false;
+            const entry = markUndoStack.pop();
+            entry.el.innerHTML = entry.html;
+            // Rebind hover events on restored highlights
+            entry.el.querySelectorAll('.highlight-container').forEach(bindHoverEvents);
+            return true;
+        }
+
+        /* === HIGHLIGHT + CLICK-TO-ANNOTATE === */
+        let appMode = 'view';
         const commentPopup = document.getElementById('comment-popup');
         const btnMark = document.getElementById('btn-mark');
+        const btnAddNote = document.getElementById('btn-add-note');
         let savedSelectionRange = null;
+        let savedSelectionBlock = null; // the .document-content element where selection lives
 
         function bindHoverEvents(container) {
             let timeout;
@@ -563,33 +594,34 @@
             if (appMode==='draw') return;
             if (e.target.closest('.floating-modal') || e.target.closest('.modal-overlay') || e.target.closest('#comment-popup')) return;
 
-            // Edit note via pencil button
             const editBtn = e.target.closest('.btn-edit-note');
             if (editBtn) {
                 const card = editBtn.closest('.broll-card'), t = card.querySelector('.broll-note-text');
-                openNoteModal("Edit Production Note", t.innerText, (nt) => { t.innerText = nt; });
+                const container = card.closest('.highlight-container');
+                const contentEl = container.closest('.document-content');
+                openNoteModal("Edit Production Note", t.innerText, (nt) => {
+                    if (contentEl) pushMarkUndo(contentEl);
+                    t.innerText = nt;
+                });
                 return;
             }
 
-            // Click on a highlight-text -> add or edit note
             const highlightText = e.target.closest('.highlight-text');
             if (highlightText) {
                 const container = highlightText.closest('.highlight-container');
                 if (!container) return;
-                
-                // Check if user is selecting text (not just clicking)
                 const sel = window.getSelection();
                 if (!sel.isCollapsed && sel.toString().trim().length > 0) return;
                 
+                const contentEl = container.closest('.document-content');
                 const existingNote = container.querySelector('.broll-note-text');
                 const defaultText = existingNote ? existingNote.textContent : '';
                 const headerText = existingNote ? "Edit Production Note" : "Add Production Note";
 
                 openNoteModal(headerText, defaultText, (note) => {
-                    // Remove existing card if any
+                    if (contentEl) pushMarkUndo(contentEl);
                     const old = container.querySelector('.broll-card');
                     if (old) old.remove();
-
                     const card = document.createElement('div'); card.className = 'broll-card';
                     card.innerHTML = `<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit Note" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${note}</div>`;
                     container.appendChild(card);
@@ -600,7 +632,7 @@
             }
         });
 
-        // Show Mark popup on text selection (only in view mode, not draw)
+        // Show popup on text selection
         document.addEventListener('mouseup', (e) => {
             if (appMode==='draw') return;
             if (e.target.closest('#comment-popup') || e.target.closest('.modal-overlay') || e.target.closest('.floating-modal')) return;
@@ -608,8 +640,10 @@
             const sel = window.getSelection();
             if (!sel.isCollapsed && sel.toString().trim().length > 0) {
                 const anc = sel.anchorNode;
-                if (!anc || !anc.parentElement.closest('.document-content')) { commentPopup.style.display='none'; return; }
+                const contentEl = anc ? anc.parentElement.closest('.document-content') : null;
+                if (!contentEl) { commentPopup.style.display='none'; return; }
                 savedSelectionRange = sel.getRangeAt(0).cloneRange();
+                savedSelectionBlock = contentEl;
                 commentPopup.style.display='flex';
                 commentPopup.style.left=`${e.pageX}px`; commentPopup.style.top=`${e.pageY-25}px`;
             } else {
@@ -617,11 +651,30 @@
             }
         });
 
-        // Mark button
+        // Mark button: highlight only
         btnMark.addEventListener('mousedown', (e) => {
             e.preventDefault(); if (!savedSelectionRange) return;
             commentPopup.style.display='none';
+            if (savedSelectionBlock) pushMarkUndo(savedSelectionBlock);
             wrapAsHighlight(savedSelectionRange);
+        });
+
+        // Add Note button: highlight + open note modal
+        btnAddNote.addEventListener('mousedown', (e) => {
+            e.preventDefault(); if (!savedSelectionRange) return;
+            commentPopup.style.display='none';
+            const contentEl = savedSelectionBlock;
+            if (contentEl) pushMarkUndo(contentEl);
+            const container = wrapAsHighlight(savedSelectionRange);
+            if (container) {
+                openNoteModal("Add Production Note", "", (note) => {
+                    const card = document.createElement('div'); card.className = 'broll-card';
+                    card.innerHTML = `<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit Note" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${note}</div>`;
+                    container.appendChild(card);
+                    container.classList.add('has-note');
+                    bindHoverEvents(container);
+                });
+            }
         });
 
         // Sentence select
@@ -640,8 +693,9 @@
                 container.appendChild(ts);
                 range.insertNode(container);
                 bindHoverEvents(container);
-                window.getSelection().removeAllRanges(); savedSelectionRange=null;
-            } catch(err) { alert("Select text within a single paragraph."); }
+                window.getSelection().removeAllRanges(); savedSelectionRange=null; savedSelectionBlock=null;
+                return container;
+            } catch(err) { alert("Select text within a single paragraph."); return null; }
         }
 
         /* === EXPORT === */
@@ -666,6 +720,7 @@
         const ctx = canvas.getContext('2d');
         let shapes=[], undoStack=[], isDrawing=false, currentTool='pen', currentColor='#f43f5e';
         let startX=0,startY=0,lastX=0,lastY=0;
+        let drawingsVisible = true;
 
         const colorBtns=document.querySelectorAll('.color-btn');
         const customColorInput=document.getElementById('custom-color');
@@ -675,6 +730,7 @@
 
         function renderAllShapes(){
             ctx.clearRect(0,0,canvas.width,canvas.height);
+            if (!drawingsVisible) return;
             shapes.forEach(s=>{
                 ctx.globalCompositeOperation=s.type==='eraser'?'destination-out':'source-over';
                 ctx.strokeStyle=s.color;ctx.lineWidth=s.width||3;ctx.lineCap='round';ctx.lineJoin='round';
@@ -706,6 +762,16 @@
             }else{cs.endX=co.x;cs.endY=co.y;renderAllShapes();}
         });
         canvas.addEventListener('pointerup',()=>{if(isDrawing)saveDrawingState();isDrawing=false;});
+
+        // Hide/Show Drawings toggle
+        const btnHideDrawings = document.getElementById('btn-hide-drawings');
+        btnHideDrawings.addEventListener('click', () => {
+            drawingsVisible = !drawingsVisible;
+            btnHideDrawings.innerHTML = drawingsVisible ? '&#x1F441; Hide Drawings' : '&#x1F441;&#x200D;&#x1F5E8; Show Drawings';
+            if (drawingsVisible) btnHideDrawings.classList.remove('active');
+            else btnHideDrawings.classList.add('active');
+            renderAllShapes();
+        });
 
         /* === CTRL+V PASTE IMAGES === */
         const pasteToast = document.getElementById('paste-toast');
@@ -782,14 +848,19 @@
         let panStartX=0, panStartY=0, scrollStartX=0, scrollStartY=0;
 
         document.addEventListener('keydown', (e) => {
-            // Ctrl+Z: only intercept for drawing undo when in draw mode
-            // Otherwise let the browser handle native undo (contenteditable, inputs)
+            // Ctrl+Z
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
                 if (appMode === 'draw') {
                     e.preventDefault();
                     drawingUndo();
+                } else {
+                    // Try our mark undo stack first
+                    if (markUndoStack.length > 0) {
+                        e.preventDefault();
+                        popMarkUndo();
+                    }
+                    // If mark stack is empty, let browser handle native undo
                 }
-                // In view mode: do nothing, let browser's native undo work
             }
 
             if ((e.ctrlKey || e.metaKey) && e.key === '0') {
@@ -834,7 +905,7 @@
             if (isSpacePanning || e.button===1) document.body.style.cursor = isSpacePanning ? 'grab' : 'default';
         });
 
-        /* === MODE SWITCHING (only view <-> draw) === */
+        /* === MODE SWITCHING === */
         const btnToggleDraw = document.getElementById('toggle-draw');
         const drawToolsRow = document.getElementById('draw-tools');
         const toolBtns = document.querySelectorAll('.draw-tool');
