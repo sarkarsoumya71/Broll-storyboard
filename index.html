@@ -1136,13 +1136,12 @@
         // Capture phase: intercept ALL spacebar presses except in modal inputs
         window.addEventListener('keydown', (e) => {
             if (e.code !== 'Space') return;
-            if (e.repeat) return; // ignore key repeat
             if (isModalInput()) return; // let modals type spaces normally
 
-            e.preventDefault();
+            e.preventDefault(); // ALWAYS prevent default, even on repeat
             e.stopPropagation();
 
-            if (!spaceHeld) {
+            if (!e.repeat && !spaceHeld) {
                 spaceHeld = true;
                 spaceWasUsedToPan = false;
                 spaceDownTarget = document.activeElement;
@@ -1150,8 +1149,18 @@
             }
         }, { capture: true });
 
+        // Block spacebar scroll on keypress and keyup too
+        window.addEventListener('keypress', (e) => {
+            if (e.code === 'Space' && !isModalInput()) { e.preventDefault(); e.stopPropagation(); }
+        }, { capture: true });
+
         window.addEventListener('keyup', (e) => {
             if (e.code !== 'Space') return;
+            if (isModalInput()) return;
+
+            e.preventDefault(); // block scroll on keyup too
+            e.stopPropagation();
+
             if (!spaceHeld) return;
 
             spaceHeld = false;
