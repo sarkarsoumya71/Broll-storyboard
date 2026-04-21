@@ -4,96 +4,103 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>B-Roll Editor Web App Workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
     body { 
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-        line-height: 1.8; color: #2c3e50; font-size: 19px;
-        background-color: #f4f5f7; 
-        background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
-        background-size: 24px 24px;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+        line-height: 1.75; color: #1e293b; font-size: 16px;
+        background-color: #eef1f5; 
+        background-image: radial-gradient(#d0d7e2 1px, transparent 1px);
+        background-size: 20px 20px;
         margin: 0; padding: 0; overflow: auto; 
-        overscroll-behavior: none; 
+        overscroll-behavior: none;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
     
     #zoom-container {
         position: relative; width: 6000px; height: 6000px;
-        background-color: #f4f5f7; 
-        background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
-        background-size: 24px 24px; 
-        transform-origin: 0 0; box-shadow: 0 0 50px rgba(0,0,0,0.1);
+        background-color: #eef1f5; 
+        background-image: radial-gradient(#d0d7e2 1px, transparent 1px);
+        background-size: 20px 20px; 
+        transform-origin: 0 0;
     }
 
+    /* ---- DOCUMENT BLOCK ---- */
     .document-block {
-        background: #ffffff; 
-        position: absolute; 
-        border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.08), 0 2px 10px rgba(0,0,0,0.04);
-        z-index: 100; 
-        display: flex; flex-direction: column;
-        border: 1px solid #e2e8f0;
-        overflow: visible; 
+        background: #ffffff; position: absolute; border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
+        z-index: 100; display: flex; flex-direction: column;
+        border: 1px solid rgba(0,0,0,0.05); overflow: visible; 
     }
 
     .document-header {
         position: relative; z-index: 1; 
-        background: #f8fafc; padding: 10px 20px;
-        border-radius: 12px 12px 0 0; border-bottom: 1px solid #e2e8f0;
+        background: #f9fafb; padding: 10px 20px;
+        border-radius: 16px 16px 0 0; border-bottom: 1px solid #f0f1f3;
         display: flex; justify-content: space-between; align-items: center;
-        cursor: grab; user-select: none; color: #64748b; font-size: 14px; font-weight: 600;
+        cursor: grab; user-select: none; color: #a0aec0; font-size: 11px; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 1.2px;
     }
     .document-header:active { cursor: grabbing; }
     
     .delete-btn {
-        background: transparent; border: none; cursor: pointer; font-size: 14px;
-        color: #94a3b8; transition: color 0.2s; padding: 4px;
+        background: transparent; border: none; cursor: pointer; font-size: 18px;
+        color: #d1d5db; transition: all 0.15s; padding: 2px 6px; line-height: 1; border-radius: 6px;
     }
-    .delete-btn:hover { color: #f43f5e; }
+    .delete-btn:hover { color: #ef4444; background: #fef2f2; }
 
     .document-content {
         position: relative; z-index: 10; 
-        padding: 40px 50px; outline: none; flex-grow: 1; 
+        padding: 36px 44px; outline: none; flex-grow: 1;
+        font-size: 16px; line-height: 1.85; color: #334155;
     }
 
     .resize-handle {
         position: absolute; right: 0; bottom: 0;
-        width: 24px; height: 24px; cursor: se-resize;
-        background: linear-gradient(135deg, transparent 50%, #cbd5e1 50%);
-        border-radius: 0 0 12px 0; opacity: 0.5; transition: opacity 0.2s;
-        z-index: 20;
+        width: 20px; height: 20px; cursor: se-resize;
+        background: linear-gradient(135deg, transparent 50%, #d1d5db 50%);
+        border-radius: 0 0 16px 0; opacity: 0; transition: opacity 0.2s; z-index: 20;
     }
-    .document-block:hover .resize-handle { opacity: 1; }
+    .document-block:hover .resize-handle { opacity: 0.5; }
 
     .block-export-btn {
-        position: absolute; bottom: 12px; right: 35px; 
-        background: #10b981; color: #fff; border: none; border-radius: 6px;
-        padding: 4px 10px; font-size: 13px; font-weight: bold; cursor: pointer;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background 0.2s; z-index: 20;
+        position: absolute; bottom: 14px; right: 20px; 
+        background: #10b981; color: #fff; border: none; border-radius: 8px;
+        padding: 6px 14px; font-size: 11px; font-weight: 700; cursor: pointer;
+        box-shadow: 0 2px 8px rgba(16,185,129,0.2); transition: all 0.15s; z-index: 20;
+        text-transform: uppercase; letter-spacing: 0.8px; font-family: 'Inter', sans-serif;
     }
-    .block-export-btn:hover { background: #059669; }
+    .block-export-btn:hover { background: #059669; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
 
-    h2 { margin-top: 0; color: #1a252f; font-weight: 700; }
+    h2 { margin-top: 0; color: #0f172a; font-weight: 700; font-size: 22px; letter-spacing: -0.3px; }
 
+    /* ---- HIGHLIGHTS ---- */
     .highlight-container { position: relative; display: inline; }
     .highlight-text {
-        background-color: #fff3cd; border-bottom: 2px solid #fbbf24;
-        cursor: pointer; padding: 0 1px; border-radius: 3px;
-        transition: background-color 0.2s ease;
+        background-color: rgba(251,191,36,0.18); border-bottom: 2px solid #fbbf24;
+        cursor: pointer; padding: 1px 2px; border-radius: 2px;
+        transition: background-color 0.15s ease;
         box-decoration-break: clone; -webkit-box-decoration-break: clone;
     }
     .highlight-container.has-note .highlight-text {
-        border-bottom: 2px dashed #e6a800;
+        background-color: rgba(251,191,36,0.25); border-bottom: 2px dashed #f59e0b;
     }
     .highlight-container:hover .highlight-text, .highlight-container.active .highlight-text {
-        background-color: #ffe69c;
+        background-color: rgba(251,191,36,0.4);
     }
 
     .broll-card {
         visibility: hidden; opacity: 0; position: absolute; bottom: 120%; left: 50%;
-        transform: translateX(-50%) translateY(10px); background-color: #ffffff; color: #333;
-        padding: 16px 20px; border-radius: 12px; font-size: 15px; width: 360px; z-index: 500;
-        box-shadow: 0 12px 35px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.1);
-        border: 1px solid #e2e8f0; transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+        transform: translateX(-50%) translateY(6px); background: #fff; color: #333;
+        padding: 16px 20px; border-radius: 14px; font-size: 14px; width: 340px; z-index: 500;
+        box-shadow: 0 16px 48px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.04);
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: opacity 0.15s, visibility 0.15s, transform 0.15s;
         line-height: 1.5; cursor: default;
     }
     .broll-card.visible { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -102,20 +109,22 @@
         display: flex; justify-content: space-between; align-items: flex-start;
         margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;
     }
-    .broll-title { color: #1e293b; font-size: 16px; font-weight: 700; margin: 0; }
+    .broll-title { color: #64748b; font-size: 10px; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
     .btn-edit-note {
-        background: transparent; border: none; cursor: pointer; font-size: 14px; 
-        padding: 4px; border-radius: 4px; transition: background 0.1s;
+        background: transparent; border: none; cursor: pointer; font-size: 13px; 
+        padding: 3px 6px; border-radius: 6px; transition: background 0.1s; color: #94a3b8;
     }
-    .btn-edit-note:hover { background: #f1f5f9; }
-    .broll-note-text { margin-bottom: 14px; color: #475569; white-space: pre-wrap; font-family: sans-serif; }
+    .btn-edit-note:hover { background: #f1f5f9; color: #475569; }
+    .broll-note-text { margin-bottom: 6px; color: #334155; white-space: pre-wrap; font-size: 14px; line-height: 1.6; }
 
+    /* ---- POPUP BUTTONS ---- */
     .btn {
-        display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border-radius: 8px;
-        font-size: 14px; font-weight: 600; color: #fff; border: none; cursor: pointer; transition: transform 0.1s ease, opacity 0.2s; text-decoration: none;
-        white-space: nowrap;
+        display: inline-flex; align-items: center; justify-content: center; padding: 7px 16px; border-radius: 10px;
+        font-size: 13px; font-weight: 600; color: #fff; border: none; cursor: pointer; 
+        transition: all 0.12s; text-decoration: none; white-space: nowrap;
+        letter-spacing: 0.2px; font-family: 'Inter', sans-serif;
     }
-    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
     .btn:active { transform: translateY(0); }
 
     #drawing-layer {
@@ -124,140 +133,293 @@
         z-index: 150; pointer-events: none; touch-action: none; 
     }
 
+    /* ---- GLASS TOOLBAR ---- */
     .drawing-toolbar {
-        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-        background: #1e293b; padding: 16px 24px; border-radius: 24px;
-        display: flex; flex-direction: column; gap: 14px; align-items: center;
-        box-shadow: 0 16px 40px rgba(0,0,0,0.3); z-index: 1000; border: 1px solid #334155;
+        position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+        background: rgba(15, 23, 42, 0.72);
+        backdrop-filter: blur(28px) saturate(180%);
+        -webkit-backdrop-filter: blur(28px) saturate(180%);
+        padding: 10px 18px; border-radius: 18px;
+        display: flex; flex-direction: column; gap: 8px; align-items: center;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06);
+        z-index: 1000; 
+        border: 1px solid rgba(255,255,255,0.07);
         width: max-content; 
     }
-    .toolbar-row { display: flex; gap: 8px; align-items: center; justify-content: center; width: 100%; }
+    .toolbar-row { display: flex; gap: 4px; align-items: center; justify-content: center; width: 100%; }
 
     .tool-btn {
-        background: transparent; border: 2px solid transparent; color: #cbd5e1;
-        padding: 8px 14px; border-radius: 50px; cursor: pointer; font-size: 15px;
-        font-weight: 600; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center;
-        white-space: nowrap; 
+        background: transparent; border: 1.5px solid transparent; color: rgba(255,255,255,0.6);
+        padding: 6px 14px; border-radius: 10px; cursor: pointer; font-size: 13px;
+        font-weight: 600; transition: all 0.12s; display: inline-flex; align-items: center; justify-content: center;
+        white-space: nowrap; letter-spacing: 0.2px; font-family: 'Inter', sans-serif;
     }
-    .tool-btn:hover { background: #334155; color: #fff; }
-    .tool-btn.active { background: #6366f1; color: #fff; border-color: #6366f1; }
-    .tool-btn.danger { color: #f43f5e; }
-    .tool-btn.danger:hover { background: rgba(244, 63, 94, 0.15); }
-    .tool-btn.capture { background: #eab308; color: #1e293b; border-color: #ca8a04; }
-    .tool-btn.capture:hover { background: #facc15; }
-    .tool-btn.io-btn { background: #475569; color: #fff; border-color: #475569; }
-    .tool-btn.io-btn:hover { background: #64748b; }
+    .tool-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .tool-btn.active { background: rgba(99,102,241,0.8); color: #fff; border-color: rgba(99,102,241,0.4); }
+    .tool-btn.danger { color: #fca5a5; }
+    .tool-btn.danger:hover { background: rgba(239,68,68,0.12); }
+    .tool-btn.capture { background: rgba(234,179,8,0.85); color: #1e293b; border-color: rgba(234,179,8,0.4); font-weight: 700; }
+    .tool-btn.capture:hover { background: rgba(250,204,21,0.9); }
+    .tool-btn.io-btn { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); }
+    .tool-btn.io-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
 
-    .zoom-group { display: flex; align-items: center; background: #0f172a; border-radius: 50px; padding: 4px; }
-    .zoom-btn { padding: 6px 12px; font-size: 16px; }
-    #zoom-level { color: #fff; font-size: 13px; font-weight: 700; min-width: 50px; text-align: center; user-select: none; }
+    .zoom-group { display: flex; align-items: center; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 2px; }
+    .zoom-btn { padding: 5px 10px; font-size: 14px; }
+    #zoom-level { color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 700; min-width: 44px; text-align: center; user-select: none; font-family: 'Inter', sans-serif; }
 
-    .divider { width: 1px; height: 24px; background: #334155; margin: 0 4px; }
+    .divider { width: 1px; height: 18px; background: rgba(255,255,255,0.08); margin: 0 2px; }
 
-    .mode-btn { background: #334155; color: #fff; border: 2px solid #475569; }
-    .mode-btn.active-draw { background: #f43f5e; border-color: #f43f5e; box-shadow: 0 0 15px rgba(244, 63, 94, 0.4); }
+    .mode-btn { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7); border: 1.5px solid rgba(255,255,255,0.08); }
+    .mode-btn.active-draw { background: rgba(239,68,68,0.8); border-color: rgba(239,68,68,0.4); color: #fff; box-shadow: 0 0 16px rgba(239,68,68,0.2); }
 
-    .color-picker-group { display: flex; align-items: center; gap: 8px; background: #0f172a; padding: 6px 14px; border-radius: 50px; }
-    .color-btn { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; transition: transform 0.1s; }
-    .color-btn:hover { transform: scale(1.15); }
-    .color-btn.active { border-color: #fff; box-shadow: 0 0 0 2px #6366f1; }
-    .custom-color-input { width: 26px; height: 26px; padding: 0; border: none; border-radius: 6px; cursor: pointer; background: transparent; }
+    .color-picker-group { display: flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.15); padding: 4px 10px; border-radius: 10px; }
+    .color-btn { width: 18px; height: 18px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; transition: transform 0.1s; }
+    .color-btn:hover { transform: scale(1.2); }
+    .color-btn.active { border-color: #fff; box-shadow: 0 0 0 2px rgba(99,102,241,0.6); }
+    .custom-color-input { width: 22px; height: 22px; padding: 0; border: none; border-radius: 5px; cursor: pointer; background: transparent; }
     .custom-color-input::-webkit-color-swatch-wrapper { padding: 0; }
-    .custom-color-input::-webkit-color-swatch { border: 2px solid #fff; border-radius: 6px; }
+    .custom-color-input::-webkit-color-swatch { border: 2px solid rgba(255,255,255,0.4); border-radius: 5px; }
 
+    /* ---- SELECTION POPUP (glass) ---- */
     #comment-popup {
-        display: none; position: absolute; z-index: 800; background: #ffffff; padding: 8px;
-        border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #e2e8f0;
-        gap: 8px; transform: translate(-50%, -100%); margin-top: -10px;
+        display: none; position: absolute; z-index: 800; 
+        background: rgba(255,255,255,0.92);
+        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        padding: 5px; border-radius: 14px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.04);
+        border: 1px solid rgba(0,0,0,0.05);
+        gap: 4px; transform: translate(-50%, -100%); margin-top: -12px;
         width: max-content; flex-direction: row; align-items: center; flex-wrap: nowrap;
     }
     #comment-popup .btn { white-space: nowrap !important; flex-shrink: 0; }
 
     .modal-overlay {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
+        background: rgba(15,23,42,0.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
         z-index: 9999; display: none; align-items: center; justify-content: center;
     }
 
-    /* Floating modal: positioned to the RIGHT side by default */
+    /* ---- FLOATING NOTE MODAL (glass, right side) ---- */
     .floating-modal {
-        position: fixed; 
-        top: 50%; 
-        right: 24px;
-        left: auto;
+        position: fixed; top: 50%; right: 24px; left: auto;
         transform: translateY(-50%);
-        z-index: 10000; display: none; background: #fff; border-radius: 16px;
-        width: 420px; max-width: 90vw;
-        box-shadow: 0 24px 60px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.06);
-        border: 1px solid #e2e8f0; overflow: visible;
+        z-index: 10000; display: none; 
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+        border-radius: 20px; width: 380px; max-width: 90vw;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.03);
+        border: 1px solid rgba(0,0,0,0.05); overflow: visible;
     }
     .floating-modal .drag-handle {
-        padding: 18px 30px 0 30px; cursor: grab; user-select: none;
+        padding: 20px 24px 0 24px; cursor: grab; user-select: none;
         display: flex; justify-content: space-between; align-items: center;
     }
     .floating-modal .drag-handle:active { cursor: grabbing; }
-    .floating-modal .drag-handle .grip-dots { color: #94a3b8; font-size: 12px; letter-spacing: 2px; }
-    .floating-modal .modal-body { padding: 12px 30px 30px 30px; }
+    .floating-modal .drag-handle .grip-dots { color: #94a3b8; font-size: 10px; letter-spacing: 2px; font-weight: 700; text-transform: uppercase; }
+    .floating-modal .modal-body { padding: 12px 24px 24px 24px; }
 
     .custom-modal {
-        background: #fff; padding: 30px; border-radius: 16px; width: 450px; max-width: 90vw;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.2); border: 1px solid #e2e8f0;
+        background: #fff; padding: 32px; border-radius: 20px; width: 450px; max-width: 90vw;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.12); border: 1px solid rgba(0,0,0,0.05);
     }
-    .custom-modal h3 { margin-top: 0; margin-bottom: 8px; color: #1e293b; font-size: 22px; }
-    .custom-modal p.subtitle { margin-top: 0; margin-bottom: 20px; font-size: 14px; color: #64748b; line-height: 1.4; }
-    .input-label { display: block; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .custom-modal h3 { margin-top: 0; margin-bottom: 8px; color: #0f172a; font-size: 18px; font-weight: 700; letter-spacing: -0.2px; }
+    .custom-modal p.subtitle { margin-top: 0; margin-bottom: 20px; font-size: 13px; color: #64748b; line-height: 1.5; }
+    .input-label { display: block; font-size: 10px; font-weight: 700; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
     
     .custom-modal input, .custom-modal textarea,
     .floating-modal input, .floating-modal textarea {
-        width: 100%; box-sizing: border-box; padding: 12px; border: 2px solid #cbd5e1;
-        border-radius: 8px; font-family: inherit; color: #1e293b; margin-bottom: 24px;
+        width: 100%; box-sizing: border-box; padding: 11px 14px; border: 1.5px solid #e5e7eb;
+        border-radius: 12px; font-family: 'Inter', sans-serif; color: #1e293b; margin-bottom: 18px;
+        font-size: 14px; background: #fafbfc; transition: all 0.15s;
     }
-    .custom-modal input, .floating-modal input { font-size: 16px; font-weight: 600; }
-    .custom-modal textarea, .floating-modal textarea { font-size: 15px; resize: vertical; min-height: 120px; line-height: 1.5; }
+    .custom-modal input, .floating-modal input { font-size: 14px; font-weight: 600; }
+    .custom-modal textarea, .floating-modal textarea { font-size: 14px; resize: vertical; min-height: 90px; line-height: 1.6; }
     .custom-modal input:focus, .custom-modal textarea:focus,
-    .floating-modal input:focus, .floating-modal textarea:focus { outline: none; border-color: #6366f1; }
+    .floating-modal input:focus, .floating-modal textarea:focus { outline: none; border-color: #818cf8; background: #fff; box-shadow: 0 0 0 3px rgba(129,140,248,0.1); }
     
-    .modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
-    .modal-btn { padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; border: none; transition: background 0.1s; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .modal-btn { padding: 9px 18px; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 13px; border: none; transition: all 0.12s; font-family: 'Inter', sans-serif; }
     .modal-btn-cancel { background: #f1f5f9; color: #475569; }
     .modal-btn-cancel:hover { background: #e2e8f0; }
-    .modal-btn-save { background: #6366f1; color: #fff; }
-    .modal-btn-save:hover { background: #4f46e5; }
+    .modal-btn-save { background: #4f46e5; color: #fff; }
+    .modal-btn-save:hover { background: #4338ca; box-shadow: 0 4px 12px rgba(79,70,229,0.25); }
 
     #export-content {
         flex-grow: 1; overflow-y: auto; background: #f8fafc; padding: 16px; 
-        border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 20px; 
-        font-size: 15px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; 
-        white-space: pre-wrap; color: #1e293b; max-height: 400px;
+        border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 18px; 
+        font-size: 12px; font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace; 
+        white-space: pre-wrap; color: #334155; max-height: 400px; line-height: 1.7;
     }
 
+    /* ---- IMAGE BLOCKS ---- */
     .image-block {
-        background: #ffffff; position: absolute; border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.08), 0 2px 10px rgba(0,0,0,0.04);
+        background: #fff; position: absolute; border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
         z-index: 100; display: flex; flex-direction: column;
-        border: 1px solid #e2e8f0; overflow: hidden; min-width: 150px; min-height: 100px;
+        border: 1px solid rgba(0,0,0,0.05); overflow: hidden; min-width: 150px; min-height: 100px;
     }
-    .image-block .document-header { border-radius: 12px 12px 0 0; }
+    .image-block .document-header { border-radius: 16px 16px 0 0; }
     .image-block .image-wrapper {
         flex-grow: 1; display: flex; align-items: center; justify-content: center;
-        overflow: hidden; background: #f1f5f9;
+        overflow: hidden; background: #f8fafc;
     }
     .image-block .image-wrapper img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
     .image-block .resize-handle {
-        position: absolute; right: 0; bottom: 0; width: 24px; height: 24px; cursor: se-resize;
-        background: linear-gradient(135deg, transparent 50%, #cbd5e1 50%);
-        border-radius: 0 0 12px 0; opacity: 0.5; transition: opacity 0.2s; z-index: 20;
+        position: absolute; right: 0; bottom: 0; width: 20px; height: 20px; cursor: se-resize;
+        background: linear-gradient(135deg, transparent 50%, #d1d5db 50%);
+        border-radius: 0 0 16px 0; opacity: 0; transition: opacity 0.2s; z-index: 20;
     }
-    .image-block:hover .resize-handle { opacity: 1; }
+    .image-block:hover .resize-handle { opacity: 0.5; }
 
     .paste-toast {
-        position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
-        background: #1e293b; color: #fff; padding: 10px 24px; border-radius: 50px;
-        font-size: 14px; font-weight: 600; z-index: 11000;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-        opacity: 0; transition: opacity 0.25s; pointer-events: none;
+        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+        background: rgba(15,23,42,0.8); backdrop-filter: blur(16px);
+        color: #fff; padding: 8px 22px; border-radius: 12px;
+        font-size: 13px; font-weight: 600; z-index: 11000;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        opacity: 0; transition: opacity 0.2s; pointer-events: none;
+        font-family: 'Inter', sans-serif;
     }
     .paste-toast.show { opacity: 1; }
+
+    /* ============ DARK MODE ============ */
+    body.dark {
+        background-color: #0f1419;
+        background-image: radial-gradient(#1e2530 1px, transparent 1px);
+        color: #e2e8f0;
+    }
+    body.dark #zoom-container {
+        background-color: #0f1419;
+        background-image: radial-gradient(#1e2530 1px, transparent 1px);
+    }
+
+    /* Blocks */
+    body.dark .document-block {
+        background: #1a1f2e;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 8px 32px rgba(0,0,0,0.2);
+        border-color: rgba(255,255,255,0.06);
+    }
+    body.dark .document-header {
+        background: #161b27;
+        border-bottom-color: rgba(255,255,255,0.05);
+        color: #64748b;
+    }
+    body.dark .delete-btn { color: #475569; }
+    body.dark .delete-btn:hover { color: #f87171; background: rgba(248,113,113,0.1); }
+    body.dark .document-content { color: #cbd5e1; }
+    body.dark .document-content h2 { color: #f1f5f9; }
+    body.dark .document-content strong { color: #e2e8f0; }
+    body.dark .resize-handle { background: linear-gradient(135deg, transparent 50%, #334155 50%); }
+    body.dark .block-export-btn { background: #059669; box-shadow: 0 2px 8px rgba(5,150,105,0.3); }
+
+    /* Highlights */
+    body.dark .highlight-text {
+        background-color: rgba(251,191,36,0.12);
+        border-bottom-color: #b45309;
+    }
+    body.dark .highlight-container.has-note .highlight-text {
+        background-color: rgba(251,191,36,0.18);
+        border-bottom-color: #92400e;
+    }
+    body.dark .highlight-container:hover .highlight-text,
+    body.dark .highlight-container.active .highlight-text {
+        background-color: rgba(251,191,36,0.28);
+    }
+
+    /* B-Roll Cards */
+    body.dark .broll-card {
+        background: #1e293b;
+        border-color: rgba(255,255,255,0.08);
+        box-shadow: 0 16px 48px rgba(0,0,0,0.35);
+        color: #cbd5e1;
+    }
+    body.dark .broll-card-header { border-bottom-color: rgba(255,255,255,0.06); }
+    body.dark .broll-title { color: #64748b; }
+    body.dark .btn-edit-note { color: #64748b; }
+    body.dark .btn-edit-note:hover { background: rgba(255,255,255,0.06); color: #94a3b8; }
+    body.dark .broll-note-text { color: #94a3b8; }
+
+    /* Selection Popup */
+    body.dark #comment-popup {
+        background: rgba(30,41,59,0.92);
+        border-color: rgba(255,255,255,0.08);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    body.dark #comment-popup #btn-mark { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+    body.dark #comment-popup #btn-mark:hover { background: rgba(255,255,255,0.15); }
+
+    /* Modals */
+    body.dark .modal-overlay {
+        background: rgba(0,0,0,0.6);
+    }
+    body.dark .custom-modal {
+        background: #1a1f2e;
+        border-color: rgba(255,255,255,0.06);
+        box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+    }
+    body.dark .custom-modal h3 { color: #f1f5f9; }
+    body.dark .custom-modal p.subtitle { color: #64748b; }
+    body.dark .input-label { color: #64748b; }
+    body.dark .custom-modal input,
+    body.dark .custom-modal textarea {
+        background: #0f172a; border-color: #334155; color: #e2e8f0;
+    }
+    body.dark .custom-modal input:focus,
+    body.dark .custom-modal textarea:focus {
+        border-color: #6366f1; background: #1e293b;
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+    body.dark .modal-btn-cancel { background: #334155; color: #94a3b8; }
+    body.dark .modal-btn-cancel:hover { background: #3f4a5e; }
+
+    /* Floating Note Modal */
+    body.dark .floating-modal {
+        background: rgba(26,31,46,0.97);
+        border-color: rgba(255,255,255,0.06);
+        box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+    }
+    body.dark .floating-modal .drag-handle .grip-dots { color: #475569; }
+    body.dark #note-modal-header { color: #f1f5f9 !important; }
+    body.dark .floating-modal input,
+    body.dark .floating-modal textarea {
+        background: #0f172a; border-color: #334155; color: #e2e8f0;
+    }
+    body.dark .floating-modal input:focus,
+    body.dark .floating-modal textarea:focus {
+        border-color: #6366f1; background: #1e293b;
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+
+    /* Export content */
+    body.dark #export-content {
+        background: #0f172a; border-color: #334155; color: #94a3b8;
+    }
+
+    /* Image blocks */
+    body.dark .image-block {
+        background: #1a1f2e;
+        border-color: rgba(255,255,255,0.06);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 8px 32px rgba(0,0,0,0.2);
+    }
+    body.dark .image-block .image-wrapper { background: #0f172a; }
+
+    /* Toast */
+    body.dark .paste-toast {
+        background: rgba(30,41,59,0.9);
+    }
+
+    /* Toolbar in dark mode - slightly more opaque */
+    body.dark .drawing-toolbar {
+        background: rgba(10,15,25,0.82);
+        border-color: rgba(255,255,255,0.05);
+    }
+
+    /* Dark mode toggle button glow */
+    .tool-btn.dark-toggle { font-size: 15px; padding: 6px 10px; }
+    body.dark .tool-btn.dark-toggle { color: #fbbf24; }
+
+    /* Dark mode placeholder text */
+    body.dark .document-content p[style*="color:#94a3b8"] { color: #475569 !important; }
 </style>
 </head>
 <body>
@@ -267,13 +429,13 @@
 
     <!-- Transcript Modal -->
     <div id="transcript-modal-overlay" class="modal-overlay">
-        <div class="custom-modal" style="width: 750px;">
+        <div class="custom-modal" style="width: 700px;">
             <h3>Add Transcript Block</h3>
             <p class="subtitle">Paste your transcript text. The block will appear on the canvas ready to mark and annotate.</p>
             <label class="input-label">Block Label</label>
             <input type="text" id="transcript-title-input" placeholder="e.g. Segment 1: Cold Open">
             <label class="input-label">Transcript Text</label>
-            <textarea id="transcript-input" style="min-height: 250px;" placeholder="Paste or type transcript text here..."></textarea>
+            <textarea id="transcript-input" style="min-height: 220px;" placeholder="Paste or type transcript text here..."></textarea>
             <div class="modal-actions">
                 <button class="modal-btn modal-btn-cancel" id="transcript-btn-cancel">Cancel</button>
                 <button class="modal-btn modal-btn-save" id="transcript-btn-save">Add Block</button>
@@ -281,25 +443,25 @@
         </div>
     </div>
 
-    <!-- Floating Note Modal (draggable, opens on the RIGHT side) -->
+    <!-- Floating Note Modal -->
     <div id="note-modal-floating" class="floating-modal">
         <div class="drag-handle">
-            <h3 id="note-modal-header" style="margin:0; color:#1e293b; font-size:20px;">Production Note</h3>
+            <h3 id="note-modal-header" style="margin:0; color:#0f172a; font-size:17px; font-weight:700; letter-spacing:-0.2px;">Production Note</h3>
             <span class="grip-dots">&#x2630; drag</span>
         </div>
         <div class="modal-body">
-            <label class="input-label">Production Note</label>
-            <textarea id="note-modal-input" placeholder="Describe the B-roll, visual, or animation you need here..."></textarea>
+            <label class="input-label">Note</label>
+            <textarea id="note-modal-input" placeholder="Describe the B-roll, visual, or animation..."></textarea>
             <div class="modal-actions">
                 <button class="modal-btn modal-btn-cancel" id="note-modal-cancel">Cancel</button>
-                <button class="modal-btn modal-btn-save" id="note-modal-save">Save Note</button>
+                <button class="modal-btn modal-btn-save" id="note-modal-save">Save</button>
             </div>
         </div>
     </div>
 
     <!-- Export Modal -->
     <div id="export-modal-overlay" class="modal-overlay">
-        <div class="custom-modal" style="width: 650px;">
+        <div class="custom-modal" style="width: 620px;">
             <h3>Exported Notes</h3>
             <p class="subtitle">All marked phrases and their production notes.</p>
             <div id="export-content"></div>
@@ -316,67 +478,72 @@
         <div id="blocks-container">
             <div class="document-block" style="left: 2550px; top: 600px; width: 900px;">
                 <div class="document-header">
-                    <span>&#x2807; Drag to move block</span>
-                    <button class="delete-btn" title="Delete Block">&#x274C;</button>
+                    <span>&#x2807; Drag to move</span>
+                    <button class="delete-btn" title="Delete Block">&times;</button>
                 </div>
                 <div class="document-content" contenteditable="true" spellcheck="false">
                     <h2>Episode Title</h2>
                     <p><strong>Segment: Cold Open</strong></p>
-                    <p>Paste your transcript here. Select any phrase and click "Mark" to flag it for B-roll, or "Add Note" to mark and write a production note in one step. Click any existing highlight to edit its note.</p>
-                    <p style="color:#94a3b8; font-size:15px; margin-top:24px;"><em>Quick start: Select text &#x2192; Mark or Add Note &#x2192; Ctrl+Z to undo. Ctrl+V pastes screenshots onto the canvas.</em></p>
+                    <p>Paste your transcript here. Select any phrase and click "Mark" to flag it for B-roll, or "+ Note" to mark and write a production note in one step. Click any existing highlight to edit its note.</p>
+                    <p style="color:#94a3b8; font-size:14px; margin-top:24px;"><em>Select text &rarr; Mark or + Note &rarr; Ctrl+Z to undo. Ctrl+V pastes screenshots onto the canvas.</em></p>
                 </div>
-                <button class="block-export-btn" title="Export this block">&#x1F4E4; Export Block</button>
+                <button class="block-export-btn">Export Block</button>
                 <div class="resize-handle"></div>
             </div>
         </div>
     </div> 
 
-    <!-- Selection Popup: Mark, Add Note, Copy -->
+    <!-- Selection Popup -->
     <div id="comment-popup">
-        <button id="btn-mark" class="btn" style="background-color: #eab308; color: #1e293b;">&#x1F4CC; Mark</button>
-        <button id="btn-add-note" class="btn" style="background-color: #10b981;">&#x1F4AC; Add Note</button>
-        <button id="btn-copy-text" class="btn" style="background-color: #6366f1;">&#x1F4CB; Copy</button>
+        <button id="btn-mark" class="btn" style="background:#f1f5f9; color:#1e293b;">Mark</button>
+        <button id="btn-add-note" class="btn" style="background:#10b981;">+ Note</button>
+        <button id="btn-copy-text" class="btn" style="background:#475569;">Copy</button>
     </div>
 
-    <!-- Toolbar -->
+    <!-- Glass Toolbar -->
     <div class="drawing-toolbar">
         <div class="toolbar-row">
             <div class="zoom-group">
-                <button id="zoom-out" class="tool-btn zoom-btn">&#x2796;</button>
+                <button id="zoom-out" class="tool-btn zoom-btn">&minus;</button>
                 <span id="zoom-level">100%</span>
-                <button id="zoom-in" class="tool-btn zoom-btn">&#x2795;</button>
+                <button id="zoom-in" class="tool-btn zoom-btn">+</button>
             </div>
             <div class="divider"></div>
-            <button id="toggle-draw" class="tool-btn mode-btn">&#x270F;&#xFE0F; Draw</button>
-            <button id="btn-hide-drawings" class="tool-btn" title="Toggle drawing visibility">&#x1F441; Hide Drawings</button>
+            <button id="toggle-draw" class="tool-btn mode-btn">Draw</button>
+            <button id="btn-hide-drawings" class="tool-btn">Hide</button>
             <div class="divider"></div>
-            <button id="btn-transcript" class="tool-btn">&#x1F4C4; +Transcript</button>
-            <button id="btn-pip" class="tool-btn" title="Pop out transcript block into picture-in-picture window">&#x1F5D7; Pop Out</button>
-            <button id="btn-save-project" class="tool-btn io-btn" title="Save workspace">&#x1F4BE; Save</button>
-            <button id="btn-load-project" class="tool-btn io-btn" title="Load workspace">&#x1F4C2; Load</button>
+            <button id="btn-transcript" class="tool-btn">+ Transcript</button>
+            <button id="btn-pip" class="tool-btn" title="Pop out transcript into picture-in-picture">Pop Out</button>
+            <button id="btn-save-project" class="tool-btn io-btn">Save</button>
+            <button id="btn-load-project" class="tool-btn io-btn">Load</button>
             <div class="divider"></div>
-            <button id="btn-export" class="tool-btn" style="background: #10b981; color: white; border-color: #10b981;">&#x1F4E4; Export</button>
-            <button id="btn-screenshot" class="tool-btn capture" title="Capture visible area">&#x1F4F8; Capture</button>
+            <button id="btn-export" class="tool-btn" style="background:rgba(16,185,129,0.85); color:#fff; border-color:rgba(16,185,129,0.4);">Export</button>
+            <button id="btn-screenshot" class="tool-btn capture">Capture</button>
+            <div class="divider"></div>
+            <button id="btn-dark-mode" class="tool-btn dark-toggle" title="Toggle dark mode">&#x263D;</button>
         </div>
-        <div class="toolbar-row" id="draw-tools" style="display: none; margin-top: 6px;">
+        <div class="toolbar-row" id="draw-tools" style="display: none; margin-top: 4px;">
             <div class="color-picker-group">
-                <button class="color-btn active" style="background: #f43f5e;" data-color="#f43f5e"></button>
-                <button class="color-btn" style="background: #10b981;" data-color="#10b981"></button>
-                <button class="color-btn" style="background: #3b82f6;" data-color="#3b82f6"></button>
-                <button class="color-btn" style="background: #0f172a;" data-color="#0f172a"></button>
-                <input type="color" id="custom-color" class="custom-color-input" value="#f43f5e" title="Custom Picker">
+                <button class="color-btn active" style="background:#f43f5e;" data-color="#f43f5e"></button>
+                <button class="color-btn" style="background:#10b981;" data-color="#10b981"></button>
+                <button class="color-btn" style="background:#3b82f6;" data-color="#3b82f6"></button>
+                <button class="color-btn" style="background:#0f172a;" data-color="#0f172a"></button>
+                <input type="color" id="custom-color" class="custom-color-input" value="#f43f5e" title="Custom">
             </div>
             <div class="divider"></div>
             <button id="tool-pen" class="tool-btn active draw-tool" data-tool="pen">Pen</button>
             <button id="tool-arrow" class="tool-btn draw-tool" data-tool="arrow">Arrow</button>
             <button id="tool-eraser" class="tool-btn draw-tool" data-tool="eraser">Eraser</button>
             <div class="divider"></div>
-            <button id="tool-undo" class="tool-btn">&#x21A9; Undo</button>
-            <button id="tool-clear" class="tool-btn danger">Clear Drawings</button>
+            <button id="tool-undo" class="tool-btn">Undo</button>
+            <button id="tool-clear" class="tool-btn danger">Clear</button>
         </div>
     </div>
 
     <script>
+        // Dark mode: restore from localStorage
+        if (localStorage.getItem('broll-dark-mode') === 'true') document.body.classList.add('dark');
+
         window.onload = () => { window.scrollTo((6000 - window.innerWidth)/2, 400); };
 
         const exportModal = document.getElementById('export-modal-overlay');
@@ -423,48 +590,19 @@
             const h=block.querySelector('.document-header'), r=block.querySelector('.resize-handle'), d=block.querySelector('.delete-btn'), ex=block.querySelector('.block-export-btn');
             d.addEventListener('click', () => block.remove());
             if (ex) ex.addEventListener('click', () => { exportContent.innerText = generateExportTextForBlock(block); exportModal.style.display = 'flex'; });
-            h.addEventListener('mousedown', (e) => {
-                if (e.target===d || appMode==='draw') return;
-                isDraggingBlock=true; activeBlock=block;
-                blockStartX=parseFloat(block.style.left)||0; blockStartY=parseFloat(block.style.top)||0;
-                mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation();
-            });
-            r.addEventListener('mousedown', (e) => {
-                if (appMode==='draw') return;
-                isResizingBlock=true; activeBlock=block;
-                blockStartW=block.offsetWidth; blockStartH=block.offsetHeight;
-                mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation();
-            });
+            h.addEventListener('mousedown', (e) => { if (e.target===d||appMode==='draw') return; isDraggingBlock=true; activeBlock=block; blockStartX=parseFloat(block.style.left)||0; blockStartY=parseFloat(block.style.top)||0; mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation(); });
+            r.addEventListener('mousedown', (e) => { if (appMode==='draw') return; isResizingBlock=true; activeBlock=block; blockStartW=block.offsetWidth; blockStartH=block.offsetHeight; mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation(); });
         }
-
         function makeImageBlockInteractive(block) {
             const h=block.querySelector('.document-header'), r=block.querySelector('.resize-handle'), d=block.querySelector('.delete-btn');
             d.addEventListener('click', () => block.remove());
-            h.addEventListener('mousedown', (e) => {
-                if (e.target===d || appMode==='draw') return;
-                isDraggingBlock=true; activeBlock=block;
-                blockStartX=parseFloat(block.style.left)||0; blockStartY=parseFloat(block.style.top)||0;
-                mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation();
-            });
-            r.addEventListener('mousedown', (e) => {
-                if (appMode==='draw') return;
-                isResizingBlock=true; activeBlock=block;
-                blockStartW=block.offsetWidth; blockStartH=block.offsetHeight;
-                mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation();
-            });
+            h.addEventListener('mousedown', (e) => { if (e.target===d||appMode==='draw') return; isDraggingBlock=true; activeBlock=block; blockStartX=parseFloat(block.style.left)||0; blockStartY=parseFloat(block.style.top)||0; mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation(); });
+            r.addEventListener('mousedown', (e) => { if (appMode==='draw') return; isResizingBlock=true; activeBlock=block; blockStartW=block.offsetWidth; blockStartH=block.offsetHeight; mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation(); });
         }
-
         document.querySelectorAll('.document-block').forEach(makeBlockInteractive);
-
         document.addEventListener('mousemove', (e) => {
-            if (isDraggingBlock && activeBlock) {
-                activeBlock.style.left = `${blockStartX + (e.clientX-mouseStartX)/zoomLevel}px`;
-                activeBlock.style.top = `${blockStartY + (e.clientY-mouseStartY)/zoomLevel}px`;
-            } else if (isResizingBlock && activeBlock) {
-                activeBlock.style.width = `${Math.max(150, blockStartW + (e.clientX-mouseStartX)/zoomLevel)}px`;
-                if (activeBlock.classList.contains('image-block'))
-                    activeBlock.style.height = `${Math.max(100, blockStartH + (e.clientY-mouseStartY)/zoomLevel)}px`;
-            }
+            if (isDraggingBlock&&activeBlock) { activeBlock.style.left=`${blockStartX+(e.clientX-mouseStartX)/zoomLevel}px`; activeBlock.style.top=`${blockStartY+(e.clientY-mouseStartY)/zoomLevel}px`; }
+            else if (isResizingBlock&&activeBlock) { activeBlock.style.width=`${Math.max(150,blockStartW+(e.clientX-mouseStartX)/zoomLevel)}px`; if(activeBlock.classList.contains('image-block')) activeBlock.style.height=`${Math.max(100,blockStartH+(e.clientY-mouseStartY)/zoomLevel)}px`; }
         });
         document.addEventListener('mouseup', () => { isDraggingBlock=false; isResizingBlock=false; activeBlock=null; });
 
@@ -474,725 +612,185 @@
         const transcriptTitleInput = document.getElementById('transcript-title-input');
         const blocksContainer = document.getElementById('blocks-container');
         const transcriptBtnSave = document.getElementById('transcript-btn-save');
-
-        document.getElementById('btn-transcript').addEventListener('click', () => {
-            transcriptInput.value=''; transcriptTitleInput.value='';
-            transcriptModal.style.display='flex'; transcriptTitleInput.focus();
-        });
+        document.getElementById('btn-transcript').addEventListener('click', () => { transcriptInput.value=''; transcriptTitleInput.value=''; transcriptModal.style.display='flex'; transcriptTitleInput.focus(); });
         document.getElementById('transcript-btn-cancel').addEventListener('click', () => transcriptModal.style.display='none');
         transcriptTitleInput.addEventListener('keydown', (e) => { if(e.key==='Enter'){e.preventDefault();transcriptBtnSave.click();} });
         transcriptInput.addEventListener('keydown', (e) => { if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();transcriptBtnSave.click();} });
-
         transcriptBtnSave.addEventListener('click', () => {
-            const title = transcriptTitleInput.value.trim() || 'New Segment';
-            const text = transcriptInput.value.trim();
+            const title = transcriptTitleInput.value.trim()||'New Segment', text = transcriptInput.value.trim();
             if (text) {
-                const paras = text.split(/\n\n+/).map(p => `<p>${p}</p>`).join('');
+                const paras = text.split(/\n\n+/).map(p=>`<p>${p}</p>`).join('');
                 const cx=(window.scrollX+window.innerWidth/2)/zoomLevel, cy=(window.scrollY+window.innerHeight/2)/zoomLevel;
                 const nb = document.createElement('div'); nb.className='document-block';
                 nb.style.left=`${cx-350}px`; nb.style.top=`${cy-100}px`; nb.style.width='700px';
-                nb.innerHTML = `<div class="document-header"><span>&#x2807; Drag to move block</span><button class="delete-btn" title="Delete">&#x274C;</button></div>
-                    <div class="document-content" contenteditable="true" spellcheck="false"><p><strong>${title}</strong></p>${paras}</div>
-                    <button class="block-export-btn" title="Export this block">&#x1F4E4; Export Block</button><div class="resize-handle"></div>`;
+                nb.innerHTML=`<div class="document-header"><span>&#x2807; Drag to move</span><button class="delete-btn">&times;</button></div><div class="document-content" contenteditable="true" spellcheck="false"><p><strong>${title}</strong></p>${paras}</div><button class="block-export-btn">Export Block</button><div class="resize-handle"></div>`;
                 blocksContainer.appendChild(nb); makeBlockInteractive(nb);
             }
-            transcriptModal.style.display = 'none';
+            transcriptModal.style.display='none';
         });
 
-        /* === FLOATING DRAGGABLE NOTE MODAL (opens on right side) === */
+        /* === FLOATING DRAGGABLE NOTE MODAL === */
         const noteModal = document.getElementById('note-modal-floating');
         const noteHeader = document.getElementById('note-modal-header');
         const noteInput = document.getElementById('note-modal-input');
         let noteModalCallback = null;
-
         function makeFloatingDraggable(el) {
             const h=el.querySelector('.drag-handle'); let drag=false,sx,sy,ol,ot;
-            h.addEventListener('mousedown', (e) => {
-                if(['INPUT','TEXTAREA','BUTTON'].includes(e.target.tagName)) return;
-                drag=true; const r=el.getBoundingClientRect(); ol=r.left;ot=r.top;sx=e.clientX;sy=e.clientY;
-                // Switch to left/top positioning for dragging
-                el.style.right='auto'; el.style.transform='none';
-                el.style.left=ol+'px'; el.style.top=ot+'px';
-                e.preventDefault();
-            });
+            h.addEventListener('mousedown', (e) => { if(['INPUT','TEXTAREA','BUTTON'].includes(e.target.tagName)) return; drag=true; const r=el.getBoundingClientRect(); ol=r.left;ot=r.top;sx=e.clientX;sy=e.clientY; el.style.right='auto';el.style.transform='none';el.style.left=ol+'px';el.style.top=ot+'px'; e.preventDefault(); });
             document.addEventListener('mousemove', (e) => { if(!drag) return; el.style.left=(ol+e.clientX-sx)+'px'; el.style.top=(ot+e.clientY-sy)+'px'; });
             document.addEventListener('mouseup', () => { drag=false; });
         }
         makeFloatingDraggable(noteModal);
-
-        // Reset to right side position
-        function resetNoteModalPos() {
-            noteModal.style.left='auto';
-            noteModal.style.right='24px';
-            noteModal.style.top='50%';
-            noteModal.style.transform='translateY(-50%)';
-        }
-
-        function openNoteModal(header, def, cb) {
-            noteHeader.innerText=header; noteInput.value=def;
-            resetNoteModalPos();
-            noteModal.style.display='block'; noteInput.focus();
-            noteModalCallback=cb;
-        }
+        function resetNoteModalPos() { noteModal.style.left='auto'; noteModal.style.right='24px'; noteModal.style.top='50%'; noteModal.style.transform='translateY(-50%)'; }
+        function openNoteModal(header, def, cb) { noteHeader.innerText=header; noteInput.value=def; resetNoteModalPos(); noteModal.style.display='block'; noteInput.focus(); noteModalCallback=cb; }
         document.getElementById('note-modal-cancel').addEventListener('click', () => { noteModal.style.display='none'; noteModalCallback=null; });
         document.getElementById('note-modal-save').addEventListener('click', saveAndCloseNoteModal);
+        noteInput.addEventListener('keydown', (e) => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();saveAndCloseNoteModal();} });
+        function saveAndCloseNoteModal() { noteModal.style.display='none'; if(noteModalCallback&&noteInput.value.trim()) noteModalCallback(noteInput.value.trim()); noteModalCallback=null; }
 
-        // Enter key saves the note (Shift+Enter for newline)
-        noteInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                saveAndCloseNoteModal();
-            }
-        });
-
-        function saveAndCloseNoteModal() {
-            noteModal.style.display='none';
-            if (noteModalCallback && noteInput.value.trim()) noteModalCallback(noteInput.value.trim());
-            noteModalCallback=null;
-        }
-
-        /* === MARK UNDO STACK ===
-         * The browser's native Ctrl+Z doesn't work for DOM manipulations done via JS
-         * (like wrapping text in highlight spans). So we keep our own undo stack that
-         * stores the block's innerHTML before each mark/note operation.
-         */
-        let markUndoStack = []; // { blockEl, prevHTML }
-
-        function pushMarkUndo(contentEl) {
-            markUndoStack.push({ el: contentEl, html: contentEl.innerHTML });
-            if (markUndoStack.length > 50) markUndoStack.shift();
-        }
-
-        function popMarkUndo() {
-            if (!markUndoStack.length) return false;
-            const entry = markUndoStack.pop();
-            entry.el.innerHTML = entry.html;
-            // Rebind hover events on restored highlights
-            entry.el.querySelectorAll('.highlight-container').forEach(bindHoverEvents);
-            return true;
-        }
+        /* === MARK UNDO STACK === */
+        let markUndoStack = [];
+        function pushMarkUndo(el) { markUndoStack.push({el,html:el.innerHTML}); if(markUndoStack.length>50)markUndoStack.shift(); }
+        function popMarkUndo() { if(!markUndoStack.length) return false; const e=markUndoStack.pop(); e.el.innerHTML=e.html; e.el.querySelectorAll('.highlight-container').forEach(bindHoverEvents); return true; }
 
         /* === HIGHLIGHT + CLICK-TO-ANNOTATE === */
         let appMode = 'view';
         const commentPopup = document.getElementById('comment-popup');
-        const btnMark = document.getElementById('btn-mark');
-        const btnAddNote = document.getElementById('btn-add-note');
-        let savedSelectionRange = null;
-        let savedSelectionBlock = null; // the .document-content element where selection lives
+        let savedSelectionRange = null, savedSelectionBlock = null;
 
         function bindHoverEvents(container) {
             let timeout;
-            container.addEventListener('mouseenter', () => {
-                if (appMode==='draw') return;
-                container.style.zIndex='9999';
-                const card = container.querySelector('.broll-card');
-                if (!card) return;
-                clearTimeout(timeout);
-                card.style.left='50%'; card.style.transform='translateX(-50%) translateY(0)';
-                card.classList.add('visible'); container.classList.add('active');
-            });
-            container.addEventListener('mouseleave', () => {
-                container.style.zIndex='';
-                const card = container.querySelector('.broll-card');
-                if (!card) return;
-                timeout = setTimeout(() => { card.classList.remove('visible'); container.classList.remove('active'); card.style.transform='translateX(-50%) translateY(10px)'; }, 250);
-            });
+            container.addEventListener('mouseenter', () => { if(appMode==='draw') return; container.style.zIndex='9999'; const card=container.querySelector('.broll-card'); if(!card) return; clearTimeout(timeout); card.style.left='50%'; card.style.transform='translateX(-50%) translateY(0)'; card.classList.add('visible'); container.classList.add('active'); });
+            container.addEventListener('mouseleave', () => { container.style.zIndex=''; const card=container.querySelector('.broll-card'); if(!card) return; timeout=setTimeout(()=>{card.classList.remove('visible');container.classList.remove('active');card.style.transform='translateX(-50%) translateY(6px)';},250); });
         }
         document.querySelectorAll('.highlight-container').forEach(bindHoverEvents);
 
-        // Click on any highlight -> open note modal
+        // Click highlight -> open note modal
         document.addEventListener('click', (e) => {
-            if (appMode==='draw') return;
-            if (e.target.closest('.floating-modal') || e.target.closest('.modal-overlay') || e.target.closest('#comment-popup')) return;
-
-            const editBtn = e.target.closest('.btn-edit-note');
-            if (editBtn) {
-                const card = editBtn.closest('.broll-card'), t = card.querySelector('.broll-note-text');
-                const container = card.closest('.highlight-container');
-                const contentEl = container.closest('.document-content');
-                openNoteModal("Edit Production Note", t.innerText, (nt) => {
-                    if (contentEl) pushMarkUndo(contentEl);
-                    t.innerText = nt;
-                });
-                return;
-            }
-
-            const highlightText = e.target.closest('.highlight-text');
-            if (highlightText) {
-                const container = highlightText.closest('.highlight-container');
-                if (!container) return;
-                const sel = window.getSelection();
-                if (!sel.isCollapsed && sel.toString().trim().length > 0) return;
-                
-                const contentEl = container.closest('.document-content');
-                const existingNote = container.querySelector('.broll-note-text');
-                const defaultText = existingNote ? existingNote.textContent : '';
-                const headerText = existingNote ? "Edit Production Note" : "Add Production Note";
-
-                openNoteModal(headerText, defaultText, (note) => {
-                    if (contentEl) pushMarkUndo(contentEl);
-                    const old = container.querySelector('.broll-card');
-                    if (old) old.remove();
-                    const card = document.createElement('div'); card.className = 'broll-card';
-                    card.innerHTML = `<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit Note" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${note}</div>`;
-                    container.appendChild(card);
-                    container.classList.add('has-note');
-                    bindHoverEvents(container);
-                });
-                return;
-            }
+            if(appMode==='draw') return;
+            if(e.target.closest('.floating-modal')||e.target.closest('.modal-overlay')||e.target.closest('#comment-popup')) return;
+            const editBtn=e.target.closest('.btn-edit-note');
+            if(editBtn) { const card=editBtn.closest('.broll-card'),t=card.querySelector('.broll-note-text'),container=card.closest('.highlight-container'),contentEl=container.closest('.document-content'); openNoteModal("Edit Production Note",t.innerText,(nt)=>{if(contentEl)pushMarkUndo(contentEl);t.innerText=nt;}); return; }
+            const ht=e.target.closest('.highlight-text');
+            if(ht) { const container=ht.closest('.highlight-container'); if(!container) return; const sel=window.getSelection(); if(!sel.isCollapsed&&sel.toString().trim().length>0) return; const contentEl=container.closest('.document-content'),existingNote=container.querySelector('.broll-note-text'),defaultText=existingNote?existingNote.textContent:'',headerText=existingNote?"Edit Production Note":"Add Production Note";
+                openNoteModal(headerText,defaultText,(note)=>{if(contentEl)pushMarkUndo(contentEl); const old=container.querySelector('.broll-card'); if(old)old.remove(); const card=document.createElement('div');card.className='broll-card'; card.innerHTML=`<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${note}</div>`; container.appendChild(card); container.classList.add('has-note'); bindHoverEvents(container); }); return; }
         });
 
         // Show popup on text selection
         document.addEventListener('mouseup', (e) => {
-            if (appMode==='draw') return;
-            if (e.target.closest('#comment-popup') || e.target.closest('.modal-overlay') || e.target.closest('.floating-modal')) return;
-
-            const sel = window.getSelection();
-            if (!sel.isCollapsed && sel.toString().trim().length > 0) {
-                const anc = sel.anchorNode;
-                const contentEl = anc ? anc.parentElement.closest('.document-content') : null;
-                if (!contentEl) { commentPopup.style.display='none'; return; }
-                savedSelectionRange = sel.getRangeAt(0).cloneRange();
-                savedSelectionBlock = contentEl;
-                commentPopup.style.display='flex';
-                commentPopup.style.left=`${e.pageX}px`; commentPopup.style.top=`${e.pageY-25}px`;
-            } else {
-                commentPopup.style.display='none';
-            }
+            if(appMode==='draw') return;
+            if(e.target.closest('#comment-popup')||e.target.closest('.modal-overlay')||e.target.closest('.floating-modal')) return;
+            const sel=window.getSelection();
+            if(!sel.isCollapsed&&sel.toString().trim().length>0) { const anc=sel.anchorNode; const contentEl=anc?anc.parentElement.closest('.document-content'):null; if(!contentEl){commentPopup.style.display='none';return;} savedSelectionRange=sel.getRangeAt(0).cloneRange(); savedSelectionBlock=contentEl; commentPopup.style.display='flex'; commentPopup.style.left=`${e.pageX}px`; commentPopup.style.top=`${e.pageY-25}px`; }
+            else { commentPopup.style.display='none'; }
         });
 
-        // Mark button: highlight only
-        btnMark.addEventListener('mousedown', (e) => {
-            e.preventDefault(); if (!savedSelectionRange) return;
-            commentPopup.style.display='none';
-            if (savedSelectionBlock) pushMarkUndo(savedSelectionBlock);
-            wrapAsHighlight(savedSelectionRange);
-        });
-
-        // Add Note button: highlight + open note modal
-        btnAddNote.addEventListener('mousedown', (e) => {
-            e.preventDefault(); if (!savedSelectionRange) return;
-            commentPopup.style.display='none';
-            const contentEl = savedSelectionBlock;
-            if (contentEl) pushMarkUndo(contentEl);
-            const container = wrapAsHighlight(savedSelectionRange);
-            if (container) {
-                openNoteModal("Add Production Note", "", (note) => {
-                    const card = document.createElement('div'); card.className = 'broll-card';
-                    card.innerHTML = `<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit Note" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${note}</div>`;
-                    container.appendChild(card);
-                    container.classList.add('has-note');
-                    bindHoverEvents(container);
-                });
-            }
-        });
-
-        // Copy button: copy selected text to clipboard
-        document.getElementById('btn-copy-text').addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            if (!savedSelectionRange) return;
-            const text = savedSelectionRange.toString();
-            if (text) {
-                navigator.clipboard.writeText(text).then(() => {
-                    const btn = document.getElementById('btn-copy-text');
-                    const orig = btn.innerHTML;
-                    btn.innerHTML = '&#x2705; Copied';
-                    setTimeout(() => btn.innerHTML = orig, 1200);
-                }).catch(() => {
-                    // Fallback
-                    const ta = document.createElement('textarea'); ta.value = text;
-                    ta.style.position='fixed'; ta.style.opacity='0';
-                    document.body.appendChild(ta); ta.select();
-                    document.execCommand('copy'); document.body.removeChild(ta);
-                });
-            }
-            commentPopup.style.display='none';
-            window.getSelection().removeAllRanges();
-        });
+        document.getElementById('btn-mark').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; commentPopup.style.display='none'; if(savedSelectionBlock)pushMarkUndo(savedSelectionBlock); wrapAsHighlight(savedSelectionRange); });
+        document.getElementById('btn-add-note').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; commentPopup.style.display='none'; const ce=savedSelectionBlock; if(ce)pushMarkUndo(ce); const c=wrapAsHighlight(savedSelectionRange); if(c){openNoteModal("Add Production Note","",(note)=>{const card=document.createElement('div');card.className='broll-card';card.innerHTML=`<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${note}</div>`;c.appendChild(card);c.classList.add('has-note');bindHoverEvents(c);});} });
+        document.getElementById('btn-copy-text').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; const text=savedSelectionRange.toString(); if(text){navigator.clipboard.writeText(text).catch(()=>{const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}); const btn=document.getElementById('btn-copy-text');const o=btn.innerHTML;btn.innerHTML='Copied!';setTimeout(()=>btn.innerHTML=o,1000);} commentPopup.style.display='none'; window.getSelection().removeAllRanges(); });
 
         function wrapAsHighlight(range) {
-            const container = document.createElement('span');
-            container.className = 'highlight-container';
-            const ts = document.createElement('span'); ts.className = 'highlight-text';
-            try {
-                ts.appendChild(range.extractContents());
-                container.appendChild(ts);
-                range.insertNode(container);
-                bindHoverEvents(container);
-                window.getSelection().removeAllRanges(); savedSelectionRange=null; savedSelectionBlock=null;
-                return container;
-            } catch(err) { alert("Select text within a single paragraph."); return null; }
+            const c=document.createElement('span');c.className='highlight-container';const ts=document.createElement('span');ts.className='highlight-text';
+            try{ts.appendChild(range.extractContents());c.appendChild(ts);range.insertNode(c);bindHoverEvents(c);window.getSelection().removeAllRanges();savedSelectionRange=null;savedSelectionBlock=null;return c;}catch(err){alert("Select text within a single paragraph.");return null;}
         }
 
         /* === EXPORT === */
-        document.getElementById('btn-export').addEventListener('click', () => {
-            const blocks = document.querySelectorAll('.document-block');
-            let txt = "";
-            if (!blocks.length) { txt="No transcript blocks found."; }
-            else { blocks.forEach((b,i) => { txt += generateExportTextForBlock(b); if(i<blocks.length-1) txt+="\n\n========================================\n\n"; }); }
-            exportContent.innerText = txt.trim(); exportModal.style.display='flex';
-        });
+        document.getElementById('btn-export').addEventListener('click', () => { const blocks=document.querySelectorAll('.document-block'); let txt=""; if(!blocks.length){txt="No transcript blocks found.";}else{blocks.forEach((b,i)=>{txt+=generateExportTextForBlock(b);if(i<blocks.length-1)txt+="\n\n========================================\n\n";});} exportContent.innerText=txt.trim(); exportModal.style.display='flex'; });
         document.getElementById('export-btn-close').addEventListener('click', () => exportModal.style.display='none');
-        document.getElementById('export-btn-copy').addEventListener('click', (e) => {
-            const ta=document.createElement('textarea'); ta.value=exportContent.innerText;
-            ta.style.position='fixed'; ta.style.opacity='0';
-            document.body.appendChild(ta); ta.select();
-            try{document.execCommand('copy'); const b=e.target,o=b.innerText; b.innerText="Copied!"; setTimeout(()=>b.innerText=o,2000);}catch(err){}
-            document.body.removeChild(ta);
-        });
+        document.getElementById('export-btn-copy').addEventListener('click', (e) => { const ta=document.createElement('textarea');ta.value=exportContent.innerText;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');const b=e.target,o=b.innerText;b.innerText="Copied!";setTimeout(()=>b.innerText=o,2000);}catch(err){}document.body.removeChild(ta); });
 
         /* === DRAWING === */
-        const canvas = document.getElementById('drawing-layer');
-        const ctx = canvas.getContext('2d');
-        let shapes=[], undoStack=[], isDrawing=false, currentTool='pen', currentColor='#f43f5e';
-        let startX=0,startY=0,lastX=0,lastY=0;
-        let drawingsVisible = true;
-
-        const colorBtns=document.querySelectorAll('.color-btn');
-        const customColorInput=document.getElementById('custom-color');
+        const canvas=document.getElementById('drawing-layer'), ctx=canvas.getContext('2d');
+        let shapes=[],undoStack=[],isDrawing=false,currentTool='pen',currentColor='#f43f5e';
+        let startX=0,startY=0,lastX=0,lastY=0,drawingsVisible=true;
+        const colorBtns=document.querySelectorAll('.color-btn'),customColorInput=document.getElementById('custom-color');
         function updateColor(c){currentColor=c;colorBtns.forEach(b=>b.classList.remove('active'));const m=Array.from(colorBtns).find(b=>b.getAttribute('data-color')===c);if(m)m.classList.add('active');}
         colorBtns.forEach(b=>b.addEventListener('click',()=>{updateColor(b.getAttribute('data-color'));customColorInput.value=currentColor;if(appMode!=='draw')document.getElementById('toggle-draw').click();}));
         customColorInput.addEventListener('input',(e)=>{updateColor(e.target.value);if(appMode!=='draw')document.getElementById('toggle-draw').click();});
 
-        function renderAllShapes(){
-            ctx.clearRect(0,0,canvas.width,canvas.height);
-            if (!drawingsVisible) return;
-            shapes.forEach(s=>{
-                ctx.globalCompositeOperation=s.type==='eraser'?'destination-out':'source-over';
-                ctx.strokeStyle=s.color;ctx.lineWidth=s.width||3;ctx.lineCap='round';ctx.lineJoin='round';
-                if(s.type==='pen'||s.type==='eraser'){if(!s.points.length)return;ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);ctx.stroke();}
-                else if(s.type==='arrow'){drawArrow(ctx,s.startX,s.startY,s.endX,s.endY,s.color);}
-            });
-        }
-        function drawArrow(c,fx,fy,tx,ty,col){const hl=16,a=Math.atan2(ty-fy,tx-fx);c.strokeStyle=col;c.lineWidth=3;c.beginPath();c.moveTo(fx,fy);c.lineTo(tx,ty);c.lineTo(tx-hl*Math.cos(a-Math.PI/6),ty-hl*Math.sin(a-Math.PI/6));c.moveTo(tx,ty);c.lineTo(tx-hl*Math.cos(a+Math.PI/6),ty-hl*Math.sin(a+Math.PI/6));c.stroke();}
+        function renderAllShapes(){ctx.clearRect(0,0,canvas.width,canvas.height);if(!drawingsVisible)return;shapes.forEach(s=>{ctx.globalCompositeOperation=s.type==='eraser'?'destination-out':'source-over';ctx.strokeStyle=s.color;ctx.lineWidth=s.width||3;ctx.lineCap='round';ctx.lineJoin='round';if(s.type==='pen'||s.type==='eraser'){if(!s.points.length)return;ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);ctx.stroke();}else if(s.type==='arrow'){const hl=16,a=Math.atan2(s.endY-s.startY,s.endX-s.startX);ctx.strokeStyle=s.color;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(s.startX,s.startY);ctx.lineTo(s.endX,s.endY);ctx.lineTo(s.endX-hl*Math.cos(a-Math.PI/6),s.endY-hl*Math.sin(a-Math.PI/6));ctx.moveTo(s.endX,s.endY);ctx.lineTo(s.endX-hl*Math.cos(a+Math.PI/6),s.endY-hl*Math.sin(a+Math.PI/6));ctx.stroke();}});}
         function getCC(e){const r=zoomContainer.getBoundingClientRect();return{x:(e.clientX-r.left)/zoomLevel,y:(e.clientY-r.top)/zoomLevel};}
-
-        canvas.addEventListener('pointerdown',(e)=>{
-            if(appMode!=='draw'||isSpacePanning)return;
-            const co=getCC(e);startX=co.x;startY=co.y;lastX=startX;lastY=startY;isDrawing=true;
-            let ns={type:currentTool,color:currentColor,width:currentTool==='eraser'?40:3};
-            if(currentTool==='pen'||currentTool==='eraser')ns.points=[{x:startX,y:startY}];
-            else{ns.startX=startX;ns.startY=startY;ns.endX=startX;ns.endY=startY;}
-            shapes.push(ns);
-        });
-        canvas.addEventListener('pointermove',(e)=>{
-            if(!isDrawing||appMode!=='draw')return;e.preventDefault();
-            const co=getCC(e);let cs=shapes[shapes.length-1];
-            if(currentTool==='pen'||currentTool==='eraser'){
-                cs.points.push({x:co.x,y:co.y});
-                ctx.globalCompositeOperation=currentTool==='eraser'?'destination-out':'source-over';
-                ctx.strokeStyle=currentTool==='eraser'?'rgba(0,0,0,1)':currentColor;
-                ctx.lineWidth=cs.width;ctx.lineCap='round';ctx.lineJoin='round';
-                ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(co.x,co.y);ctx.stroke();
-                lastX=co.x;lastY=co.y;
-            }else{cs.endX=co.x;cs.endY=co.y;renderAllShapes();}
-        });
+        canvas.addEventListener('pointerdown',(e)=>{if(appMode!=='draw'||isSpacePanning)return;const co=getCC(e);startX=co.x;startY=co.y;lastX=startX;lastY=startY;isDrawing=true;let ns={type:currentTool,color:currentColor,width:currentTool==='eraser'?40:3};if(currentTool==='pen'||currentTool==='eraser')ns.points=[{x:startX,y:startY}];else{ns.startX=startX;ns.startY=startY;ns.endX=startX;ns.endY=startY;}shapes.push(ns);});
+        canvas.addEventListener('pointermove',(e)=>{if(!isDrawing||appMode!=='draw')return;e.preventDefault();const co=getCC(e);let cs=shapes[shapes.length-1];if(currentTool==='pen'||currentTool==='eraser'){cs.points.push({x:co.x,y:co.y});ctx.globalCompositeOperation=currentTool==='eraser'?'destination-out':'source-over';ctx.strokeStyle=currentTool==='eraser'?'rgba(0,0,0,1)':currentColor;ctx.lineWidth=cs.width;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(co.x,co.y);ctx.stroke();lastX=co.x;lastY=co.y;}else{cs.endX=co.x;cs.endY=co.y;renderAllShapes();}});
         canvas.addEventListener('pointerup',()=>{if(isDrawing)saveDrawingState();isDrawing=false;});
 
-        // Hide/Show Drawings toggle
-        const btnHideDrawings = document.getElementById('btn-hide-drawings');
-        btnHideDrawings.addEventListener('click', () => {
-            drawingsVisible = !drawingsVisible;
-            btnHideDrawings.innerHTML = drawingsVisible ? '&#x1F441; Hide Drawings' : '&#x1F441;&#x200D;&#x1F5E8; Show Drawings';
-            if (drawingsVisible) btnHideDrawings.classList.remove('active');
-            else btnHideDrawings.classList.add('active');
-            renderAllShapes();
-        });
+        const btnHideDrawings=document.getElementById('btn-hide-drawings');
+        btnHideDrawings.addEventListener('click',()=>{drawingsVisible=!drawingsVisible;btnHideDrawings.innerHTML=drawingsVisible?'Hide':'Show';if(!drawingsVisible)btnHideDrawings.classList.add('active');else btnHideDrawings.classList.remove('active');renderAllShapes();});
 
-        /* === CTRL+V PASTE IMAGES === */
-        const pasteToast = document.getElementById('paste-toast');
-
-        function spawnImageBlock(src, imgType, label) {
-            const cx=(window.scrollX+window.innerWidth/2)/zoomLevel, cy=(window.scrollY+window.innerHeight/2)/zoomLevel;
-            const ib=document.createElement('div'); ib.className='image-block';
-            ib.style.left=`${cx-200}px`;ib.style.top=`${cy-150}px`;ib.style.width='400px';ib.style.height='320px';
-            ib.innerHTML=`<div class="document-header"><span>&#x2807; ${label}</span><button class="delete-btn" title="Delete">&#x274C;</button></div><div class="image-wrapper"><img src="${src}" alt="${label}" data-img-type="${imgType}"></div><div class="resize-handle"></div>`;
-            blocksContainer.appendChild(ib); makeImageBlockInteractive(ib);
-        }
-
-        document.addEventListener('paste', (e) => {
-            const items = e.clipboardData && e.clipboardData.items;
-            if (!items) return;
-            for (let i=0; i<items.length; i++) {
-                if (items[i].type.startsWith('image/')) {
-                    e.preventDefault();
-                    const file = items[i].getAsFile();
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        spawnImageBlock(ev.target.result, 'base64', 'Pasted Image');
-                        pasteToast.classList.add('show');
-                        setTimeout(() => pasteToast.classList.remove('show'), 1500);
-                    };
-                    reader.readAsDataURL(file);
-                    return;
-                }
-            }
-        });
+        /* === PASTE IMAGES === */
+        const pasteToast=document.getElementById('paste-toast');
+        function spawnImageBlock(src,imgType,label){const cx=(window.scrollX+window.innerWidth/2)/zoomLevel,cy=(window.scrollY+window.innerHeight/2)/zoomLevel;const ib=document.createElement('div');ib.className='image-block';ib.style.left=`${cx-200}px`;ib.style.top=`${cy-150}px`;ib.style.width='400px';ib.style.height='320px';ib.innerHTML=`<div class="document-header"><span>&#x2807; ${label}</span><button class="delete-btn">&times;</button></div><div class="image-wrapper"><img src="${src}" alt="${label}" data-img-type="${imgType}"></div><div class="resize-handle"></div>`;blocksContainer.appendChild(ib);makeImageBlockInteractive(ib);}
+        document.addEventListener('paste',(e)=>{const items=e.clipboardData&&e.clipboardData.items;if(!items)return;for(let i=0;i<items.length;i++){if(items[i].type.startsWith('image/')){e.preventDefault();const file=items[i].getAsFile();const reader=new FileReader();reader.onload=(ev)=>{spawnImageBlock(ev.target.result,'base64','Pasted Image');pasteToast.classList.add('show');setTimeout(()=>pasteToast.classList.remove('show'),1500);};reader.readAsDataURL(file);return;}}});
 
         /* === SAVE / LOAD === */
         function saveDrawingState(){undoStack.push(JSON.parse(JSON.stringify(shapes)));if(undoStack.length>50)undoStack.shift();}
         function drawingUndo(){if(undoStack.length>0){undoStack.pop();shapes=undoStack.length?JSON.parse(JSON.stringify(undoStack[undoStack.length-1])):[];}else{shapes=[];}renderAllShapes();}
-
-        document.getElementById('btn-save-project').addEventListener('click',()=>{
-            const pd={version:3,viewport:{zoom:zoomLevel,scrollX:window.scrollX,scrollY:window.scrollY},shapes:shapes,blocks:[],images:[]};
-            document.querySelectorAll('.document-block').forEach(b=>{pd.blocks.push({left:b.style.left,top:b.style.top,width:b.style.width,content:b.querySelector('.document-content').innerHTML});});
-            document.querySelectorAll('.image-block').forEach(ib=>{const img=ib.querySelector('.image-wrapper img'),hs=ib.querySelector('.document-header span');pd.images.push({left:ib.style.left,top:ib.style.top,width:ib.style.width,height:ib.style.height,src:img?img.src:'',imgType:img?img.dataset.imgType:'url',label:hs?hs.textContent.replace(/^. /,'').trim():'Image'});});
-            const a=document.createElement('a');a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(pd));a.download="broll_project.json";document.body.appendChild(a);a.click();a.remove();
-        });
-
+        document.getElementById('btn-save-project').addEventListener('click',()=>{const pd={version:4,viewport:{zoom:zoomLevel,scrollX:window.scrollX,scrollY:window.scrollY},shapes,blocks:[],images:[]};document.querySelectorAll('.document-block').forEach(b=>{pd.blocks.push({left:b.style.left,top:b.style.top,width:b.style.width,content:b.querySelector('.document-content').innerHTML});});document.querySelectorAll('.image-block').forEach(ib=>{const img=ib.querySelector('.image-wrapper img'),hs=ib.querySelector('.document-header span');pd.images.push({left:ib.style.left,top:ib.style.top,width:ib.style.width,height:ib.style.height,src:img?img.src:'',imgType:img?img.dataset.imgType:'url',label:hs?hs.textContent.replace(/^. /,'').trim():'Image'});});const a=document.createElement('a');a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(pd));a.download="broll_project.json";document.body.appendChild(a);a.click();a.remove();});
         const fileImport=document.getElementById('file-import');
         document.getElementById('btn-load-project').addEventListener('click',()=>fileImport.click());
-        fileImport.addEventListener('change',function(e){
-            const file=e.target.files[0];if(!file)return;
-            const reader=new FileReader();
-            reader.onload=function(ev){
-                try{
-                    const pd=JSON.parse(ev.target.result);
-                    blocksContainer.innerHTML='';
-                    if(pd.blocks)pd.blocks.forEach(bd=>{
-                        const nb=document.createElement('div');nb.className='document-block';
-                        nb.style.left=bd.left;nb.style.top=bd.top;nb.style.width=bd.width;
-                        nb.innerHTML=`<div class="document-header"><span>&#x2807; Drag to move block</span><button class="delete-btn" title="Delete">&#x274C;</button></div><div class="document-content" contenteditable="true" spellcheck="false">${bd.content}</div><button class="block-export-btn" title="Export this block">&#x1F4E4; Export Block</button><div class="resize-handle"></div>`;
-                        blocksContainer.appendChild(nb);makeBlockInteractive(nb);
-                        nb.querySelectorAll('.highlight-container').forEach(bindHoverEvents);
-                    });
-                    if(pd.images)pd.images.forEach(id=>{
-                        const ib=document.createElement('div');ib.className='image-block';
-                        ib.style.left=id.left;ib.style.top=id.top;ib.style.width=id.width;ib.style.height=id.height;
-                        ib.innerHTML=`<div class="document-header"><span>&#x2807; ${id.label||'Image'}</span><button class="delete-btn" title="Delete">&#x274C;</button></div><div class="image-wrapper"><img src="${id.src}" alt="${id.label||'Image'}" data-img-type="${id.imgType||'url'}"></div><div class="resize-handle"></div>`;
-                        blocksContainer.appendChild(ib);makeImageBlockInteractive(ib);
-                    });
-                    shapes=pd.shapes||[];undoStack=[];renderAllShapes();
-                    if(pd.viewport){zoomLevel=pd.viewport.zoom||1;applyZoom();setTimeout(()=>window.scrollTo(pd.viewport.scrollX||0,pd.viewport.scrollY||0),50);}
-                }catch(err){alert("Invalid project file.");console.error(err);}
-            };
-            reader.readAsText(file);this.value='';
+        fileImport.addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(ev){try{const pd=JSON.parse(ev.target.result);blocksContainer.innerHTML='';if(pd.blocks)pd.blocks.forEach(bd=>{const nb=document.createElement('div');nb.className='document-block';nb.style.left=bd.left;nb.style.top=bd.top;nb.style.width=bd.width;nb.innerHTML=`<div class="document-header"><span>&#x2807; Drag to move</span><button class="delete-btn">&times;</button></div><div class="document-content" contenteditable="true" spellcheck="false">${bd.content}</div><button class="block-export-btn">Export Block</button><div class="resize-handle"></div>`;blocksContainer.appendChild(nb);makeBlockInteractive(nb);nb.querySelectorAll('.highlight-container').forEach(bindHoverEvents);});if(pd.images)pd.images.forEach(id=>{const ib=document.createElement('div');ib.className='image-block';ib.style.left=id.left;ib.style.top=id.top;ib.style.width=id.width;ib.style.height=id.height;ib.innerHTML=`<div class="document-header"><span>&#x2807; ${id.label||'Image'}</span><button class="delete-btn">&times;</button></div><div class="image-wrapper"><img src="${id.src}" alt="${id.label||'Image'}" data-img-type="${id.imgType||'url'}"></div><div class="resize-handle"></div>`;blocksContainer.appendChild(ib);makeImageBlockInteractive(ib);});shapes=pd.shapes||[];undoStack=[];renderAllShapes();if(pd.viewport){zoomLevel=pd.viewport.zoom||1;applyZoom();setTimeout(()=>window.scrollTo(pd.viewport.scrollX||0,pd.viewport.scrollY||0),50);}}catch(err){alert("Invalid project file.");console.error(err);}};reader.readAsText(file);this.value='';});
+
+        /* === SPACEBAR PAN & SHORTCUTS === */
+        let isSpacePanning=false,hasPannedDuringSpace=false,panStartX=0,panStartY=0,scrollStartX=0,scrollStartY=0;
+        document.addEventListener('keydown',(e)=>{
+            if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){if(appMode==='draw'){e.preventDefault();drawingUndo();}else{if(markUndoStack.length>0){e.preventDefault();popMarkUndo();}}}
+            if((e.ctrlKey||e.metaKey)&&e.key==='0'){e.preventDefault();zoomLevel=1;applyZoom();window.scrollTo((6000-window.innerWidth)/2,400);}
+            if(e.key==='Escape'){if(noteModal.style.display==='block'){noteModal.style.display='none';noteModalCallback=null;return;}}
+            if(e.code==='Space'){const tag=document.activeElement.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||document.activeElement.isContentEditable)return;if(!isSpacePanning){isSpacePanning=true;hasPannedDuringSpace=false;document.body.style.cursor='grab';}e.preventDefault();}
         });
-
-        /* === SPACEBAR PAN & KEYBOARD SHORTCUTS === */
-        let isSpacePanning=false, hasPannedDuringSpace=false;
-        let panStartX=0, panStartY=0, scrollStartX=0, scrollStartY=0;
-
-        document.addEventListener('keydown', (e) => {
-            // Ctrl+Z
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-                if (appMode === 'draw') {
-                    e.preventDefault();
-                    drawingUndo();
-                } else {
-                    // Try our mark undo stack first
-                    if (markUndoStack.length > 0) {
-                        e.preventDefault();
-                        popMarkUndo();
-                    }
-                    // If mark stack is empty, let browser handle native undo
-                }
-            }
-
-            if ((e.ctrlKey || e.metaKey) && e.key === '0') {
-                e.preventDefault(); zoomLevel=1; applyZoom();
-                window.scrollTo((6000-window.innerWidth)/2, 400);
-            }
-
-            if (e.key === 'Escape') {
-                if (noteModal.style.display === 'block') { noteModal.style.display='none'; noteModalCallback=null; return; }
-            }
-
-            if (e.code === 'Space') {
-                const tag = document.activeElement.tagName;
-                if (tag==='INPUT' || tag==='TEXTAREA' || document.activeElement.isContentEditable) return;
-                if (!isSpacePanning) { isSpacePanning=true; hasPannedDuringSpace=false; document.body.style.cursor='grab'; }
-                e.preventDefault();
-            }
-        });
-
-        document.addEventListener('keyup', (e) => {
-            if (e.code==='Space') { if(!isSpacePanning) return; isSpacePanning=false; document.body.style.cursor='default'; }
-        });
-
-        window.addEventListener('mousedown', (e) => {
-            if (isSpacePanning || e.button===1) {
-                if(e.button===1) e.preventDefault();
-                document.body.style.cursor='grabbing';
-                panStartX=e.clientX; panStartY=e.clientY;
-                scrollStartX=window.scrollX; scrollStartY=window.scrollY;
-                if(document.activeElement && document.activeElement!==document.body) document.activeElement.blur();
-            }
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if ((isSpacePanning && e.buttons===1) || e.buttons===4) {
-                e.preventDefault(); hasPannedDuringSpace=true;
-                window.scrollTo(scrollStartX-(e.clientX-panStartX), scrollStartY-(e.clientY-panStartY));
-            }
-        });
-
-        window.addEventListener('mouseup', (e) => {
-            if (isSpacePanning || e.button===1) document.body.style.cursor = isSpacePanning ? 'grab' : 'default';
-        });
+        document.addEventListener('keyup',(e)=>{if(e.code==='Space'){if(!isSpacePanning)return;isSpacePanning=false;document.body.style.cursor='default';}});
+        window.addEventListener('mousedown',(e)=>{if(isSpacePanning||e.button===1){if(e.button===1)e.preventDefault();document.body.style.cursor='grabbing';panStartX=e.clientX;panStartY=e.clientY;scrollStartX=window.scrollX;scrollStartY=window.scrollY;if(document.activeElement&&document.activeElement!==document.body)document.activeElement.blur();}});
+        window.addEventListener('mousemove',(e)=>{if((isSpacePanning&&e.buttons===1)||e.buttons===4){e.preventDefault();hasPannedDuringSpace=true;window.scrollTo(scrollStartX-(e.clientX-panStartX),scrollStartY-(e.clientY-panStartY));}});
+        window.addEventListener('mouseup',(e)=>{if(isSpacePanning||e.button===1)document.body.style.cursor=isSpacePanning?'grab':'default';});
 
         /* === MODE SWITCHING === */
-        const btnToggleDraw = document.getElementById('toggle-draw');
-        const drawToolsRow = document.getElementById('draw-tools');
-        const toolBtns = document.querySelectorAll('.draw-tool');
+        const btnToggleDraw=document.getElementById('toggle-draw'),drawToolsRow=document.getElementById('draw-tools'),toolBtns=document.querySelectorAll('.draw-tool');
+        function setAppMode(m){appMode=m;btnToggleDraw.className='tool-btn mode-btn';btnToggleDraw.innerHTML='Draw';canvas.style.pointerEvents='none';commentPopup.style.display='none';window.getSelection().removeAllRanges();drawToolsRow.style.display='none';renderAllShapes();if(m==='draw'){btnToggleDraw.classList.add('active-draw');btnToggleDraw.innerHTML='Draw: ON';drawToolsRow.style.display='flex';canvas.style.pointerEvents='auto';}}
+        btnToggleDraw.addEventListener('click',()=>setAppMode(appMode==='draw'?'view':'draw'));
+        toolBtns.forEach(b=>b.addEventListener('click',()=>{if(appMode!=='draw')setAppMode('draw');toolBtns.forEach(x=>x.classList.remove('active'));b.classList.add('active');currentTool=b.getAttribute('data-tool');}));
+        document.getElementById('tool-undo').addEventListener('click',drawingUndo);
+        document.getElementById('tool-clear').addEventListener('click',()=>{shapes=[];saveDrawingState();renderAllShapes();});
+        document.getElementById('btn-screenshot').addEventListener('click',(e)=>{const btn=e.target;const orig=btn.innerHTML;btn.innerHTML='Wait...';const bgc=document.body.classList.contains('dark')?'#0f1419':'#eef1f5';document.querySelector('.drawing-toolbar').style.display='none';setTimeout(()=>{html2canvas(document.body,{scale:2,useCORS:true,backgroundColor:bgc,x:window.scrollX,y:window.scrollY,width:window.innerWidth,height:window.innerHeight}).then(c=>{const l=document.createElement('a');l.download='BRoll_Screenshot.png';l.href=c.toDataURL('image/png');l.click();document.querySelector('.drawing-toolbar').style.display='flex';btn.innerHTML=orig;}).catch(()=>{document.querySelector('.drawing-toolbar').style.display='flex';btn.innerHTML='Error';setTimeout(()=>btn.innerHTML=orig,2000);});},100);});
 
-        function setAppMode(m) {
-            appMode = m;
-            btnToggleDraw.className = 'tool-btn mode-btn';
-            btnToggleDraw.innerHTML = '&#x270F;&#xFE0F; Draw';
-            canvas.style.pointerEvents = 'none';
-            commentPopup.style.display = 'none';
-            window.getSelection().removeAllRanges();
-            drawToolsRow.style.display = 'none';
-            renderAllShapes();
-
-            if (m === 'draw') {
-                btnToggleDraw.classList.add('active-draw');
-                btnToggleDraw.innerHTML = '&#x1F534; Draw: ON';
-                drawToolsRow.style.display = 'flex';
-                canvas.style.pointerEvents = 'auto';
-            }
+        /* === DARK MODE TOGGLE === */
+        const btnDarkMode = document.getElementById('btn-dark-mode');
+        function updateDarkModeBtn() {
+            const isDark = document.body.classList.contains('dark');
+            btnDarkMode.innerHTML = isDark ? '&#x2600;' : '&#x263D;';
+            btnDarkMode.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
         }
-
-        btnToggleDraw.addEventListener('click', () => setAppMode(appMode==='draw' ? 'view' : 'draw'));
-        toolBtns.forEach(b => b.addEventListener('click', () => {
-            if(appMode!=='draw') setAppMode('draw');
-            toolBtns.forEach(x=>x.classList.remove('active')); b.classList.add('active');
-            currentTool = b.getAttribute('data-tool');
-        }));
-        document.getElementById('tool-undo').addEventListener('click', drawingUndo);
-        document.getElementById('tool-clear').addEventListener('click', () => { shapes=[]; saveDrawingState(); renderAllShapes(); });
-
-        document.getElementById('btn-screenshot').addEventListener('click', (e) => {
-            const btn=e.target; const orig=btn.innerHTML;
-            btn.innerHTML='&#x231B; Processing...';
-            document.querySelector('.drawing-toolbar').style.display='none';
-            setTimeout(()=>{
-                html2canvas(document.body,{scale:2,useCORS:true,backgroundColor:'#f4f5f7',x:window.scrollX,y:window.scrollY,width:window.innerWidth,height:window.innerHeight})
-                .then(c=>{const l=document.createElement('a');l.download='BRoll_Screenshot.png';l.href=c.toDataURL('image/png');l.click();document.querySelector('.drawing-toolbar').style.display='flex';btn.innerHTML=orig;})
-                .catch(()=>{document.querySelector('.drawing-toolbar').style.display='flex';btn.innerHTML='&#x274C; Error';setTimeout(()=>btn.innerHTML=orig,2000);});
-            },100);
+        updateDarkModeBtn();
+        btnDarkMode.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            const isDark = document.body.classList.contains('dark');
+            localStorage.setItem('broll-dark-mode', isDark);
+            updateDarkModeBtn();
         });
+
         /* === PICTURE-IN-PICTURE === */
-        let pipWindow = null;
-
-        document.getElementById('btn-pip').addEventListener('click', async () => {
-            // Find the first document-block (or the focused one)
-            const block = document.querySelector('.document-block');
-            if (!block) { alert('No transcript block to pop out.'); return; }
-
-            if (!('documentPictureInPicture' in window)) {
-                alert('Document Picture-in-Picture is not supported in this browser. Use Chrome 116+.');
-                return;
-            }
-
-            try {
-                const contentEl = block.querySelector('.document-content');
-                const contentHTML = contentEl.innerHTML;
-
-                pipWindow = await documentPictureInPicture.requestWindow({
-                    width: 520,
-                    height: 600
-                });
-
-                const pipDoc = pipWindow.document;
-                pipDoc.head.innerHTML = `
-                    <style>
-                        * { box-sizing: border-box; }
-                        body {
-                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                            line-height: 1.8; color: #2c3e50; font-size: 17px;
-                            margin: 0; padding: 20px 24px 80px 24px; background: #fff;
-                            overflow-y: auto;
-                        }
-                        h2 { margin-top: 0; color: #1a252f; font-weight: 700; }
-                        .highlight-container { position: relative; display: inline; }
-                        .highlight-text {
-                            background-color: #fff3cd; border-bottom: 2px solid #fbbf24;
-                            cursor: pointer; padding: 0 1px; border-radius: 3px;
-                            box-decoration-break: clone; -webkit-box-decoration-break: clone;
-                        }
-                        .highlight-container.has-note .highlight-text { border-bottom: 2px dashed #e6a800; }
-                        .highlight-container:hover .highlight-text { background-color: #ffe69c; }
-                        .broll-card { display: none; }
-                        .pip-popup {
-                            display: none; position: fixed; z-index: 800; background: #fff; padding: 8px;
-                            border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #e2e8f0;
-                            gap: 8px; width: max-content; flex-direction: row; align-items: center;
-                        }
-                        .pip-btn {
-                            display: inline-flex; align-items: center; justify-content: center;
-                            padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
-                            color: #fff; border: none; cursor: pointer; white-space: nowrap;
-                        }
-                        .pip-note-panel {
-                            display: none; position: fixed; bottom: 0; left: 0; right: 0;
-                            background: #fff; border-top: 2px solid #e2e8f0; padding: 12px 16px;
-                            z-index: 900; box-shadow: 0 -4px 16px rgba(0,0,0,0.1);
-                        }
-                        .pip-note-panel textarea {
-                            width: 100%; box-sizing: border-box; padding: 10px; border: 2px solid #cbd5e1;
-                            border-radius: 8px; font-family: inherit; font-size: 14px; resize: none;
-                            height: 70px; margin-bottom: 8px; color: #1e293b;
-                        }
-                        .pip-note-panel textarea:focus { outline: none; border-color: #6366f1; }
-                        .pip-note-actions { display: flex; gap: 8px; justify-content: flex-end; }
-                        .pip-note-actions button {
-                            padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600;
-                            font-size: 13px; border: none;
-                        }
-                    </style>
-                `;
-
-                pipDoc.body.innerHTML = `
-                    <div id="pip-content" contenteditable="true" spellcheck="false">${contentHTML}</div>
-                    <div class="pip-popup" id="pip-popup">
-                        <button class="pip-btn" id="pip-mark" style="background:#eab308;color:#1e293b;">&#x1F4CC; Mark</button>
-                        <button class="pip-btn" id="pip-add-note" style="background:#10b981;">&#x1F4AC; Add Note</button>
-                        <button class="pip-btn" id="pip-copy" style="background:#6366f1;">&#x1F4CB; Copy</button>
-                    </div>
-                    <div class="pip-note-panel" id="pip-note-panel">
-                        <textarea id="pip-note-input" placeholder="Describe the B-roll or visual..."></textarea>
-                        <div class="pip-note-actions">
-                            <button style="background:#f1f5f9;color:#475569;" id="pip-note-cancel">Cancel</button>
-                            <button style="background:#6366f1;color:#fff;" id="pip-note-save">Save</button>
-                        </div>
-                    </div>
-                `;
-
-                // PiP internal logic
-                const pipContent = pipDoc.getElementById('pip-content');
-                const pipPopup = pipDoc.getElementById('pip-popup');
-                const pipNotePanel = pipDoc.getElementById('pip-note-panel');
-                const pipNoteInput = pipDoc.getElementById('pip-note-input');
-                let pipRange = null;
-                let pipNoteContainer = null;
-
-                // Show popup on selection
-                pipDoc.addEventListener('mouseup', (ev) => {
-                    if (ev.target.closest('.pip-popup') || ev.target.closest('.pip-note-panel')) return;
-                    const sel = pipWindow.getSelection();
-                    if (!sel.isCollapsed && sel.toString().trim().length > 0) {
-                        pipRange = sel.getRangeAt(0).cloneRange();
-                        pipPopup.style.display = 'flex';
-                        pipPopup.style.left = `${Math.min(ev.clientX, pipWindow.innerWidth - 280)}px`;
-                        pipPopup.style.top = `${ev.clientY - 45}px`;
-                    } else {
-                        pipPopup.style.display = 'none';
-                    }
-                });
-
-                // Mark
-                pipDoc.getElementById('pip-mark').addEventListener('mousedown', (ev) => {
-                    ev.preventDefault(); if (!pipRange) return;
-                    pipPopup.style.display = 'none';
-                    pipWrapHighlight(pipRange, null);
-                });
-
-                // Add Note
-                pipDoc.getElementById('pip-add-note').addEventListener('mousedown', (ev) => {
-                    ev.preventDefault(); if (!pipRange) return;
-                    pipPopup.style.display = 'none';
-                    pipNoteContainer = pipWrapHighlight(pipRange, null);
-                    if (pipNoteContainer) {
-                        pipNoteInput.value = '';
-                        pipNotePanel.style.display = 'block';
-                        pipNoteInput.focus();
-                    }
-                });
-
-                // Copy
-                pipDoc.getElementById('pip-copy').addEventListener('mousedown', (ev) => {
-                    ev.preventDefault(); if (!pipRange) return;
-                    const text = pipRange.toString();
-                    navigator.clipboard.writeText(text);
-                    pipPopup.style.display = 'none';
-                    pipWindow.getSelection().removeAllRanges();
-                });
-
-                // Note save
-                pipDoc.getElementById('pip-note-save').addEventListener('click', () => {
-                    if (pipNoteContainer && pipNoteInput.value.trim()) {
-                        pipNoteContainer.classList.add('has-note');
-                        pipNoteContainer.setAttribute('data-note', pipNoteInput.value.trim());
-                    }
-                    pipNotePanel.style.display = 'none';
-                    pipNoteContainer = null;
-                });
-
-                // Enter saves note in PiP
-                pipNoteInput.addEventListener('keydown', (ev) => {
-                    if (ev.key === 'Enter' && !ev.shiftKey) {
-                        ev.preventDefault();
-                        pipDoc.getElementById('pip-note-save').click();
-                    }
-                });
-
-                pipDoc.getElementById('pip-note-cancel').addEventListener('click', () => {
-                    pipNotePanel.style.display = 'none';
-                    pipNoteContainer = null;
-                });
-
-                // Click highlight to edit note
-                pipDoc.addEventListener('click', (ev) => {
-                    const ht = ev.target.closest('.highlight-text');
-                    if (ht) {
-                        const sel = pipWindow.getSelection();
-                        if (!sel.isCollapsed && sel.toString().trim().length > 0) return;
-                        const cont = ht.closest('.highlight-container');
-                        if (!cont) return;
-                        pipNoteContainer = cont;
-                        pipNoteInput.value = cont.getAttribute('data-note') || '';
-                        pipNotePanel.style.display = 'block';
-                        pipNoteInput.focus();
-                    }
-                });
-
-                function pipWrapHighlight(range, noteText) {
-                    const c = pipDoc.createElement('span');
-                    c.className = 'highlight-container';
-                    const ts = pipDoc.createElement('span'); ts.className = 'highlight-text';
-                    try {
-                        ts.appendChild(range.extractContents());
-                        c.appendChild(ts);
-                        range.insertNode(c);
-                        pipWindow.getSelection().removeAllRanges();
-                        pipRange = null;
-                        return c;
-                    } catch(err) { return null; }
-                }
-
-                // Sync back to main page when PiP closes
-                pipWindow.addEventListener('pagehide', () => {
-                    // Copy PiP content back to the main block
-                    const pipHTML = pipContent.innerHTML;
-                    contentEl.innerHTML = pipHTML;
-                    // Rebind hover events
-                    contentEl.querySelectorAll('.highlight-container').forEach(cont => {
-                        const noteData = cont.getAttribute('data-note');
-                        if (noteData) {
-                            cont.classList.add('has-note');
-                            // Create proper broll-card from data-note
-                            const existing = cont.querySelector('.broll-card');
-                            if (!existing) {
-                                const card = document.createElement('div'); card.className = 'broll-card';
-                                card.innerHTML = `<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit Note" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${noteData}</div>`;
-                                cont.appendChild(card);
-                            }
-                            cont.removeAttribute('data-note');
-                        }
-                        bindHoverEvents(cont);
-                    });
-                    pipWindow = null;
-                });
-
-            } catch(err) {
-                console.error('PiP error:', err);
-                alert('Could not open Picture-in-Picture window. Make sure you are using Chrome 116+ and the page is focused.');
-            }
+        let pipWindow=null;
+        document.getElementById('btn-pip').addEventListener('click',async()=>{
+            const block=document.querySelector('.document-block');if(!block){alert('No transcript block to pop out.');return;}
+            if(!('documentPictureInPicture' in window)){alert('Document PiP requires Chrome 116+.');return;}
+            try{
+                const contentEl=block.querySelector('.document-content'),contentHTML=contentEl.innerHTML;
+                pipWindow=await documentPictureInPicture.requestWindow({width:520,height:600});
+                const pd=pipWindow.document;
+                pd.head.innerHTML=`<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;}body{font-family:'Inter',sans-serif;line-height:1.8;color:#334155;font-size:16px;margin:0;padding:20px 24px 80px;background:#fff;overflow-y:auto;-webkit-font-smoothing:antialiased;}h2{margin-top:0;color:#0f172a;font-weight:700;font-size:20px;}.highlight-container{position:relative;display:inline;}.highlight-text{background-color:rgba(251,191,36,0.18);border-bottom:2px solid #fbbf24;cursor:pointer;padding:1px 2px;border-radius:2px;box-decoration-break:clone;-webkit-box-decoration-break:clone;}.highlight-container.has-note .highlight-text{background-color:rgba(251,191,36,0.25);border-bottom:2px dashed #f59e0b;}.highlight-container:hover .highlight-text{background-color:rgba(251,191,36,0.4);}.broll-card{display:none;}.pip-popup{display:none;position:fixed;z-index:800;background:rgba(255,255,255,0.95);backdrop-filter:blur(16px);padding:5px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.1);border:1px solid rgba(0,0,0,0.05);gap:4px;width:max-content;flex-direction:row;align-items:center;}.pip-btn{display:inline-flex;align-items:center;padding:7px 14px;border-radius:10px;font-size:13px;font-weight:600;color:#fff;border:none;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;}.pip-note-panel{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e7eb;padding:12px 16px;z-index:900;box-shadow:0 -4px 16px rgba(0,0,0,0.06);}.pip-note-panel textarea{width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #e5e7eb;border-radius:12px;font-family:'Inter',sans-serif;font-size:14px;resize:none;height:70px;margin-bottom:8px;color:#1e293b;background:#fafbfc;}.pip-note-panel textarea:focus{outline:none;border-color:#818cf8;background:#fff;box-shadow:0 0 0 3px rgba(129,140,248,0.1);}.pip-note-actions{display:flex;gap:8px;justify-content:flex-end;}.pip-note-actions button{padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;border:none;font-family:'Inter',sans-serif;}</style>`;
+                pd.body.innerHTML=`<div id="pip-content" contenteditable="true" spellcheck="false">${contentHTML}</div><div class="pip-popup" id="pip-popup"><button class="pip-btn" id="pip-mark" style="background:#f1f5f9;color:#1e293b;">Mark</button><button class="pip-btn" id="pip-add-note" style="background:#10b981;">+ Note</button><button class="pip-btn" id="pip-copy" style="background:#475569;">Copy</button></div><div class="pip-note-panel" id="pip-note-panel"><textarea id="pip-note-input" placeholder="Describe the B-roll or visual..."></textarea><div class="pip-note-actions"><button style="background:#f1f5f9;color:#475569;" id="pip-note-cancel">Cancel</button><button style="background:#4f46e5;color:#fff;" id="pip-note-save">Save</button></div></div>`;
+                const pipContent=pd.getElementById('pip-content'),pipPopup=pd.getElementById('pip-popup'),pipNotePanel=pd.getElementById('pip-note-panel'),pipNoteInput=pd.getElementById('pip-note-input');let pipRange=null,pipNoteCont=null;
+                pd.addEventListener('mouseup',(ev)=>{if(ev.target.closest('.pip-popup')||ev.target.closest('.pip-note-panel'))return;const sel=pipWindow.getSelection();if(!sel.isCollapsed&&sel.toString().trim().length>0){pipRange=sel.getRangeAt(0).cloneRange();pipPopup.style.display='flex';pipPopup.style.left=`${Math.min(ev.clientX,pipWindow.innerWidth-260)}px`;pipPopup.style.top=`${ev.clientY-45}px`;}else{pipPopup.style.display='none';}});
+                pd.getElementById('pip-mark').addEventListener('mousedown',(ev)=>{ev.preventDefault();if(!pipRange)return;pipPopup.style.display='none';pipWrap(pipRange,null);});
+                pd.getElementById('pip-add-note').addEventListener('mousedown',(ev)=>{ev.preventDefault();if(!pipRange)return;pipPopup.style.display='none';pipNoteCont=pipWrap(pipRange,null);if(pipNoteCont){pipNoteInput.value='';pipNotePanel.style.display='block';pipNoteInput.focus();}});
+                pd.getElementById('pip-copy').addEventListener('mousedown',(ev)=>{ev.preventDefault();if(!pipRange)return;navigator.clipboard.writeText(pipRange.toString());pipPopup.style.display='none';pipWindow.getSelection().removeAllRanges();});
+                pd.getElementById('pip-note-save').addEventListener('click',()=>{if(pipNoteCont&&pipNoteInput.value.trim()){pipNoteCont.classList.add('has-note');pipNoteCont.setAttribute('data-note',pipNoteInput.value.trim());}pipNotePanel.style.display='none';pipNoteCont=null;});
+                pipNoteInput.addEventListener('keydown',(ev)=>{if(ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();pd.getElementById('pip-note-save').click();}});
+                pd.getElementById('pip-note-cancel').addEventListener('click',()=>{pipNotePanel.style.display='none';pipNoteCont=null;});
+                pd.addEventListener('click',(ev)=>{const ht=ev.target.closest('.highlight-text');if(ht){const sel=pipWindow.getSelection();if(!sel.isCollapsed&&sel.toString().trim().length>0)return;const cont=ht.closest('.highlight-container');if(!cont)return;pipNoteCont=cont;pipNoteInput.value=cont.getAttribute('data-note')||'';pipNotePanel.style.display='block';pipNoteInput.focus();}});
+                function pipWrap(range){const c=pd.createElement('span');c.className='highlight-container';const ts=pd.createElement('span');ts.className='highlight-text';try{ts.appendChild(range.extractContents());c.appendChild(ts);range.insertNode(c);pipWindow.getSelection().removeAllRanges();pipRange=null;return c;}catch(err){return null;}}
+                pipWindow.addEventListener('pagehide',()=>{const pipHTML=pipContent.innerHTML;contentEl.innerHTML=pipHTML;contentEl.querySelectorAll('.highlight-container').forEach(cont=>{const nd=cont.getAttribute('data-note');if(nd){cont.classList.add('has-note');if(!cont.querySelector('.broll-card')){const card=document.createElement('div');card.className='broll-card';card.innerHTML=`<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${nd}</div>`;cont.appendChild(card);}cont.removeAttribute('data-note');}bindHoverEvents(cont);});pipWindow=null;});
+            }catch(err){console.error('PiP error:',err);alert('Could not open PiP. Use Chrome 116+ with page focused.');}
         });
-
     </script>
 </body>
 </html>
