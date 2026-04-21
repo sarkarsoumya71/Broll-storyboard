@@ -475,7 +475,7 @@
     <!-- Canvas -->
     <div id="zoom-container">
         <canvas id="drawing-layer" width="6000" height="6000"></canvas>
-        <div id="blocks-container">
+        <div id="blocks-container" style="opacity:0;">
             <div class="document-block" style="left: 2550px; top: 600px; width: 900px;">
                 <div class="document-header">
                     <span>&#x2807; Drag to move</span>
@@ -545,20 +545,21 @@
         if (localStorage.getItem('broll-dark-mode') === 'true') document.body.classList.add('dark');
 
         window.onload = () => {
-            // Try to restore auto-saved workspace
+            const bc = document.getElementById('blocks-container');
             try {
                 const saved = localStorage.getItem('broll-autosave');
                 if (saved) {
                     const pd = JSON.parse(saved);
                     if (pd.blocks && pd.blocks.length > 0) {
-                        // We have a real saved workspace — defer loading until after DOM is ready
-                        setTimeout(() => {
-                            loadProjectData(pd);
-                        }, 50);
-                        return; // skip default scroll
+                        loadProjectData(pd);
+                        bc.style.opacity = '1';
+                        return;
                     }
                 }
             } catch(err) { console.warn('Auto-restore failed:', err); }
+            // No saved data — show default block and scroll to center
+            bc.style.opacity = '1';
+            document.querySelectorAll('.document-block').forEach(makeBlockInteractive);
             window.scrollTo((6000 - window.innerWidth)/2, 400);
         };
 
