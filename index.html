@@ -3,460 +3,271 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>B-Roll Editor</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<title>B-Roll Editor Web App Workspace</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
-    :root {
-        --bg-canvas: #18181b;
-        --bg-canvas-dot: rgba(63,63,70,0.5);
-        --bg-block: #fafaf9;
-        --bg-block-header: #f5f5f4;
-        --bg-toolbar: rgba(9,9,11,0.85);
-        --bg-toolbar-inner: rgba(39,39,42,0.7);
-        --bg-modal: #fafaf9;
-        --bg-modal-overlay: rgba(0,0,0,0.65);
-        --text-primary: #1c1917;
-        --text-secondary: #78716c;
-        --text-muted: #a8a29e;
-        --text-toolbar: #d4d4d8;
-        --border-block: rgba(214,211,209,0.6);
-        --border-toolbar: rgba(63,63,70,0.5);
-        --accent: #f59e0b;
-        --accent-hover: #d97706;
-        --accent-glow: rgba(245,158,11,0.15);
-        --accent-mark: #fef3c7;
-        --accent-mark-hover: #fde68a;
-        --accent-mark-border: #f59e0b;
-        --accent-mark-dashed: #d97706;
-        --indigo: #818cf8;
-        --indigo-bg: rgba(129,140,248,0.12);
-        --green: #34d399;
-        --green-dark: #059669;
-        --red: #fb7185;
-        --red-dark: #e11d48;
-        --radius-sm: 8px;
-        --radius-md: 14px;
-        --radius-lg: 20px;
-        --radius-pill: 100px;
-        --shadow-block: 0 8px 32px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
-        --shadow-toolbar: 0 -8px 40px rgba(0,0,0,0.4), 0 0 0 1px var(--border-toolbar);
-        --shadow-popup: 0 12px 40px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.06);
-        --shadow-modal: 0 32px 80px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.04);
-        --font-body: 'DM Sans', system-ui, -apple-system, sans-serif;
-        --font-display: 'Instrument Serif', Georgia, serif;
-        --transition-fast: 0.15s cubic-bezier(0.4,0,0.2,1);
-        --transition-med: 0.25s cubic-bezier(0.4,0,0.2,1);
-    }
-
-    * { box-sizing: border-box; }
-
     body { 
-        font-family: var(--font-body);
-        line-height: 1.75; color: var(--text-primary); font-size: 18px;
-        background-color: var(--bg-canvas);
-        background-image: radial-gradient(var(--bg-canvas-dot) 1px, transparent 1px);
-        background-size: 20px 20px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+        line-height: 1.8; color: #2c3e50; font-size: 19px;
+        background-color: #f4f5f7; 
+        background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+        background-size: 24px 24px;
         margin: 0; padding: 0; overflow: auto; 
-        overscroll-behavior: none;
+        overscroll-behavior: none; 
     }
     
     #zoom-container {
         position: relative; width: 6000px; height: 6000px;
-        background-color: var(--bg-canvas);
-        background-image: radial-gradient(var(--bg-canvas-dot) 1px, transparent 1px);
-        background-size: 20px 20px;
-        transform-origin: 0 0;
+        background-color: #f4f5f7; 
+        background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+        background-size: 24px 24px; 
+        transform-origin: 0 0; box-shadow: 0 0 50px rgba(0,0,0,0.1);
     }
 
-    /* === DOCUMENT BLOCKS === */
     .document-block {
-        background: var(--bg-block);
-        position: absolute; border-radius: var(--radius-md);
-        box-shadow: var(--shadow-block);
-        z-index: 100; display: flex; flex-direction: column;
-        border: 1px solid var(--border-block);
-        overflow: visible;
-        transition: box-shadow var(--transition-med);
-    }
-    .document-block:hover {
-        box-shadow: 0 12px 44px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.08);
+        background: #ffffff; 
+        position: absolute; 
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08), 0 2px 10px rgba(0,0,0,0.04);
+        z-index: 100; 
+        display: flex; flex-direction: column;
+        border: 1px solid #e2e8f0;
+        overflow: visible; 
     }
 
     .document-header {
         position: relative; z-index: 1; 
-        background: var(--bg-block-header); padding: 10px 20px;
-        border-radius: var(--radius-md) var(--radius-md) 0 0;
-        border-bottom: 1px solid var(--border-block);
+        background: #f8fafc; padding: 10px 20px;
+        border-radius: 12px 12px 0 0; border-bottom: 1px solid #e2e8f0;
         display: flex; justify-content: space-between; align-items: center;
-        cursor: grab; user-select: none;
-        color: var(--text-muted); font-size: 12px; font-weight: 500;
-        letter-spacing: 0.4px; text-transform: uppercase;
+        cursor: grab; user-select: none; color: #64748b; font-size: 14px; font-weight: 600;
     }
     .document-header:active { cursor: grabbing; }
     
     .delete-btn {
-        background: transparent; border: none; cursor: pointer; font-size: 13px;
-        color: var(--text-muted); transition: all var(--transition-fast); padding: 4px 6px;
-        border-radius: 6px; line-height: 1;
+        background: transparent; border: none; cursor: pointer; font-size: 14px;
+        color: #94a3b8; transition: color 0.2s; padding: 4px;
     }
-    .delete-btn:hover { color: var(--red); background: rgba(251,113,133,0.1); }
+    .delete-btn:hover { color: #f43f5e; }
 
     .document-content {
         position: relative; z-index: 10; 
-        padding: 36px 44px; outline: none; flex-grow: 1;
-        font-size: 18px; line-height: 1.8;
+        padding: 40px 50px; outline: none; flex-grow: 1; 
     }
 
     .resize-handle {
         position: absolute; right: 0; bottom: 0;
-        width: 20px; height: 20px; cursor: se-resize;
-        background: linear-gradient(135deg, transparent 50%, var(--text-muted) 50%);
-        border-radius: 0 0 var(--radius-md) 0; opacity: 0;
-        transition: opacity var(--transition-fast); z-index: 20;
+        width: 24px; height: 24px; cursor: se-resize;
+        background: linear-gradient(135deg, transparent 50%, #cbd5e1 50%);
+        border-radius: 0 0 12px 0; opacity: 0.5; transition: opacity 0.2s;
+        z-index: 20;
     }
-    .document-block:hover .resize-handle,
-    .image-block:hover .resize-handle { opacity: 0.4; }
-    .resize-handle:hover { opacity: 0.7 !important; }
+    .document-block:hover .resize-handle { opacity: 1; }
 
     .block-export-btn {
-        position: absolute; bottom: 10px; right: 30px; 
-        background: var(--green); color: #fff; border: none;
-        border-radius: var(--radius-sm); padding: 5px 12px;
-        font-size: 11px; font-weight: 600; cursor: pointer;
-        letter-spacing: 0.3px; text-transform: uppercase;
-        box-shadow: 0 2px 6px rgba(52,211,153,0.3);
-        transition: all var(--transition-fast); z-index: 20;
-        font-family: var(--font-body);
+        position: absolute; bottom: 12px; right: 35px; 
+        background: #10b981; color: #fff; border: none; border-radius: 6px;
+        padding: 4px 10px; font-size: 13px; font-weight: bold; cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background 0.2s; z-index: 20;
     }
-    .block-export-btn:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .block-export-btn:hover { background: #059669; }
 
-    h2 { 
-        margin-top: 0; color: var(--text-primary);
-        font-family: var(--font-display); font-weight: 400;
-        font-size: 28px; letter-spacing: -0.02em;
-    }
+    h2 { margin-top: 0; color: #1a252f; font-weight: 700; }
 
-    /* === HIGHLIGHTS === */
     .highlight-container { position: relative; display: inline; }
     .highlight-text {
-        background-color: var(--accent-mark); 
-        border-bottom: 2px solid var(--accent-mark-border);
-        cursor: pointer; padding: 1px 2px; border-radius: 3px;
-        transition: background-color var(--transition-fast);
+        background-color: #fff3cd; border-bottom: 2px solid #fbbf24;
+        cursor: pointer; padding: 0 1px; border-radius: 3px;
+        transition: background-color 0.2s ease;
         box-decoration-break: clone; -webkit-box-decoration-break: clone;
     }
     .highlight-container.has-note .highlight-text {
-        border-bottom: 2px dashed var(--accent-mark-dashed);
+        border-bottom: 2px dashed #e6a800;
     }
-    .highlight-container:hover .highlight-text, 
-    .highlight-container.active .highlight-text {
-        background-color: var(--accent-mark-hover);
+    .highlight-container:hover .highlight-text, .highlight-container.active .highlight-text {
+        background-color: #ffe69c;
     }
 
-    /* === B-ROLL CARDS === */
     .broll-card {
         visibility: hidden; opacity: 0; position: absolute; bottom: 120%; left: 50%;
-        transform: translateX(-50%) translateY(8px);
-        background: #fff; color: var(--text-primary);
-        padding: 18px 22px; border-radius: var(--radius-md);
-        font-size: 14px; width: 360px; z-index: 500;
-        box-shadow: var(--shadow-popup);
-        border: 1px solid rgba(0,0,0,0.06);
-        transition: opacity var(--transition-med), visibility var(--transition-med), transform var(--transition-med);
-        line-height: 1.55; cursor: default;
+        transform: translateX(-50%) translateY(10px); background-color: #ffffff; color: #333;
+        padding: 16px 20px; border-radius: 12px; font-size: 15px; width: 360px; z-index: 500;
+        box-shadow: 0 12px 35px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0; transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+        line-height: 1.5; cursor: default;
     }
     .broll-card.visible { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(0); }
     
     .broll-card-header {
         display: flex; justify-content: space-between; align-items: flex-start;
-        margin-bottom: 10px; border-bottom: 1px solid #f5f5f4; padding-bottom: 8px;
+        margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;
     }
-    .broll-title { 
-        color: var(--text-primary); font-size: 13px; font-weight: 600; margin: 0;
-        text-transform: uppercase; letter-spacing: 0.5px;
-    }
+    .broll-title { color: #1e293b; font-size: 16px; font-weight: 700; margin: 0; }
     .btn-edit-note {
-        background: transparent; border: none; cursor: pointer; font-size: 13px; 
-        padding: 4px 6px; border-radius: 6px; transition: background var(--transition-fast);
+        background: transparent; border: none; cursor: pointer; font-size: 14px; 
+        padding: 4px; border-radius: 4px; transition: background 0.1s;
     }
-    .btn-edit-note:hover { background: #f5f5f4; }
-    .broll-note-text { 
-        margin-bottom: 0; color: var(--text-secondary); white-space: pre-wrap;
-        font-family: var(--font-body); font-size: 14px; line-height: 1.6;
-    }
+    .btn-edit-note:hover { background: #f1f5f9; }
+    .broll-note-text { margin-bottom: 14px; color: #475569; white-space: pre-wrap; font-family: sans-serif; }
 
-    /* === POPUP BUTTONS === */
     .btn {
-        display: inline-flex; align-items: center; justify-content: center;
-        padding: 8px 16px; border-radius: var(--radius-sm);
-        font-size: 13px; font-weight: 600; color: #fff; border: none;
-        cursor: pointer; transition: all var(--transition-fast);
-        text-decoration: none; white-space: nowrap;
-        font-family: var(--font-body); letter-spacing: 0.2px;
+        display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border-radius: 8px;
+        font-size: 14px; font-weight: 600; color: #fff; border: none; cursor: pointer; transition: transform 0.1s ease, opacity 0.2s; text-decoration: none;
+        white-space: nowrap;
     }
-    .btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
     .btn:active { transform: translateY(0); }
 
-    /* === CANVAS === */
     #drawing-layer {
         position: absolute; top: 0; left: 0; 
         width: 6000px; height: 6000px; 
         z-index: 150; pointer-events: none; touch-action: none; 
     }
 
-    /* === TOOLBAR === */
     .drawing-toolbar {
-        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-        background: var(--bg-toolbar);
-        backdrop-filter: blur(20px) saturate(1.5);
-        -webkit-backdrop-filter: blur(20px) saturate(1.5);
-        padding: 12px 20px; border-radius: var(--radius-lg);
-        display: flex; flex-direction: column; gap: 10px; align-items: center;
-        box-shadow: var(--shadow-toolbar);
-        z-index: 1000; width: max-content;
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+        background: #1e293b; padding: 16px 24px; border-radius: 24px;
+        display: flex; flex-direction: column; gap: 14px; align-items: center;
+        box-shadow: 0 16px 40px rgba(0,0,0,0.3); z-index: 1000; border: 1px solid #334155;
+        width: max-content; 
     }
-    .toolbar-row { 
-        display: flex; gap: 6px; align-items: center; justify-content: center; width: 100%;
-    }
+    .toolbar-row { display: flex; gap: 8px; align-items: center; justify-content: center; width: 100%; }
 
     .tool-btn {
-        background: transparent; border: 1.5px solid transparent;
-        color: var(--text-toolbar);
-        padding: 7px 13px; border-radius: var(--radius-pill); cursor: pointer;
-        font-size: 13px; font-weight: 500;
-        transition: all var(--transition-fast);
-        display: inline-flex; align-items: center; justify-content: center;
-        white-space: nowrap; font-family: var(--font-body);
-        letter-spacing: 0.2px;
+        background: transparent; border: 2px solid transparent; color: #cbd5e1;
+        padding: 8px 14px; border-radius: 50px; cursor: pointer; font-size: 15px;
+        font-weight: 600; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center;
+        white-space: nowrap; 
     }
-    .tool-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
-    .tool-btn.active { background: var(--indigo); color: #fff; border-color: var(--indigo); }
-    .tool-btn.danger { color: var(--red); }
-    .tool-btn.danger:hover { background: rgba(251,113,133,0.12); }
-    .tool-btn.capture { 
-        background: var(--accent); color: var(--bg-canvas); border-color: var(--accent);
-        font-weight: 600;
-    }
-    .tool-btn.capture:hover { background: var(--accent-hover); }
-    .tool-btn.io-btn { 
-        background: rgba(255,255,255,0.06); color: var(--text-toolbar);
-        border-color: rgba(255,255,255,0.08);
-    }
-    .tool-btn.io-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .tool-btn:hover { background: #334155; color: #fff; }
+    .tool-btn.active { background: #6366f1; color: #fff; border-color: #6366f1; }
+    .tool-btn.danger { color: #f43f5e; }
+    .tool-btn.danger:hover { background: rgba(244, 63, 94, 0.15); }
+    .tool-btn.capture { background: #eab308; color: #1e293b; border-color: #ca8a04; }
+    .tool-btn.capture:hover { background: #facc15; }
+    .tool-btn.io-btn { background: #475569; color: #fff; border-color: #475569; }
+    .tool-btn.io-btn:hover { background: #64748b; }
 
-    .zoom-group { 
-        display: flex; align-items: center;
-        background: rgba(255,255,255,0.05); border-radius: var(--radius-pill); padding: 3px;
-    }
-    .zoom-btn { padding: 5px 10px; font-size: 14px; }
-    #zoom-level { 
-        color: #fff; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums;
-        min-width: 46px; text-align: center; user-select: none; letter-spacing: 0.5px;
-    }
+    .zoom-group { display: flex; align-items: center; background: #0f172a; border-radius: 50px; padding: 4px; }
+    .zoom-btn { padding: 6px 12px; font-size: 16px; }
+    #zoom-level { color: #fff; font-size: 13px; font-weight: 700; min-width: 50px; text-align: center; user-select: none; }
 
-    .divider { width: 1px; height: 20px; background: rgba(255,255,255,0.1); margin: 0 3px; }
+    .divider { width: 1px; height: 24px; background: #334155; margin: 0 4px; }
 
-    .mode-btn { 
-        background: rgba(255,255,255,0.06); color: #fff;
-        border: 1.5px solid rgba(255,255,255,0.12);
-    }
-    .mode-btn.active-draw { 
-        background: var(--red); border-color: var(--red);
-        box-shadow: 0 0 20px rgba(251,113,133,0.35);
-    }
+    .mode-btn { background: #334155; color: #fff; border: 2px solid #475569; }
+    .mode-btn.active-draw { background: #f43f5e; border-color: #f43f5e; box-shadow: 0 0 15px rgba(244, 63, 94, 0.4); }
 
-    .color-picker-group { 
-        display: flex; align-items: center; gap: 6px;
-        background: rgba(255,255,255,0.05); padding: 5px 12px; border-radius: var(--radius-pill);
-    }
-    .color-btn { 
-        width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent;
-        cursor: pointer; padding: 0; transition: all var(--transition-fast);
-    }
-    .color-btn:hover { transform: scale(1.2); }
-    .color-btn.active { border-color: #fff; box-shadow: 0 0 0 2px var(--indigo); }
-    .custom-color-input { 
-        width: 24px; height: 24px; padding: 0; border: none;
-        border-radius: 6px; cursor: pointer; background: transparent;
-    }
+    .color-picker-group { display: flex; align-items: center; gap: 8px; background: #0f172a; padding: 6px 14px; border-radius: 50px; }
+    .color-btn { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; transition: transform 0.1s; }
+    .color-btn:hover { transform: scale(1.15); }
+    .color-btn.active { border-color: #fff; box-shadow: 0 0 0 2px #6366f1; }
+    .custom-color-input { width: 26px; height: 26px; padding: 0; border: none; border-radius: 6px; cursor: pointer; background: transparent; }
     .custom-color-input::-webkit-color-swatch-wrapper { padding: 0; }
-    .custom-color-input::-webkit-color-swatch { border: 2px solid rgba(255,255,255,0.3); border-radius: 6px; }
+    .custom-color-input::-webkit-color-swatch { border: 2px solid #fff; border-radius: 6px; }
 
-    /* === SELECTION POPUP === */
     #comment-popup {
-        display: none; position: absolute; z-index: 800;
-        background: var(--bg-canvas); padding: 6px;
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow-popup);
-        gap: 5px; transform: translate(-50%, -100%); margin-top: -12px;
+        display: none; position: absolute; z-index: 800; background: #ffffff; padding: 8px;
+        border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #e2e8f0;
+        gap: 8px; transform: translate(-50%, -100%); margin-top: -10px;
         width: max-content; flex-direction: row; align-items: center; flex-wrap: nowrap;
-        backdrop-filter: blur(12px);
     }
     #comment-popup .btn { white-space: nowrap !important; flex-shrink: 0; }
 
-    /* === MODALS === */
     .modal-overlay {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        background: var(--bg-modal-overlay);
-        backdrop-filter: blur(6px);
+        background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
         z-index: 9999; display: none; align-items: center; justify-content: center;
     }
 
+    /* Floating modal: positioned to the RIGHT side by default */
     .floating-modal {
-        position: fixed; top: 50%; right: 24px; left: auto;
+        position: fixed; 
+        top: 50%; 
+        right: 24px;
+        left: auto;
         transform: translateY(-50%);
-        z-index: 10000; display: none;
-        background: var(--bg-modal); border-radius: var(--radius-lg);
+        z-index: 10000; display: none; background: #fff; border-radius: 16px;
         width: 420px; max-width: 90vw;
-        box-shadow: var(--shadow-modal);
-        border: 1px solid rgba(0,0,0,0.06); overflow: visible;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.06);
+        border: 1px solid #e2e8f0; overflow: visible;
     }
     .floating-modal .drag-handle {
-        padding: 20px 28px 0 28px; cursor: grab; user-select: none;
+        padding: 18px 30px 0 30px; cursor: grab; user-select: none;
         display: flex; justify-content: space-between; align-items: center;
     }
     .floating-modal .drag-handle:active { cursor: grabbing; }
-    .floating-modal .drag-handle .grip-dots { 
-        color: var(--text-muted); font-size: 11px; letter-spacing: 2px;
-        text-transform: uppercase; font-weight: 500;
-    }
-    .floating-modal .modal-body { padding: 14px 28px 28px 28px; }
+    .floating-modal .drag-handle .grip-dots { color: #94a3b8; font-size: 12px; letter-spacing: 2px; }
+    .floating-modal .modal-body { padding: 12px 30px 30px 30px; }
 
     .custom-modal {
-        background: var(--bg-modal); padding: 32px; border-radius: var(--radius-lg);
-        width: 450px; max-width: 90vw;
-        box-shadow: var(--shadow-modal); border: 1px solid rgba(0,0,0,0.06);
+        background: #fff; padding: 30px; border-radius: 16px; width: 450px; max-width: 90vw;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.2); border: 1px solid #e2e8f0;
     }
-    .custom-modal h3, .floating-modal h3 { 
-        margin-top: 0; margin-bottom: 6px; color: var(--text-primary);
-        font-family: var(--font-display); font-size: 24px; font-weight: 400;
-    }
-    .custom-modal p.subtitle { 
-        margin-top: 0; margin-bottom: 22px; font-size: 14px;
-        color: var(--text-secondary); line-height: 1.5;
-    }
-    .input-label { 
-        display: block; font-size: 11px; font-weight: 600;
-        color: var(--text-muted); margin-bottom: 8px;
-        text-transform: uppercase; letter-spacing: 0.8px;
-    }
+    .custom-modal h3 { margin-top: 0; margin-bottom: 8px; color: #1e293b; font-size: 22px; }
+    .custom-modal p.subtitle { margin-top: 0; margin-bottom: 20px; font-size: 14px; color: #64748b; line-height: 1.4; }
+    .input-label { display: block; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
     
     .custom-modal input, .custom-modal textarea,
     .floating-modal input, .floating-modal textarea {
-        width: 100%; box-sizing: border-box; padding: 12px 14px;
-        border: 1.5px solid #e7e5e4; background: #fff;
-        border-radius: var(--radius-sm); font-family: var(--font-body);
-        color: var(--text-primary); margin-bottom: 20px;
-        transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+        width: 100%; box-sizing: border-box; padding: 12px; border: 2px solid #cbd5e1;
+        border-radius: 8px; font-family: inherit; color: #1e293b; margin-bottom: 24px;
     }
-    .custom-modal input, .floating-modal input { font-size: 15px; font-weight: 500; }
-    .custom-modal textarea, .floating-modal textarea { font-size: 14px; resize: vertical; min-height: 120px; line-height: 1.6; }
+    .custom-modal input, .floating-modal input { font-size: 16px; font-weight: 600; }
+    .custom-modal textarea, .floating-modal textarea { font-size: 15px; resize: vertical; min-height: 120px; line-height: 1.5; }
     .custom-modal input:focus, .custom-modal textarea:focus,
-    .floating-modal input:focus, .floating-modal textarea:focus { 
-        outline: none; border-color: var(--accent); 
-        box-shadow: 0 0 0 3px var(--accent-glow);
-    }
+    .floating-modal input:focus, .floating-modal textarea:focus { outline: none; border-color: #6366f1; }
     
-    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
-    .modal-btn { 
-        padding: 10px 20px; border-radius: var(--radius-sm); cursor: pointer;
-        font-weight: 600; font-size: 13px; border: none;
-        transition: all var(--transition-fast); font-family: var(--font-body);
-        letter-spacing: 0.2px;
-    }
-    .modal-btn-cancel { background: #f5f5f4; color: var(--text-secondary); }
-    .modal-btn-cancel:hover { background: #e7e5e4; }
-    .modal-btn-save { background: var(--accent); color: #fff; }
-    .modal-btn-save:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
+    .modal-btn { padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; border: none; transition: background 0.1s; }
+    .modal-btn-cancel { background: #f1f5f9; color: #475569; }
+    .modal-btn-cancel:hover { background: #e2e8f0; }
+    .modal-btn-save { background: #6366f1; color: #fff; }
+    .modal-btn-save:hover { background: #4f46e5; }
 
     #export-content {
-        flex-grow: 1; overflow-y: auto; background: #fff; padding: 18px; 
-        border-radius: var(--radius-sm); border: 1.5px solid #e7e5e4; margin-bottom: 20px; 
-        font-size: 13px; font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace;
-        white-space: pre-wrap; color: var(--text-primary); max-height: 400px;
-        line-height: 1.7;
+        flex-grow: 1; overflow-y: auto; background: #f8fafc; padding: 16px; 
+        border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 20px; 
+        font-size: 15px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; 
+        white-space: pre-wrap; color: #1e293b; max-height: 400px;
     }
 
-    /* === IMAGE BLOCKS === */
     .image-block {
-        background: var(--bg-block); position: absolute; border-radius: var(--radius-md);
-        box-shadow: var(--shadow-block);
+        background: #ffffff; position: absolute; border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08), 0 2px 10px rgba(0,0,0,0.04);
         z-index: 100; display: flex; flex-direction: column;
-        border: 1px solid var(--border-block); overflow: hidden;
-        min-width: 150px; min-height: 100px;
-        transition: box-shadow var(--transition-med);
+        border: 1px solid #e2e8f0; overflow: hidden; min-width: 150px; min-height: 100px;
     }
-    .image-block:hover { box-shadow: 0 12px 44px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.08); }
-    .image-block .document-header { border-radius: var(--radius-md) var(--radius-md) 0 0; }
+    .image-block .document-header { border-radius: 12px 12px 0 0; }
     .image-block .image-wrapper {
         flex-grow: 1; display: flex; align-items: center; justify-content: center;
-        overflow: hidden; background: #f5f5f4;
+        overflow: hidden; background: #f1f5f9;
     }
     .image-block .image-wrapper img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
     .image-block .resize-handle {
-        position: absolute; right: 0; bottom: 0; width: 20px; height: 20px; cursor: se-resize;
-        background: linear-gradient(135deg, transparent 50%, var(--text-muted) 50%);
-        border-radius: 0 0 var(--radius-md) 0; opacity: 0;
-        transition: opacity var(--transition-fast); z-index: 20;
+        position: absolute; right: 0; bottom: 0; width: 24px; height: 24px; cursor: se-resize;
+        background: linear-gradient(135deg, transparent 50%, #cbd5e1 50%);
+        border-radius: 0 0 12px 0; opacity: 0.5; transition: opacity 0.2s; z-index: 20;
     }
+    .image-block:hover .resize-handle { opacity: 1; }
 
-    /* === TOAST === */
     .paste-toast {
-        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-        background: var(--bg-toolbar);
-        backdrop-filter: blur(16px);
-        color: #fff; padding: 10px 22px; border-radius: var(--radius-pill);
-        font-size: 13px; font-weight: 500; z-index: 11000;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-        border: 1px solid var(--border-toolbar);
-        opacity: 0; transition: opacity var(--transition-med); pointer-events: none;
-        letter-spacing: 0.2px;
+        position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+        background: #1e293b; color: #fff; padding: 10px 24px; border-radius: 50px;
+        font-size: 14px; font-weight: 600; z-index: 11000;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+        opacity: 0; transition: opacity 0.25s; pointer-events: none;
     }
     .paste-toast.show { opacity: 1; }
-
-    /* === SAVE INDICATOR === */
-    #save-indicator {
-        position: fixed; top: 14px; right: 14px; z-index: 1001;
-        background: var(--bg-toolbar);
-        backdrop-filter: blur(12px);
-        color: var(--text-toolbar); padding: 5px 14px; border-radius: var(--radius-pill);
-        font-size: 11px; font-weight: 500; letter-spacing: 0.4px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-        border: 1px solid var(--border-toolbar);
-        transition: color var(--transition-med);
-        font-variant-numeric: tabular-nums;
-    }
-    #save-indicator.saved { color: var(--green); }
-    #save-indicator.saving { color: var(--accent); }
-
-    /* === MISC === */
-    .drawing-selection-box {
-        position: absolute; border: 2px dashed var(--indigo);
-        background: var(--indigo-bg);
-        pointer-events: none; z-index: 160;
-    }
-
-    /* === SCROLLBAR === */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-
-    /* === SELECTION COLOR === */
-    ::selection { background: var(--accent-mark-hover); color: var(--text-primary); }
 </style>
 </head>
 <body>
 
     <input type="file" id="file-import" accept=".json" style="display: none;">
     <div id="paste-toast" class="paste-toast">Image pasted onto canvas</div>
-    <div id="save-indicator">Ready</div>
 
     <!-- Transcript Modal -->
     <div id="transcript-modal-overlay" class="modal-overlay">
-        <div class="custom-modal" style="width: 720px;">
+        <div class="custom-modal" style="width: 750px;">
             <h3>Add Transcript Block</h3>
             <p class="subtitle">Paste your transcript text. The block will appear on the canvas ready to mark and annotate.</p>
             <label class="input-label">Block Label</label>
@@ -470,10 +281,10 @@
         </div>
     </div>
 
-    <!-- Floating Note Modal -->
+    <!-- Floating Note Modal (draggable, opens on the RIGHT side) -->
     <div id="note-modal-floating" class="floating-modal">
         <div class="drag-handle">
-            <h3 id="note-modal-header" style="margin:0; font-size:22px;">Production Note</h3>
+            <h3 id="note-modal-header" style="margin:0; color:#1e293b; font-size:20px;">Production Note</h3>
             <span class="grip-dots">&#x2630; drag</span>
         </div>
         <div class="modal-body">
@@ -488,7 +299,7 @@
 
     <!-- Export Modal -->
     <div id="export-modal-overlay" class="modal-overlay">
-        <div class="custom-modal" style="width: 640px;">
+        <div class="custom-modal" style="width: 650px;">
             <h3>Exported Notes</h3>
             <p class="subtitle">All marked phrases and their production notes.</p>
             <div id="export-content"></div>
@@ -505,141 +316,71 @@
         <div id="blocks-container">
             <div class="document-block" style="left: 2550px; top: 600px; width: 900px;">
                 <div class="document-header">
-                    <span>&#x2807; Drag to move</span>
-                    <button class="delete-btn" title="Delete Block">&#x2715;</button>
+                    <span>&#x2807; Drag to move block</span>
+                    <button class="delete-btn" title="Delete Block">&#x274C;</button>
                 </div>
                 <div class="document-content" contenteditable="true" spellcheck="false">
                     <h2>Episode Title</h2>
                     <p><strong>Segment: Cold Open</strong></p>
                     <p>Paste your transcript here. Select any phrase and click "Mark" to flag it for B-roll, or "Add Note" to mark and write a production note in one step. Click any existing highlight to edit its note.</p>
-                    <p style="color:var(--text-muted); font-size:14px; margin-top:24px;"><em>Quick start: Select text &rarr; Mark or Add Note &rarr; Ctrl+Z to undo. Ctrl+V pastes screenshots onto the canvas.</em></p>
+                    <p style="color:#94a3b8; font-size:15px; margin-top:24px;"><em>Quick start: Select text &#x2192; Mark or Add Note &#x2192; Ctrl+Z to undo. Ctrl+V pastes screenshots onto the canvas.</em></p>
                 </div>
-                <button class="block-export-btn" title="Export this block">Export Block</button>
+                <button class="block-export-btn" title="Export this block">&#x1F4E4; Export Block</button>
                 <div class="resize-handle"></div>
             </div>
         </div>
     </div> 
 
-    <!-- Selection Popup -->
+    <!-- Selection Popup: Mark, Add Note, Copy -->
     <div id="comment-popup">
-        <button id="btn-mark" class="btn" style="background-color: var(--accent); color: var(--bg-canvas);">Mark</button>
-        <button id="btn-add-note" class="btn" style="background-color: var(--green);">+ Note</button>
-        <button id="btn-sentence-select" class="btn" style="background-color: rgba(255,255,255,0.1); color: var(--text-toolbar);">Sentence</button>
+        <button id="btn-mark" class="btn" style="background-color: #eab308; color: #1e293b;">&#x1F4CC; Mark</button>
+        <button id="btn-add-note" class="btn" style="background-color: #10b981;">&#x1F4AC; Add Note</button>
+        <button id="btn-copy-text" class="btn" style="background-color: #6366f1;">&#x1F4CB; Copy</button>
     </div>
 
     <!-- Toolbar -->
     <div class="drawing-toolbar">
         <div class="toolbar-row">
             <div class="zoom-group">
-                <button id="zoom-out" class="tool-btn zoom-btn">&minus;</button>
+                <button id="zoom-out" class="tool-btn zoom-btn">&#x2796;</button>
                 <span id="zoom-level">100%</span>
-                <button id="zoom-in" class="tool-btn zoom-btn">+</button>
+                <button id="zoom-in" class="tool-btn zoom-btn">&#x2795;</button>
             </div>
             <div class="divider"></div>
-            <button id="toggle-draw" class="tool-btn mode-btn">Draw</button>
-            <button id="btn-hide-drawings" class="tool-btn" title="Toggle drawing visibility">Hide</button>
+            <button id="toggle-draw" class="tool-btn mode-btn">&#x270F;&#xFE0F; Draw</button>
+            <button id="btn-hide-drawings" class="tool-btn" title="Toggle drawing visibility">&#x1F441; Hide Drawings</button>
             <div class="divider"></div>
-            <button id="btn-transcript" class="tool-btn">+ Transcript</button>
-            <button id="btn-save-project" class="tool-btn io-btn" title="Save workspace as JSON">Save</button>
-            <button id="btn-load-project" class="tool-btn io-btn" title="Load workspace from JSON">Load</button>
+            <button id="btn-transcript" class="tool-btn">&#x1F4C4; +Transcript</button>
+            <button id="btn-pip" class="tool-btn" title="Pop out transcript block into picture-in-picture window">&#x1F5D7; Pop Out</button>
+            <button id="btn-save-project" class="tool-btn io-btn" title="Save workspace">&#x1F4BE; Save</button>
+            <button id="btn-load-project" class="tool-btn io-btn" title="Load workspace">&#x1F4C2; Load</button>
             <div class="divider"></div>
-            <button id="btn-export" class="tool-btn" style="background: var(--green); color: #fff; border-color: var(--green);">Export</button>
-            <button id="btn-screenshot" class="tool-btn capture" title="Capture visible area">Capture</button>
+            <button id="btn-export" class="tool-btn" style="background: #10b981; color: white; border-color: #10b981;">&#x1F4E4; Export</button>
+            <button id="btn-screenshot" class="tool-btn capture" title="Capture visible area">&#x1F4F8; Capture</button>
         </div>
-        <div class="toolbar-row" id="draw-tools" style="display: none; margin-top: 4px;">
+        <div class="toolbar-row" id="draw-tools" style="display: none; margin-top: 6px;">
             <div class="color-picker-group">
-                <button class="color-btn active" style="background: #fb7185;" data-color="#fb7185"></button>
-                <button class="color-btn" style="background: #34d399;" data-color="#34d399"></button>
-                <button class="color-btn" style="background: #60a5fa;" data-color="#60a5fa"></button>
-                <button class="color-btn" style="background: #fafaf9;" data-color="#fafaf9"></button>
-                <input type="color" id="custom-color" class="custom-color-input" value="#fb7185" title="Custom Picker">
+                <button class="color-btn active" style="background: #f43f5e;" data-color="#f43f5e"></button>
+                <button class="color-btn" style="background: #10b981;" data-color="#10b981"></button>
+                <button class="color-btn" style="background: #3b82f6;" data-color="#3b82f6"></button>
+                <button class="color-btn" style="background: #0f172a;" data-color="#0f172a"></button>
+                <input type="color" id="custom-color" class="custom-color-input" value="#f43f5e" title="Custom Picker">
             </div>
             <div class="divider"></div>
             <button id="tool-pen" class="tool-btn active draw-tool" data-tool="pen">Pen</button>
             <button id="tool-arrow" class="tool-btn draw-tool" data-tool="arrow">Arrow</button>
-            <button id="tool-select" class="tool-btn draw-tool" data-tool="select">Select</button>
             <button id="tool-eraser" class="tool-btn draw-tool" data-tool="eraser">Eraser</button>
             <div class="divider"></div>
-            <button id="tool-undo" class="tool-btn">Undo</button>
-            <button id="tool-clear" class="tool-btn danger">Clear</button>
+            <button id="tool-undo" class="tool-btn">&#x21A9; Undo</button>
+            <button id="tool-clear" class="tool-btn danger">Clear Drawings</button>
         </div>
     </div>
 
     <script>
-        const saveIndicator = document.getElementById('save-indicator');
+        window.onload = () => { window.scrollTo((6000 - window.innerWidth)/2, 400); };
+
         const exportModal = document.getElementById('export-modal-overlay');
         const exportContent = document.getElementById('export-content');
-        let autoSaveTimer = null;
-
-        function triggerAutoSave() {
-            clearTimeout(autoSaveTimer);
-            saveIndicator.textContent = '● saving...';
-            saveIndicator.className = 'saving';
-            autoSaveTimer = setTimeout(() => {
-                try {
-                    const pd = buildProjectData();
-                    localStorage.setItem('broll-editor-autosave', JSON.stringify(pd));
-                    saveIndicator.textContent = '● saved ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-                    saveIndicator.className = 'saved';
-                } catch(e) {
-                    console.warn('autosave failed', e);
-                    saveIndicator.textContent = '● save failed';
-                    saveIndicator.className = '';
-                }
-            }, 1000);
-        }
-
-        function buildProjectData() {
-            const pd = { version: 4, viewport: { zoom: zoomLevel, scrollX: window.scrollX, scrollY: window.scrollY }, shapes: shapes, blocks: [], images: [] };
-            document.querySelectorAll('.document-block').forEach(b => {
-                pd.blocks.push({ left: b.style.left, top: b.style.top, width: b.style.width, content: b.querySelector('.document-content').innerHTML });
-            });
-            document.querySelectorAll('.image-block').forEach(ib => {
-                const img = ib.querySelector('.image-wrapper img'), hs = ib.querySelector('.document-header span');
-                pd.images.push({ left: ib.style.left, top: ib.style.top, width: ib.style.width, height: ib.style.height, src: img ? img.src : '', imgType: img ? img.dataset.imgType : 'url', label: hs ? hs.textContent.replace(/^. /, '').trim() : 'Image' });
-            });
-            return pd;
-        }
-
-        function loadAutoSave() {
-            try {
-                const raw = localStorage.getItem('broll-editor-autosave');
-                if (!raw) return false;
-                const pd = JSON.parse(raw);
-                restoreProject(pd);
-                saveIndicator.textContent = '● restored';
-                saveIndicator.className = 'saved';
-                return true;
-            } catch(e) { console.warn('autosave restore failed', e); return false; }
-        }
-
-        function restoreProject(pd) {
-            // If saved data has no blocks and no images, keep the default block
-            const hasContent = (pd.blocks && pd.blocks.length > 0) || (pd.images && pd.images.length > 0);
-            if (!hasContent) return;
-
-            blocksContainer.innerHTML = '';
-            if (pd.blocks) pd.blocks.forEach(bd => {
-                const nb = document.createElement('div'); nb.className = 'document-block';
-                nb.style.left = bd.left; nb.style.top = bd.top; nb.style.width = bd.width;
-                nb.innerHTML = `<div class="document-header"><span>&#x2807; Drag to move</span><button class="delete-btn" title="Delete">&#x2715;</button></div><div class="document-content" contenteditable="true" spellcheck="false">${bd.content}</div><button class="block-export-btn" title="Export this block">Export Block</button><div class="resize-handle"></div>`;
-                blocksContainer.appendChild(nb); makeBlockInteractive(nb);
-                nb.querySelectorAll('.highlight-container').forEach(bindHoverEvents);
-            });
-            if (pd.images) pd.images.forEach(id => { spawnImageBlockFromData(id); });
-            shapes = pd.shapes || []; undoStack = []; renderAllShapes();
-            if (pd.viewport) {
-                zoomLevel = pd.viewport.zoom || 1; applyZoom();
-                setTimeout(() => window.scrollTo(pd.viewport.scrollX || 0, pd.viewport.scrollY || 0), 50);
-            }
-        }
-
-        function spawnImageBlockFromData(id) {
-            const ib = document.createElement('div'); ib.className = 'image-block';
-            ib.style.left = id.left; ib.style.top = id.top; ib.style.width = id.width; ib.style.height = id.height;
-            ib.innerHTML = `<div class="document-header"><span>&#x2807; ${id.label || 'Image'}</span><button class="delete-btn" title="Delete">&#x2715;</button></div><div class="image-wrapper"><img src="${id.src}" alt="${id.label || 'Image'}" data-img-type="${id.imgType || 'url'}"></div><div class="resize-handle"></div>`;
-            blocksContainer.appendChild(ib); makeImageBlockInteractive(ib);
-        }
 
         function generateExportTextForBlock(block) {
             const cc = block.querySelector('.document-content').cloneNode(true);
@@ -662,56 +403,54 @@
         const zoomContainer = document.getElementById('zoom-container');
         const zoomLevelText = document.getElementById('zoom-level');
         let zoomLevel = 1;
-        function applyZoom() { zoomContainer.style.transform = `scale(${zoomLevel})`; zoomLevelText.innerText = `${Math.round(zoomLevel * 100)}%`; }
+        function applyZoom() { zoomContainer.style.transform = `scale(${zoomLevel})`; zoomLevelText.innerText = `${Math.round(zoomLevel*100)}%`; }
         document.addEventListener('wheel', (e) => {
             if (e.ctrlKey || e.metaKey) {
                 e.preventDefault(); const oz = zoomLevel;
                 zoomLevel = Math.max(0.3, Math.min(4, zoomLevel + (e.deltaY > 0 ? -0.1 : 0.1)));
-                const mx = e.clientX, my = e.clientY, ux = (window.scrollX + mx) / oz, uy = (window.scrollY + my) / oz;
-                applyZoom(); window.scrollTo(ux * zoomLevel - mx, uy * zoomLevel - my);
+                const mx=e.clientX, my=e.clientY, ux=(window.scrollX+mx)/oz, uy=(window.scrollY+my)/oz;
+                applyZoom(); window.scrollTo(ux*zoomLevel-mx, uy*zoomLevel-my);
             }
         }, { passive: false });
-        document.getElementById('zoom-in').addEventListener('click', () => { zoomLevel = Math.min(4, zoomLevel + 0.2); applyZoom(); });
-        document.getElementById('zoom-out').addEventListener('click', () => { zoomLevel = Math.max(0.3, zoomLevel - 0.2); applyZoom(); });
+        document.getElementById('zoom-in').addEventListener('click', () => { zoomLevel = Math.min(4, zoomLevel+0.2); applyZoom(); });
+        document.getElementById('zoom-out').addEventListener('click', () => { zoomLevel = Math.max(0.3, zoomLevel-0.2); applyZoom(); });
 
         /* === BLOCK DRAG & RESIZE === */
-        let isDraggingBlock = false, isResizingBlock = false, activeBlock = null;
-        let blockStartX = 0, blockStartY = 0, blockStartW = 0, blockStartH = 0, mouseStartX = 0, mouseStartY = 0;
+        let isDraggingBlock=false, isResizingBlock=false, activeBlock=null;
+        let blockStartX=0, blockStartY=0, blockStartW=0, blockStartH=0, mouseStartX=0, mouseStartY=0;
 
         function makeBlockInteractive(block) {
-            const h = block.querySelector('.document-header'), r = block.querySelector('.resize-handle'), d = block.querySelector('.delete-btn'), ex = block.querySelector('.block-export-btn');
-            d.addEventListener('click', () => { block.remove(); triggerAutoSave(); });
+            const h=block.querySelector('.document-header'), r=block.querySelector('.resize-handle'), d=block.querySelector('.delete-btn'), ex=block.querySelector('.block-export-btn');
+            d.addEventListener('click', () => block.remove());
             if (ex) ex.addEventListener('click', () => { exportContent.innerText = generateExportTextForBlock(block); exportModal.style.display = 'flex'; });
             h.addEventListener('mousedown', (e) => {
-                if (e.target === d || appMode === 'draw') return;
-                isDraggingBlock = true; activeBlock = block;
-                blockStartX = parseFloat(block.style.left) || 0; blockStartY = parseFloat(block.style.top) || 0;
-                mouseStartX = e.clientX; mouseStartY = e.clientY; e.stopPropagation();
+                if (e.target===d || appMode==='draw') return;
+                isDraggingBlock=true; activeBlock=block;
+                blockStartX=parseFloat(block.style.left)||0; blockStartY=parseFloat(block.style.top)||0;
+                mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation();
             });
             r.addEventListener('mousedown', (e) => {
-                if (appMode === 'draw') return;
-                isResizingBlock = true; activeBlock = block;
-                blockStartW = block.offsetWidth; blockStartH = block.offsetHeight;
-                mouseStartX = e.clientX; mouseStartY = e.clientY; e.stopPropagation();
+                if (appMode==='draw') return;
+                isResizingBlock=true; activeBlock=block;
+                blockStartW=block.offsetWidth; blockStartH=block.offsetHeight;
+                mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation();
             });
-            const content = block.querySelector('.document-content');
-            if (content) content.addEventListener('input', triggerAutoSave);
         }
 
         function makeImageBlockInteractive(block) {
-            const h = block.querySelector('.document-header'), r = block.querySelector('.resize-handle'), d = block.querySelector('.delete-btn');
-            d.addEventListener('click', () => { block.remove(); triggerAutoSave(); });
+            const h=block.querySelector('.document-header'), r=block.querySelector('.resize-handle'), d=block.querySelector('.delete-btn');
+            d.addEventListener('click', () => block.remove());
             h.addEventListener('mousedown', (e) => {
-                if (e.target === d || appMode === 'draw') return;
-                isDraggingBlock = true; activeBlock = block;
-                blockStartX = parseFloat(block.style.left) || 0; blockStartY = parseFloat(block.style.top) || 0;
-                mouseStartX = e.clientX; mouseStartY = e.clientY; e.stopPropagation();
+                if (e.target===d || appMode==='draw') return;
+                isDraggingBlock=true; activeBlock=block;
+                blockStartX=parseFloat(block.style.left)||0; blockStartY=parseFloat(block.style.top)||0;
+                mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation();
             });
             r.addEventListener('mousedown', (e) => {
-                if (appMode === 'draw') return;
-                isResizingBlock = true; activeBlock = block;
-                blockStartW = block.offsetWidth; blockStartH = block.offsetHeight;
-                mouseStartX = e.clientX; mouseStartY = e.clientY; e.stopPropagation();
+                if (appMode==='draw') return;
+                isResizingBlock=true; activeBlock=block;
+                blockStartW=block.offsetWidth; blockStartH=block.offsetHeight;
+                mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation();
             });
         }
 
@@ -719,18 +458,15 @@
 
         document.addEventListener('mousemove', (e) => {
             if (isDraggingBlock && activeBlock) {
-                activeBlock.style.left = `${blockStartX + (e.clientX - mouseStartX) / zoomLevel}px`;
-                activeBlock.style.top = `${blockStartY + (e.clientY - mouseStartY) / zoomLevel}px`;
+                activeBlock.style.left = `${blockStartX + (e.clientX-mouseStartX)/zoomLevel}px`;
+                activeBlock.style.top = `${blockStartY + (e.clientY-mouseStartY)/zoomLevel}px`;
             } else if (isResizingBlock && activeBlock) {
-                activeBlock.style.width = `${Math.max(150, blockStartW + (e.clientX - mouseStartX) / zoomLevel)}px`;
+                activeBlock.style.width = `${Math.max(150, blockStartW + (e.clientX-mouseStartX)/zoomLevel)}px`;
                 if (activeBlock.classList.contains('image-block'))
-                    activeBlock.style.height = `${Math.max(100, blockStartH + (e.clientY - mouseStartY) / zoomLevel)}px`;
+                    activeBlock.style.height = `${Math.max(100, blockStartH + (e.clientY-mouseStartY)/zoomLevel)}px`;
             }
         });
-        document.addEventListener('mouseup', () => {
-            if (isDraggingBlock || isResizingBlock) triggerAutoSave();
-            isDraggingBlock = false; isResizingBlock = false; activeBlock = null;
-        });
+        document.addEventListener('mouseup', () => { isDraggingBlock=false; isResizingBlock=false; activeBlock=null; });
 
         /* === TRANSCRIPT CREATION === */
         const transcriptModal = document.getElementById('transcript-modal-overlay');
@@ -740,558 +476,723 @@
         const transcriptBtnSave = document.getElementById('transcript-btn-save');
 
         document.getElementById('btn-transcript').addEventListener('click', () => {
-            transcriptInput.value = ''; transcriptTitleInput.value = '';
-            transcriptModal.style.display = 'flex'; transcriptTitleInput.focus();
+            transcriptInput.value=''; transcriptTitleInput.value='';
+            transcriptModal.style.display='flex'; transcriptTitleInput.focus();
         });
-        document.getElementById('transcript-btn-cancel').addEventListener('click', () => transcriptModal.style.display = 'none');
-        transcriptTitleInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); transcriptBtnSave.click(); } });
-        transcriptInput.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); transcriptBtnSave.click(); } });
+        document.getElementById('transcript-btn-cancel').addEventListener('click', () => transcriptModal.style.display='none');
+        transcriptTitleInput.addEventListener('keydown', (e) => { if(e.key==='Enter'){e.preventDefault();transcriptBtnSave.click();} });
+        transcriptInput.addEventListener('keydown', (e) => { if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();transcriptBtnSave.click();} });
 
         transcriptBtnSave.addEventListener('click', () => {
             const title = transcriptTitleInput.value.trim() || 'New Segment';
             const text = transcriptInput.value.trim();
             if (text) {
                 const paras = text.split(/\n\n+/).map(p => `<p>${p}</p>`).join('');
-                const cx = (window.scrollX + window.innerWidth / 2) / zoomLevel, cy = (window.scrollY + window.innerHeight / 2) / zoomLevel;
-                const nb = document.createElement('div'); nb.className = 'document-block';
-                nb.style.left = `${cx - 350}px`; nb.style.top = `${cy - 100}px`; nb.style.width = '700px';
-                nb.innerHTML = `<div class="document-header"><span>&#x2807; Drag to move</span><button class="delete-btn" title="Delete">&#x2715;</button></div>
+                const cx=(window.scrollX+window.innerWidth/2)/zoomLevel, cy=(window.scrollY+window.innerHeight/2)/zoomLevel;
+                const nb = document.createElement('div'); nb.className='document-block';
+                nb.style.left=`${cx-350}px`; nb.style.top=`${cy-100}px`; nb.style.width='700px';
+                nb.innerHTML = `<div class="document-header"><span>&#x2807; Drag to move block</span><button class="delete-btn" title="Delete">&#x274C;</button></div>
                     <div class="document-content" contenteditable="true" spellcheck="false"><p><strong>${title}</strong></p>${paras}</div>
-                    <button class="block-export-btn" title="Export this block">Export Block</button><div class="resize-handle"></div>`;
+                    <button class="block-export-btn" title="Export this block">&#x1F4E4; Export Block</button><div class="resize-handle"></div>`;
                 blocksContainer.appendChild(nb); makeBlockInteractive(nb);
-                triggerAutoSave();
             }
             transcriptModal.style.display = 'none';
         });
 
-        /* === FLOATING NOTE MODAL === */
+        /* === FLOATING DRAGGABLE NOTE MODAL (opens on right side) === */
         const noteModal = document.getElementById('note-modal-floating');
         const noteHeader = document.getElementById('note-modal-header');
         const noteInput = document.getElementById('note-modal-input');
         let noteModalCallback = null;
 
         function makeFloatingDraggable(el) {
-            const h = el.querySelector('.drag-handle'); let drag = false, sx, sy, ol, ot;
+            const h=el.querySelector('.drag-handle'); let drag=false,sx,sy,ol,ot;
             h.addEventListener('mousedown', (e) => {
-                if (['INPUT', 'TEXTAREA', 'BUTTON'].includes(e.target.tagName)) return;
-                drag = true; const r = el.getBoundingClientRect(); ol = r.left; ot = r.top; sx = e.clientX; sy = e.clientY;
-                el.style.right = 'auto'; el.style.transform = 'none';
-                el.style.left = ol + 'px'; el.style.top = ot + 'px';
+                if(['INPUT','TEXTAREA','BUTTON'].includes(e.target.tagName)) return;
+                drag=true; const r=el.getBoundingClientRect(); ol=r.left;ot=r.top;sx=e.clientX;sy=e.clientY;
+                // Switch to left/top positioning for dragging
+                el.style.right='auto'; el.style.transform='none';
+                el.style.left=ol+'px'; el.style.top=ot+'px';
                 e.preventDefault();
             });
-            document.addEventListener('mousemove', (e) => { if (!drag) return; el.style.left = (ol + e.clientX - sx) + 'px'; el.style.top = (ot + e.clientY - sy) + 'px'; });
-            document.addEventListener('mouseup', () => { drag = false; });
+            document.addEventListener('mousemove', (e) => { if(!drag) return; el.style.left=(ol+e.clientX-sx)+'px'; el.style.top=(ot+e.clientY-sy)+'px'; });
+            document.addEventListener('mouseup', () => { drag=false; });
         }
         makeFloatingDraggable(noteModal);
 
+        // Reset to right side position
         function resetNoteModalPos() {
-            noteModal.style.left = 'auto'; noteModal.style.right = '24px';
-            noteModal.style.top = '50%'; noteModal.style.transform = 'translateY(-50%)';
+            noteModal.style.left='auto';
+            noteModal.style.right='24px';
+            noteModal.style.top='50%';
+            noteModal.style.transform='translateY(-50%)';
         }
 
         function openNoteModal(header, def, cb) {
-            noteHeader.innerText = header; noteInput.value = def;
+            noteHeader.innerText=header; noteInput.value=def;
             resetNoteModalPos();
-            noteModal.style.display = 'block'; noteInput.focus();
-            noteModalCallback = cb;
+            noteModal.style.display='block'; noteInput.focus();
+            noteModalCallback=cb;
         }
-
-        function saveAndCloseNoteModal() {
-            noteModal.style.display = 'none';
-            if (noteModalCallback && noteInput.value.trim()) {
-                noteModalCallback(noteInput.value.trim());
-                triggerAutoSave();
-            }
-            noteModalCallback = null;
-        }
-
-        document.getElementById('note-modal-cancel').addEventListener('click', () => { noteModal.style.display = 'none'; noteModalCallback = null; });
+        document.getElementById('note-modal-cancel').addEventListener('click', () => { noteModal.style.display='none'; noteModalCallback=null; });
         document.getElementById('note-modal-save').addEventListener('click', saveAndCloseNoteModal);
 
+        // Enter key saves the note (Shift+Enter for newline)
         noteInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveAndCloseNoteModal(); }
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                saveAndCloseNoteModal();
+            }
         });
 
-        /* === MARK UNDO === */
-        let markUndoStack = [];
-        function pushMarkUndo(contentEl) { markUndoStack.push({ el: contentEl, html: contentEl.innerHTML }); if (markUndoStack.length > 50) markUndoStack.shift(); }
+        function saveAndCloseNoteModal() {
+            noteModal.style.display='none';
+            if (noteModalCallback && noteInput.value.trim()) noteModalCallback(noteInput.value.trim());
+            noteModalCallback=null;
+        }
+
+        /* === MARK UNDO STACK ===
+         * The browser's native Ctrl+Z doesn't work for DOM manipulations done via JS
+         * (like wrapping text in highlight spans). So we keep our own undo stack that
+         * stores the block's innerHTML before each mark/note operation.
+         */
+        let markUndoStack = []; // { blockEl, prevHTML }
+
+        function pushMarkUndo(contentEl) {
+            markUndoStack.push({ el: contentEl, html: contentEl.innerHTML });
+            if (markUndoStack.length > 50) markUndoStack.shift();
+        }
+
         function popMarkUndo() {
             if (!markUndoStack.length) return false;
             const entry = markUndoStack.pop();
             entry.el.innerHTML = entry.html;
+            // Rebind hover events on restored highlights
             entry.el.querySelectorAll('.highlight-container').forEach(bindHoverEvents);
-            triggerAutoSave(); return true;
+            return true;
         }
 
-        /* === HIGHLIGHT === */
+        /* === HIGHLIGHT + CLICK-TO-ANNOTATE === */
         let appMode = 'view';
         const commentPopup = document.getElementById('comment-popup');
         const btnMark = document.getElementById('btn-mark');
         const btnAddNote = document.getElementById('btn-add-note');
-        let savedSelectionRange = null, savedSelectionBlock = null;
+        let savedSelectionRange = null;
+        let savedSelectionBlock = null; // the .document-content element where selection lives
 
         function bindHoverEvents(container) {
             let timeout;
             container.addEventListener('mouseenter', () => {
-                if (appMode === 'draw') return;
-                container.style.zIndex = '9999';
-                const card = container.querySelector('.broll-card'); if (!card) return;
+                if (appMode==='draw') return;
+                container.style.zIndex='9999';
+                const card = container.querySelector('.broll-card');
+                if (!card) return;
                 clearTimeout(timeout);
-                card.style.left = '50%'; card.style.transform = 'translateX(-50%) translateY(0)';
+                card.style.left='50%'; card.style.transform='translateX(-50%) translateY(0)';
                 card.classList.add('visible'); container.classList.add('active');
             });
             container.addEventListener('mouseleave', () => {
-                container.style.zIndex = '';
-                const card = container.querySelector('.broll-card'); if (!card) return;
-                timeout = setTimeout(() => { card.classList.remove('visible'); container.classList.remove('active'); card.style.transform = 'translateX(-50%) translateY(8px)'; }, 250);
+                container.style.zIndex='';
+                const card = container.querySelector('.broll-card');
+                if (!card) return;
+                timeout = setTimeout(() => { card.classList.remove('visible'); container.classList.remove('active'); card.style.transform='translateX(-50%) translateY(10px)'; }, 250);
             });
         }
         document.querySelectorAll('.highlight-container').forEach(bindHoverEvents);
 
+        // Click on any highlight -> open note modal
         document.addEventListener('click', (e) => {
-            if (appMode === 'draw') return;
+            if (appMode==='draw') return;
             if (e.target.closest('.floating-modal') || e.target.closest('.modal-overlay') || e.target.closest('#comment-popup')) return;
+
             const editBtn = e.target.closest('.btn-edit-note');
             if (editBtn) {
                 const card = editBtn.closest('.broll-card'), t = card.querySelector('.broll-note-text');
-                const container = card.closest('.highlight-container'), contentEl = container.closest('.document-content');
-                openNoteModal("Edit Production Note", t.innerText, (nt) => { if (contentEl) pushMarkUndo(contentEl); t.innerText = nt; });
+                const container = card.closest('.highlight-container');
+                const contentEl = container.closest('.document-content');
+                openNoteModal("Edit Production Note", t.innerText, (nt) => {
+                    if (contentEl) pushMarkUndo(contentEl);
+                    t.innerText = nt;
+                });
                 return;
             }
+
             const highlightText = e.target.closest('.highlight-text');
             if (highlightText) {
-                const container = highlightText.closest('.highlight-container'); if (!container) return;
-                const sel = window.getSelection(); if (!sel.isCollapsed && sel.toString().trim().length > 0) return;
+                const container = highlightText.closest('.highlight-container');
+                if (!container) return;
+                const sel = window.getSelection();
+                if (!sel.isCollapsed && sel.toString().trim().length > 0) return;
+                
                 const contentEl = container.closest('.document-content');
                 const existingNote = container.querySelector('.broll-note-text');
                 const defaultText = existingNote ? existingNote.textContent : '';
                 const headerText = existingNote ? "Edit Production Note" : "Add Production Note";
+
                 openNoteModal(headerText, defaultText, (note) => {
                     if (contentEl) pushMarkUndo(contentEl);
-                    const old = container.querySelector('.broll-card'); if (old) old.remove();
+                    const old = container.querySelector('.broll-card');
+                    if (old) old.remove();
                     const card = document.createElement('div'); card.className = 'broll-card';
                     card.innerHTML = `<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit Note" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${note}</div>`;
-                    container.appendChild(card); container.classList.add('has-note'); bindHoverEvents(container);
+                    container.appendChild(card);
+                    container.classList.add('has-note');
+                    bindHoverEvents(container);
                 });
                 return;
             }
         });
 
+        // Show popup on text selection
         document.addEventListener('mouseup', (e) => {
-            if (appMode === 'draw') return;
+            if (appMode==='draw') return;
             if (e.target.closest('#comment-popup') || e.target.closest('.modal-overlay') || e.target.closest('.floating-modal')) return;
+
             const sel = window.getSelection();
             if (!sel.isCollapsed && sel.toString().trim().length > 0) {
-                const anc = sel.anchorNode, contentEl = anc ? anc.parentElement.closest('.document-content') : null;
-                if (!contentEl) { commentPopup.style.display = 'none'; return; }
-                savedSelectionRange = sel.getRangeAt(0).cloneRange(); savedSelectionBlock = contentEl;
-                commentPopup.style.display = 'flex';
-                commentPopup.style.left = `${e.pageX}px`; commentPopup.style.top = `${e.pageY - 25}px`;
-            } else { commentPopup.style.display = 'none'; }
+                const anc = sel.anchorNode;
+                const contentEl = anc ? anc.parentElement.closest('.document-content') : null;
+                if (!contentEl) { commentPopup.style.display='none'; return; }
+                savedSelectionRange = sel.getRangeAt(0).cloneRange();
+                savedSelectionBlock = contentEl;
+                commentPopup.style.display='flex';
+                commentPopup.style.left=`${e.pageX}px`; commentPopup.style.top=`${e.pageY-25}px`;
+            } else {
+                commentPopup.style.display='none';
+            }
         });
 
+        // Mark button: highlight only
         btnMark.addEventListener('mousedown', (e) => {
             e.preventDefault(); if (!savedSelectionRange) return;
-            commentPopup.style.display = 'none';
+            commentPopup.style.display='none';
             if (savedSelectionBlock) pushMarkUndo(savedSelectionBlock);
-            wrapAsHighlight(savedSelectionRange); triggerAutoSave();
+            wrapAsHighlight(savedSelectionRange);
         });
 
+        // Add Note button: highlight + open note modal
         btnAddNote.addEventListener('mousedown', (e) => {
             e.preventDefault(); if (!savedSelectionRange) return;
-            commentPopup.style.display = 'none';
-            const contentEl = savedSelectionBlock; if (contentEl) pushMarkUndo(contentEl);
+            commentPopup.style.display='none';
+            const contentEl = savedSelectionBlock;
+            if (contentEl) pushMarkUndo(contentEl);
             const container = wrapAsHighlight(savedSelectionRange);
             if (container) {
                 openNoteModal("Add Production Note", "", (note) => {
                     const card = document.createElement('div'); card.className = 'broll-card';
                     card.innerHTML = `<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit Note" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${note}</div>`;
-                    container.appendChild(card); container.classList.add('has-note'); bindHoverEvents(container);
+                    container.appendChild(card);
+                    container.classList.add('has-note');
+                    bindHoverEvents(container);
                 });
             }
         });
 
-        document.getElementById('btn-sentence-select').addEventListener('mousedown', (e) => {
-            e.preventDefault(); const sel = window.getSelection(); if (sel.isCollapsed) return;
-            try { sel.modify("move", "backward", "sentence"); sel.modify("extend", "forward", "sentence"); savedSelectionRange = sel.getRangeAt(0).cloneRange(); } catch (err) {}
+        // Copy button: copy selected text to clipboard
+        document.getElementById('btn-copy-text').addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            if (!savedSelectionRange) return;
+            const text = savedSelectionRange.toString();
+            if (text) {
+                navigator.clipboard.writeText(text).then(() => {
+                    const btn = document.getElementById('btn-copy-text');
+                    const orig = btn.innerHTML;
+                    btn.innerHTML = '&#x2705; Copied';
+                    setTimeout(() => btn.innerHTML = orig, 1200);
+                }).catch(() => {
+                    // Fallback
+                    const ta = document.createElement('textarea'); ta.value = text;
+                    ta.style.position='fixed'; ta.style.opacity='0';
+                    document.body.appendChild(ta); ta.select();
+                    document.execCommand('copy'); document.body.removeChild(ta);
+                });
+            }
+            commentPopup.style.display='none';
+            window.getSelection().removeAllRanges();
         });
 
         function wrapAsHighlight(range) {
-            const container = document.createElement('span'); container.className = 'highlight-container';
+            const container = document.createElement('span');
+            container.className = 'highlight-container';
             const ts = document.createElement('span'); ts.className = 'highlight-text';
             try {
-                ts.appendChild(range.extractContents()); container.appendChild(ts);
-                range.insertNode(container); bindHoverEvents(container);
-                window.getSelection().removeAllRanges(); savedSelectionRange = null; savedSelectionBlock = null;
+                ts.appendChild(range.extractContents());
+                container.appendChild(ts);
+                range.insertNode(container);
+                bindHoverEvents(container);
+                window.getSelection().removeAllRanges(); savedSelectionRange=null; savedSelectionBlock=null;
                 return container;
-            } catch (err) { alert("Select text within a single paragraph."); return null; }
+            } catch(err) { alert("Select text within a single paragraph."); return null; }
         }
 
         /* === EXPORT === */
         document.getElementById('btn-export').addEventListener('click', () => {
-            const blocks = document.querySelectorAll('.document-block'); let txt = "";
-            if (!blocks.length) { txt = "No transcript blocks found."; }
-            else { blocks.forEach((b, i) => { txt += generateExportTextForBlock(b); if (i < blocks.length - 1) txt += "\n\n========================================\n\n"; }); }
-            exportContent.innerText = txt.trim(); exportModal.style.display = 'flex';
+            const blocks = document.querySelectorAll('.document-block');
+            let txt = "";
+            if (!blocks.length) { txt="No transcript blocks found."; }
+            else { blocks.forEach((b,i) => { txt += generateExportTextForBlock(b); if(i<blocks.length-1) txt+="\n\n========================================\n\n"; }); }
+            exportContent.innerText = txt.trim(); exportModal.style.display='flex';
         });
-        document.getElementById('export-btn-close').addEventListener('click', () => exportModal.style.display = 'none');
+        document.getElementById('export-btn-close').addEventListener('click', () => exportModal.style.display='none');
         document.getElementById('export-btn-copy').addEventListener('click', (e) => {
-            const ta = document.createElement('textarea'); ta.value = exportContent.innerText;
-            ta.style.position = 'fixed'; ta.style.opacity = '0';
+            const ta=document.createElement('textarea'); ta.value=exportContent.innerText;
+            ta.style.position='fixed'; ta.style.opacity='0';
             document.body.appendChild(ta); ta.select();
-            try { document.execCommand('copy'); const b = e.target, o = b.innerText; b.innerText = "Copied!"; setTimeout(() => b.innerText = o, 2000); } catch (err) {}
+            try{document.execCommand('copy'); const b=e.target,o=b.innerText; b.innerText="Copied!"; setTimeout(()=>b.innerText=o,2000);}catch(err){}
             document.body.removeChild(ta);
         });
 
         /* === DRAWING === */
         const canvas = document.getElementById('drawing-layer');
         const ctx = canvas.getContext('2d');
-        let shapes = [], undoStack = [], isDrawing = false, currentTool = 'pen', currentColor = '#fb7185';
-        let startX = 0, startY = 0, lastX = 0, lastY = 0;
+        let shapes=[], undoStack=[], isDrawing=false, currentTool='pen', currentColor='#f43f5e';
+        let startX=0,startY=0,lastX=0,lastY=0;
         let drawingsVisible = true;
-        let selectedShapeIdx = -1, isDraggingShape = false, shapeDragStartX = 0, shapeDragStartY = 0;
 
-        const colorBtns = document.querySelectorAll('.color-btn');
-        const customColorInput = document.getElementById('custom-color');
-        function updateColor(c) { currentColor = c; colorBtns.forEach(b => b.classList.remove('active')); const m = Array.from(colorBtns).find(b => b.getAttribute('data-color') === c); if (m) m.classList.add('active'); }
-        colorBtns.forEach(b => b.addEventListener('click', () => { updateColor(b.getAttribute('data-color')); customColorInput.value = currentColor; if (appMode !== 'draw') document.getElementById('toggle-draw').click(); }));
-        customColorInput.addEventListener('input', (e) => { updateColor(e.target.value); if (appMode !== 'draw') document.getElementById('toggle-draw').click(); });
+        const colorBtns=document.querySelectorAll('.color-btn');
+        const customColorInput=document.getElementById('custom-color');
+        function updateColor(c){currentColor=c;colorBtns.forEach(b=>b.classList.remove('active'));const m=Array.from(colorBtns).find(b=>b.getAttribute('data-color')===c);if(m)m.classList.add('active');}
+        colorBtns.forEach(b=>b.addEventListener('click',()=>{updateColor(b.getAttribute('data-color'));customColorInput.value=currentColor;if(appMode!=='draw')document.getElementById('toggle-draw').click();}));
+        customColorInput.addEventListener('input',(e)=>{updateColor(e.target.value);if(appMode!=='draw')document.getElementById('toggle-draw').click();});
 
-        function renderAllShapes() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        function renderAllShapes(){
+            ctx.clearRect(0,0,canvas.width,canvas.height);
             if (!drawingsVisible) return;
-            shapes.forEach((s, idx) => {
-                ctx.globalCompositeOperation = s.type === 'eraser' ? 'destination-out' : 'source-over';
-                ctx.strokeStyle = s.color; ctx.lineWidth = s.width || 3;
-                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-                if (idx === selectedShapeIdx) {
-                    ctx.save(); ctx.strokeStyle = '#818cf8'; ctx.lineWidth = (s.width || 3) + 4; ctx.globalAlpha = 0.3;
-                    if (s.type === 'pen' || s.type === 'eraser') { if (s.points.length) { ctx.beginPath(); ctx.moveTo(s.points[0].x, s.points[0].y); for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i].x, s.points[i].y); ctx.stroke(); } }
-                    else if (s.type === 'arrow') { ctx.beginPath(); ctx.moveTo(s.startX, s.startY); ctx.lineTo(s.endX, s.endY); ctx.stroke(); }
-                    ctx.restore();
-                }
-                if (s.type === 'pen' || s.type === 'eraser') { if (!s.points.length) return; ctx.beginPath(); ctx.moveTo(s.points[0].x, s.points[0].y); for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i].x, s.points[i].y); ctx.stroke(); }
-                else if (s.type === 'arrow') { drawArrow(ctx, s.startX, s.startY, s.endX, s.endY, s.color); }
+            shapes.forEach(s=>{
+                ctx.globalCompositeOperation=s.type==='eraser'?'destination-out':'source-over';
+                ctx.strokeStyle=s.color;ctx.lineWidth=s.width||3;ctx.lineCap='round';ctx.lineJoin='round';
+                if(s.type==='pen'||s.type==='eraser'){if(!s.points.length)return;ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);ctx.stroke();}
+                else if(s.type==='arrow'){drawArrow(ctx,s.startX,s.startY,s.endX,s.endY,s.color);}
             });
         }
+        function drawArrow(c,fx,fy,tx,ty,col){const hl=16,a=Math.atan2(ty-fy,tx-fx);c.strokeStyle=col;c.lineWidth=3;c.beginPath();c.moveTo(fx,fy);c.lineTo(tx,ty);c.lineTo(tx-hl*Math.cos(a-Math.PI/6),ty-hl*Math.sin(a-Math.PI/6));c.moveTo(tx,ty);c.lineTo(tx-hl*Math.cos(a+Math.PI/6),ty-hl*Math.sin(a+Math.PI/6));c.stroke();}
+        function getCC(e){const r=zoomContainer.getBoundingClientRect();return{x:(e.clientX-r.left)/zoomLevel,y:(e.clientY-r.top)/zoomLevel};}
 
-        function drawArrow(c, fx, fy, tx, ty, col) {
-            const hl = 16, a = Math.atan2(ty - fy, tx - fx);
-            c.strokeStyle = col; c.lineWidth = 3; c.beginPath();
-            c.moveTo(fx, fy); c.lineTo(tx, ty);
-            c.lineTo(tx - hl * Math.cos(a - Math.PI / 6), ty - hl * Math.sin(a - Math.PI / 6));
-            c.moveTo(tx, ty); c.lineTo(tx - hl * Math.cos(a + Math.PI / 6), ty - hl * Math.sin(a + Math.PI / 6));
-            c.stroke();
-        }
-
-        function getCC(e) { const r = zoomContainer.getBoundingClientRect(); return { x: (e.clientX - r.left) / zoomLevel, y: (e.clientY - r.top) / zoomLevel }; }
-
-        function hitTestShape(x, y, shape, threshold) {
-            threshold = threshold || 12;
-            if (shape.type === 'pen' || shape.type === 'eraser') {
-                for (let i = 0; i < shape.points.length; i++) { const dx = shape.points[i].x - x, dy = shape.points[i].y - y; if (dx * dx + dy * dy < threshold * threshold) return true; }
-            } else if (shape.type === 'arrow') {
-                const ax = shape.startX, ay = shape.startY, bx = shape.endX, by = shape.endY;
-                const abx = bx - ax, aby = by - ay, apx = x - ax, apy = y - ay;
-                const t = Math.max(0, Math.min(1, (apx * abx + apy * aby) / (abx * abx + aby * aby)));
-                const cx2 = ax + t * abx, cy2 = ay + t * aby, dx = x - cx2, dy = y - cy2;
-                if (dx * dx + dy * dy < threshold * threshold) return true;
-            }
-            return false;
-        }
-
-        function moveShape(shape, dx, dy) {
-            if (shape.type === 'pen' || shape.type === 'eraser') { shape.points.forEach(p => { p.x += dx; p.y += dy; }); }
-            else if (shape.type === 'arrow') { shape.startX += dx; shape.startY += dy; shape.endX += dx; shape.endY += dy; }
-        }
-
-        canvas.addEventListener('pointerdown', (e) => {
-            if (appMode !== 'draw' || isSpacePanning || spaceHeld) return;
-            const co = getCC(e);
-            if (currentTool === 'select') {
-                selectedShapeIdx = -1;
-                for (let i = shapes.length - 1; i >= 0; i--) {
-                    if (shapes[i].type === 'eraser') continue;
-                    if (hitTestShape(co.x, co.y, shapes[i], 15)) {
-                        selectedShapeIdx = i; isDraggingShape = true;
-                        shapeDragStartX = co.x; shapeDragStartY = co.y;
-                        saveDrawingState(); renderAllShapes(); return;
-                    }
-                }
-                renderAllShapes(); return;
-            }
-            startX = co.x; startY = co.y; lastX = startX; lastY = startY; isDrawing = true;
-            let ns = { type: currentTool, color: currentColor, width: currentTool === 'eraser' ? 40 : 3 };
-            if (currentTool === 'pen' || currentTool === 'eraser') ns.points = [{ x: startX, y: startY }];
-            else { ns.startX = startX; ns.startY = startY; ns.endX = startX; ns.endY = startY; }
+        canvas.addEventListener('pointerdown',(e)=>{
+            if(appMode!=='draw'||isSpacePanning)return;
+            const co=getCC(e);startX=co.x;startY=co.y;lastX=startX;lastY=startY;isDrawing=true;
+            let ns={type:currentTool,color:currentColor,width:currentTool==='eraser'?40:3};
+            if(currentTool==='pen'||currentTool==='eraser')ns.points=[{x:startX,y:startY}];
+            else{ns.startX=startX;ns.startY=startY;ns.endX=startX;ns.endY=startY;}
             shapes.push(ns);
         });
-
-        canvas.addEventListener('pointermove', (e) => {
-            if (appMode !== 'draw') return; const co = getCC(e);
-            if (isDraggingShape && selectedShapeIdx >= 0) {
-                e.preventDefault(); const dx = co.x - shapeDragStartX, dy = co.y - shapeDragStartY;
-                moveShape(shapes[selectedShapeIdx], dx, dy);
-                shapeDragStartX = co.x; shapeDragStartY = co.y; renderAllShapes(); return;
-            }
-            if (!isDrawing) return; e.preventDefault();
-            let cs = shapes[shapes.length - 1];
-            if (currentTool === 'pen' || currentTool === 'eraser') {
-                cs.points.push({ x: co.x, y: co.y });
-                ctx.globalCompositeOperation = currentTool === 'eraser' ? 'destination-out' : 'source-over';
-                ctx.strokeStyle = currentTool === 'eraser' ? 'rgba(0,0,0,1)' : currentColor;
-                ctx.lineWidth = cs.width; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-                ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(co.x, co.y); ctx.stroke();
-                lastX = co.x; lastY = co.y;
-            } else { cs.endX = co.x; cs.endY = co.y; renderAllShapes(); }
+        canvas.addEventListener('pointermove',(e)=>{
+            if(!isDrawing||appMode!=='draw')return;e.preventDefault();
+            const co=getCC(e);let cs=shapes[shapes.length-1];
+            if(currentTool==='pen'||currentTool==='eraser'){
+                cs.points.push({x:co.x,y:co.y});
+                ctx.globalCompositeOperation=currentTool==='eraser'?'destination-out':'source-over';
+                ctx.strokeStyle=currentTool==='eraser'?'rgba(0,0,0,1)':currentColor;
+                ctx.lineWidth=cs.width;ctx.lineCap='round';ctx.lineJoin='round';
+                ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(co.x,co.y);ctx.stroke();
+                lastX=co.x;lastY=co.y;
+            }else{cs.endX=co.x;cs.endY=co.y;renderAllShapes();}
         });
+        canvas.addEventListener('pointerup',()=>{if(isDrawing)saveDrawingState();isDrawing=false;});
 
-        canvas.addEventListener('pointerup', () => {
-            if (isDraggingShape) { isDraggingShape = false; triggerAutoSave(); return; }
-            if (isDrawing) { saveDrawingState(); triggerAutoSave(); }
-            isDrawing = false;
-        });
-
+        // Hide/Show Drawings toggle
         const btnHideDrawings = document.getElementById('btn-hide-drawings');
         btnHideDrawings.addEventListener('click', () => {
             drawingsVisible = !drawingsVisible;
-            btnHideDrawings.textContent = drawingsVisible ? 'Hide' : 'Show';
-            if (!drawingsVisible) btnHideDrawings.classList.add('active');
-            else btnHideDrawings.classList.remove('active');
+            btnHideDrawings.innerHTML = drawingsVisible ? '&#x1F441; Hide Drawings' : '&#x1F441;&#x200D;&#x1F5E8; Show Drawings';
+            if (drawingsVisible) btnHideDrawings.classList.remove('active');
+            else btnHideDrawings.classList.add('active');
             renderAllShapes();
         });
 
-        /* === PASTE === */
+        /* === CTRL+V PASTE IMAGES === */
         const pasteToast = document.getElementById('paste-toast');
+
         function spawnImageBlock(src, imgType, label) {
-            const cx = (window.scrollX + window.innerWidth / 2) / zoomLevel, cy = (window.scrollY + window.innerHeight / 2) / zoomLevel;
-            const ib = document.createElement('div'); ib.className = 'image-block';
-            ib.style.left = `${cx - 200}px`; ib.style.top = `${cy - 150}px`; ib.style.width = '400px'; ib.style.height = '320px';
-            ib.innerHTML = `<div class="document-header"><span>&#x2807; ${label}</span><button class="delete-btn" title="Delete">&#x2715;</button></div><div class="image-wrapper"><img src="${src}" alt="${label}" data-img-type="${imgType}"></div><div class="resize-handle"></div>`;
-            blocksContainer.appendChild(ib); makeImageBlockInteractive(ib); triggerAutoSave();
+            const cx=(window.scrollX+window.innerWidth/2)/zoomLevel, cy=(window.scrollY+window.innerHeight/2)/zoomLevel;
+            const ib=document.createElement('div'); ib.className='image-block';
+            ib.style.left=`${cx-200}px`;ib.style.top=`${cy-150}px`;ib.style.width='400px';ib.style.height='320px';
+            ib.innerHTML=`<div class="document-header"><span>&#x2807; ${label}</span><button class="delete-btn" title="Delete">&#x274C;</button></div><div class="image-wrapper"><img src="${src}" alt="${label}" data-img-type="${imgType}"></div><div class="resize-handle"></div>`;
+            blocksContainer.appendChild(ib); makeImageBlockInteractive(ib);
         }
+
         document.addEventListener('paste', (e) => {
-            if (document.activeElement && document.activeElement.isContentEditable) return;
-            const items = e.clipboardData && e.clipboardData.items; if (!items) return;
-            for (let i = 0; i < items.length; i++) {
+            const items = e.clipboardData && e.clipboardData.items;
+            if (!items) return;
+            for (let i=0; i<items.length; i++) {
                 if (items[i].type.startsWith('image/')) {
-                    e.preventDefault(); const file = items[i].getAsFile(); const reader = new FileReader();
-                    reader.onload = (ev) => { spawnImageBlock(ev.target.result, 'base64', 'Pasted Image'); pasteToast.classList.add('show'); setTimeout(() => pasteToast.classList.remove('show'), 1500); };
-                    reader.readAsDataURL(file); return;
+                    e.preventDefault();
+                    const file = items[i].getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        spawnImageBlock(ev.target.result, 'base64', 'Pasted Image');
+                        pasteToast.classList.add('show');
+                        setTimeout(() => pasteToast.classList.remove('show'), 1500);
+                    };
+                    reader.readAsDataURL(file);
+                    return;
                 }
             }
         });
 
-        /* === SAVE/LOAD === */
-        function saveDrawingState() { undoStack.push(JSON.parse(JSON.stringify(shapes))); if (undoStack.length > 50) undoStack.shift(); }
-        function drawingUndo() {
-            if (undoStack.length > 0) { undoStack.pop(); shapes = undoStack.length ? JSON.parse(JSON.stringify(undoStack[undoStack.length - 1])) : []; }
-            else { shapes = []; }
-            selectedShapeIdx = -1; renderAllShapes(); triggerAutoSave();
-        }
+        /* === SAVE / LOAD === */
+        function saveDrawingState(){undoStack.push(JSON.parse(JSON.stringify(shapes)));if(undoStack.length>50)undoStack.shift();}
+        function drawingUndo(){if(undoStack.length>0){undoStack.pop();shapes=undoStack.length?JSON.parse(JSON.stringify(undoStack[undoStack.length-1])):[];}else{shapes=[];}renderAllShapes();}
 
-        document.getElementById('btn-save-project').addEventListener('click', () => {
-            const pd = buildProjectData(); const a = document.createElement('a');
-            a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(pd));
-            a.download = "broll_project.json"; document.body.appendChild(a); a.click(); a.remove();
+        document.getElementById('btn-save-project').addEventListener('click',()=>{
+            const pd={version:3,viewport:{zoom:zoomLevel,scrollX:window.scrollX,scrollY:window.scrollY},shapes:shapes,blocks:[],images:[]};
+            document.querySelectorAll('.document-block').forEach(b=>{pd.blocks.push({left:b.style.left,top:b.style.top,width:b.style.width,content:b.querySelector('.document-content').innerHTML});});
+            document.querySelectorAll('.image-block').forEach(ib=>{const img=ib.querySelector('.image-wrapper img'),hs=ib.querySelector('.document-header span');pd.images.push({left:ib.style.left,top:ib.style.top,width:ib.style.width,height:ib.style.height,src:img?img.src:'',imgType:img?img.dataset.imgType:'url',label:hs?hs.textContent.replace(/^. /,'').trim():'Image'});});
+            const a=document.createElement('a');a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(pd));a.download="broll_project.json";document.body.appendChild(a);a.click();a.remove();
         });
 
-        const fileImport = document.getElementById('file-import');
-        document.getElementById('btn-load-project').addEventListener('click', () => fileImport.click());
-        fileImport.addEventListener('change', function(e) {
-            const file = e.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(ev) { try { const pd = JSON.parse(ev.target.result); restoreProject(pd); triggerAutoSave(); } catch (err) { alert("Invalid project file."); console.error(err); } };
-            reader.readAsText(file); this.value = '';
+        const fileImport=document.getElementById('file-import');
+        document.getElementById('btn-load-project').addEventListener('click',()=>fileImport.click());
+        fileImport.addEventListener('change',function(e){
+            const file=e.target.files[0];if(!file)return;
+            const reader=new FileReader();
+            reader.onload=function(ev){
+                try{
+                    const pd=JSON.parse(ev.target.result);
+                    blocksContainer.innerHTML='';
+                    if(pd.blocks)pd.blocks.forEach(bd=>{
+                        const nb=document.createElement('div');nb.className='document-block';
+                        nb.style.left=bd.left;nb.style.top=bd.top;nb.style.width=bd.width;
+                        nb.innerHTML=`<div class="document-header"><span>&#x2807; Drag to move block</span><button class="delete-btn" title="Delete">&#x274C;</button></div><div class="document-content" contenteditable="true" spellcheck="false">${bd.content}</div><button class="block-export-btn" title="Export this block">&#x1F4E4; Export Block</button><div class="resize-handle"></div>`;
+                        blocksContainer.appendChild(nb);makeBlockInteractive(nb);
+                        nb.querySelectorAll('.highlight-container').forEach(bindHoverEvents);
+                    });
+                    if(pd.images)pd.images.forEach(id=>{
+                        const ib=document.createElement('div');ib.className='image-block';
+                        ib.style.left=id.left;ib.style.top=id.top;ib.style.width=id.width;ib.style.height=id.height;
+                        ib.innerHTML=`<div class="document-header"><span>&#x2807; ${id.label||'Image'}</span><button class="delete-btn" title="Delete">&#x274C;</button></div><div class="image-wrapper"><img src="${id.src}" alt="${id.label||'Image'}" data-img-type="${id.imgType||'url'}"></div><div class="resize-handle"></div>`;
+                        blocksContainer.appendChild(ib);makeImageBlockInteractive(ib);
+                    });
+                    shapes=pd.shapes||[];undoStack=[];renderAllShapes();
+                    if(pd.viewport){zoomLevel=pd.viewport.zoom||1;applyZoom();setTimeout(()=>window.scrollTo(pd.viewport.scrollX||0,pd.viewport.scrollY||0),50);}
+                }catch(err){alert("Invalid project file.");console.error(err);}
+            };
+            reader.readAsText(file);this.value='';
         });
 
-        /* === SPACEBAR & KEYBOARD === */
-        let isSpacePanning = false, hasPannedDuringSpace = false;
-        let isAltPanning = false;
-        let panStartX = 0, panStartY = 0, scrollStartX = 0, scrollStartY = 0;
-
-        /* === FIGMA-STYLE SPACEBAR PAN ===
-         * Works EVERYWHERE, including inside text blocks.
-         * 
-         * - In INPUT/TEXTAREA (modals): spacebar works normally, never intercepted.
-         * - In contenteditable (text blocks) or on canvas:
-         *   Press space → suppressed, pan mode ready, cursor = grab
-         *   Hold space + drag mouse → pans the canvas
-         *   Release space without dragging → retroactively inserts a space
-         *   character at the cursor position (as if you typed it normally)
-         *
-         * This matches how Figma, Miro, and FigJam handle spacebar.
-         */
-        let spaceHeld = false;
-        let spaceWasUsedToPan = false;
-        let spaceDownTarget = null; // remember where the cursor was
-
-        function isModalInput() {
-            const ae = document.activeElement;
-            if (!ae) return false;
-            const tag = ae.tagName;
-            return (tag === 'INPUT' || tag === 'TEXTAREA');
-        }
-
-        // Capture phase: intercept ALL spacebar presses except in modal inputs
-        window.addEventListener('keydown', (e) => {
-            if (e.code !== 'Space') return;
-            if (isModalInput()) return; // let modals type spaces normally
-
-            e.preventDefault(); // ALWAYS prevent default, even on repeat
-            e.stopPropagation();
-
-            if (!e.repeat && !spaceHeld) {
-                spaceHeld = true;
-                spaceWasUsedToPan = false;
-                spaceDownTarget = document.activeElement;
-                document.body.style.cursor = 'grab';
-            }
-        }, { capture: true });
-
-        // Block spacebar scroll on keypress and keyup too
-        window.addEventListener('keypress', (e) => {
-            if (e.code === 'Space' && !isModalInput()) { e.preventDefault(); e.stopPropagation(); }
-        }, { capture: true });
-
-        window.addEventListener('keyup', (e) => {
-            if (e.code !== 'Space') return;
-            if (isModalInput()) return;
-
-            e.preventDefault(); // block scroll on keyup too
-            e.stopPropagation();
-
-            if (!spaceHeld) return;
-
-            spaceHeld = false;
-            isSpacePanning = false;
-            document.body.style.cursor = 'default';
-
-            // If space was NOT used to pan, insert a space character
-            if (!spaceWasUsedToPan && spaceDownTarget) {
-                // Only insert if the target was a contenteditable text block
-                if (spaceDownTarget.isContentEditable) {
-                    spaceDownTarget.focus();
-                    document.execCommand('insertText', false, ' ');
-                }
-            }
-
-            spaceDownTarget = null;
-            spaceWasUsedToPan = false;
-        }, { capture: true });
-
-        /* Click on empty canvas = prevent contenteditable from stealing focus. */
-        zoomContainer.addEventListener('mousedown', (e) => {
-            if (appMode === 'draw') return;
-            const allBlocks = document.querySelectorAll('.document-block, .image-block');
-            let insideAnyBlock = false;
-            for (const block of allBlocks) {
-                const rect = block.getBoundingClientRect();
-                if (e.clientX >= rect.left && e.clientX <= rect.right &&
-                    e.clientY >= rect.top && e.clientY <= rect.bottom) {
-                    insideAnyBlock = true;
-                    break;
-                }
-            }
-            if (!insideAnyBlock) {
-                e.preventDefault();
-                if (document.activeElement && document.activeElement !== document.body) {
-                    document.activeElement.blur();
-                }
-            }
-        }, true);
+        /* === SPACEBAR PAN & KEYBOARD SHORTCUTS === */
+        let isSpacePanning=false, hasPannedDuringSpace=false;
+        let panStartX=0, panStartY=0, scrollStartX=0, scrollStartY=0;
 
         document.addEventListener('keydown', (e) => {
+            // Ctrl+Z
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-                if (appMode === 'draw') { e.preventDefault(); drawingUndo(); }
-                else { if (markUndoStack.length > 0) { e.preventDefault(); popMarkUndo(); } }
+                if (appMode === 'draw') {
+                    e.preventDefault();
+                    drawingUndo();
+                } else {
+                    // Try our mark undo stack first
+                    if (markUndoStack.length > 0) {
+                        e.preventDefault();
+                        popMarkUndo();
+                    }
+                    // If mark stack is empty, let browser handle native undo
+                }
             }
-            if ((e.ctrlKey || e.metaKey) && e.key === '0') { e.preventDefault(); zoomLevel = 1; applyZoom(); window.scrollTo((6000 - window.innerWidth) / 2, 400); }
+
+            if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+                e.preventDefault(); zoomLevel=1; applyZoom();
+                window.scrollTo((6000-window.innerWidth)/2, 400);
+            }
+
             if (e.key === 'Escape') {
-                if (noteModal.style.display === 'block') { noteModal.style.display = 'none'; noteModalCallback = null; return; }
-                if (appMode === 'draw') { setAppMode('view'); return; }
-                selectedShapeIdx = -1; renderAllShapes();
+                if (noteModal.style.display === 'block') { noteModal.style.display='none'; noteModalCallback=null; return; }
             }
-            if ((e.key === 'Delete' || e.key === 'Backspace') && selectedShapeIdx >= 0 && appMode === 'draw' && !isModalInput()) {
-                e.preventDefault(); saveDrawingState(); shapes.splice(selectedShapeIdx, 1);
-                selectedShapeIdx = -1; renderAllShapes(); triggerAutoSave();
+
+            if (e.code === 'Space') {
+                const tag = document.activeElement.tagName;
+                if (tag==='INPUT' || tag==='TEXTAREA' || document.activeElement.isContentEditable) return;
+                if (!isSpacePanning) { isSpacePanning=true; hasPannedDuringSpace=false; document.body.style.cursor='grab'; }
+                e.preventDefault();
             }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.code==='Space') { if(!isSpacePanning) return; isSpacePanning=false; document.body.style.cursor='default'; }
         });
 
         window.addEventListener('mousedown', (e) => {
-            // Alt+click = pan regardless of context
-            if (e.altKey && e.button === 0) {
-                e.preventDefault();
-                isAltPanning = true;
-                document.body.style.cursor = 'grabbing';
-                panStartX = e.clientX; panStartY = e.clientY;
-                scrollStartX = window.scrollX; scrollStartY = window.scrollY;
-                return;
+            if (isSpacePanning || e.button===1) {
+                if(e.button===1) e.preventDefault();
+                document.body.style.cursor='grabbing';
+                panStartX=e.clientX; panStartY=e.clientY;
+                scrollStartX=window.scrollX; scrollStartY=window.scrollY;
+                if(document.activeElement && document.activeElement!==document.body) document.activeElement.blur();
             }
-            // Spacebar held = start pan on mousedown
-            if (spaceHeld || e.button === 1) {
-                if (e.button === 1) e.preventDefault();
-                isSpacePanning = true;
-                document.body.style.cursor = 'grabbing';
-                panStartX = e.clientX; panStartY = e.clientY;
-                scrollStartX = window.scrollX; scrollStartY = window.scrollY;
-            }
-        });
-        window.addEventListener('mousemove', (e) => {
-            if (isAltPanning || (isSpacePanning && (e.buttons === 1 || spaceHeld)) || e.buttons === 4) {
-                e.preventDefault();
-                spaceWasUsedToPan = true;
-                hasPannedDuringSpace = true;
-                window.scrollTo(scrollStartX - (e.clientX - panStartX), scrollStartY - (e.clientY - panStartY));
-            }
-        });
-        window.addEventListener('mouseup', (e) => {
-            if (isAltPanning) { isAltPanning = false; document.body.style.cursor = spaceHeld ? 'grab' : 'default'; return; }
-            if (isSpacePanning) { isSpacePanning = false; document.body.style.cursor = spaceHeld ? 'grab' : 'default'; }
-            if (e.button === 1) document.body.style.cursor = 'default';
         });
 
-        /* === MODE === */
+        window.addEventListener('mousemove', (e) => {
+            if ((isSpacePanning && e.buttons===1) || e.buttons===4) {
+                e.preventDefault(); hasPannedDuringSpace=true;
+                window.scrollTo(scrollStartX-(e.clientX-panStartX), scrollStartY-(e.clientY-panStartY));
+            }
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (isSpacePanning || e.button===1) document.body.style.cursor = isSpacePanning ? 'grab' : 'default';
+        });
+
+        /* === MODE SWITCHING === */
         const btnToggleDraw = document.getElementById('toggle-draw');
         const drawToolsRow = document.getElementById('draw-tools');
         const toolBtns = document.querySelectorAll('.draw-tool');
 
         function setAppMode(m) {
-            appMode = m; btnToggleDraw.className = 'tool-btn mode-btn';
-            btnToggleDraw.textContent = 'Draw';
-            canvas.style.pointerEvents = 'none'; commentPopup.style.display = 'none';
-            window.getSelection().removeAllRanges(); drawToolsRow.style.display = 'none';
-            selectedShapeIdx = -1; renderAllShapes();
+            appMode = m;
+            btnToggleDraw.className = 'tool-btn mode-btn';
+            btnToggleDraw.innerHTML = '&#x270F;&#xFE0F; Draw';
+            canvas.style.pointerEvents = 'none';
+            commentPopup.style.display = 'none';
+            window.getSelection().removeAllRanges();
+            drawToolsRow.style.display = 'none';
+            renderAllShapes();
+
             if (m === 'draw') {
                 btnToggleDraw.classList.add('active-draw');
-                btnToggleDraw.textContent = 'Drawing';
-                drawToolsRow.style.display = 'flex'; canvas.style.pointerEvents = 'auto';
+                btnToggleDraw.innerHTML = '&#x1F534; Draw: ON';
+                drawToolsRow.style.display = 'flex';
+                canvas.style.pointerEvents = 'auto';
             }
         }
 
-        btnToggleDraw.addEventListener('click', () => setAppMode(appMode === 'draw' ? 'view' : 'draw'));
+        btnToggleDraw.addEventListener('click', () => setAppMode(appMode==='draw' ? 'view' : 'draw'));
         toolBtns.forEach(b => b.addEventListener('click', () => {
-            if (appMode !== 'draw') setAppMode('draw');
-            toolBtns.forEach(x => x.classList.remove('active')); b.classList.add('active');
-            currentTool = b.getAttribute('data-tool'); selectedShapeIdx = -1; renderAllShapes();
+            if(appMode!=='draw') setAppMode('draw');
+            toolBtns.forEach(x=>x.classList.remove('active')); b.classList.add('active');
+            currentTool = b.getAttribute('data-tool');
         }));
         document.getElementById('tool-undo').addEventListener('click', drawingUndo);
-        document.getElementById('tool-clear').addEventListener('click', () => { shapes = []; selectedShapeIdx = -1; saveDrawingState(); renderAllShapes(); triggerAutoSave(); });
+        document.getElementById('tool-clear').addEventListener('click', () => { shapes=[]; saveDrawingState(); renderAllShapes(); });
 
         document.getElementById('btn-screenshot').addEventListener('click', (e) => {
-            const btn = e.target; const orig = btn.textContent;
-            btn.textContent = 'Processing...';
-            document.querySelector('.drawing-toolbar').style.display = 'none';
-            const si = document.getElementById('save-indicator'); si.style.display = 'none';
-            setTimeout(() => {
-                html2canvas(document.body, { scale: 2, useCORS: true, backgroundColor: '#18181b', x: window.scrollX, y: window.scrollY, width: window.innerWidth, height: window.innerHeight })
-                    .then(c => { const l = document.createElement('a'); l.download = 'BRoll_Screenshot.png'; l.href = c.toDataURL('image/png'); l.click(); document.querySelector('.drawing-toolbar').style.display = 'flex'; si.style.display = ''; btn.textContent = orig; })
-                    .catch(() => { document.querySelector('.drawing-toolbar').style.display = 'flex'; si.style.display = ''; btn.textContent = 'Error'; setTimeout(() => btn.textContent = orig, 2000); });
-            }, 100);
+            const btn=e.target; const orig=btn.innerHTML;
+            btn.innerHTML='&#x231B; Processing...';
+            document.querySelector('.drawing-toolbar').style.display='none';
+            setTimeout(()=>{
+                html2canvas(document.body,{scale:2,useCORS:true,backgroundColor:'#f4f5f7',x:window.scrollX,y:window.scrollY,width:window.innerWidth,height:window.innerHeight})
+                .then(c=>{const l=document.createElement('a');l.download='BRoll_Screenshot.png';l.href=c.toDataURL('image/png');l.click();document.querySelector('.drawing-toolbar').style.display='flex';btn.innerHTML=orig;})
+                .catch(()=>{document.querySelector('.drawing-toolbar').style.display='flex';btn.innerHTML='&#x274C; Error';setTimeout(()=>btn.innerHTML=orig,2000);});
+            },100);
+        });
+        /* === PICTURE-IN-PICTURE === */
+        let pipWindow = null;
+
+        document.getElementById('btn-pip').addEventListener('click', async () => {
+            // Find the first document-block (or the focused one)
+            const block = document.querySelector('.document-block');
+            if (!block) { alert('No transcript block to pop out.'); return; }
+
+            if (!('documentPictureInPicture' in window)) {
+                alert('Document Picture-in-Picture is not supported in this browser. Use Chrome 116+.');
+                return;
+            }
+
+            try {
+                const contentEl = block.querySelector('.document-content');
+                const contentHTML = contentEl.innerHTML;
+
+                pipWindow = await documentPictureInPicture.requestWindow({
+                    width: 520,
+                    height: 600
+                });
+
+                const pipDoc = pipWindow.document;
+                pipDoc.head.innerHTML = `
+                    <style>
+                        * { box-sizing: border-box; }
+                        body {
+                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                            line-height: 1.8; color: #2c3e50; font-size: 17px;
+                            margin: 0; padding: 20px 24px 80px 24px; background: #fff;
+                            overflow-y: auto;
+                        }
+                        h2 { margin-top: 0; color: #1a252f; font-weight: 700; }
+                        .highlight-container { position: relative; display: inline; }
+                        .highlight-text {
+                            background-color: #fff3cd; border-bottom: 2px solid #fbbf24;
+                            cursor: pointer; padding: 0 1px; border-radius: 3px;
+                            box-decoration-break: clone; -webkit-box-decoration-break: clone;
+                        }
+                        .highlight-container.has-note .highlight-text { border-bottom: 2px dashed #e6a800; }
+                        .highlight-container:hover .highlight-text { background-color: #ffe69c; }
+                        .broll-card { display: none; }
+                        .pip-popup {
+                            display: none; position: fixed; z-index: 800; background: #fff; padding: 8px;
+                            border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #e2e8f0;
+                            gap: 8px; width: max-content; flex-direction: row; align-items: center;
+                        }
+                        .pip-btn {
+                            display: inline-flex; align-items: center; justify-content: center;
+                            padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+                            color: #fff; border: none; cursor: pointer; white-space: nowrap;
+                        }
+                        .pip-note-panel {
+                            display: none; position: fixed; bottom: 0; left: 0; right: 0;
+                            background: #fff; border-top: 2px solid #e2e8f0; padding: 12px 16px;
+                            z-index: 900; box-shadow: 0 -4px 16px rgba(0,0,0,0.1);
+                        }
+                        .pip-note-panel textarea {
+                            width: 100%; box-sizing: border-box; padding: 10px; border: 2px solid #cbd5e1;
+                            border-radius: 8px; font-family: inherit; font-size: 14px; resize: none;
+                            height: 70px; margin-bottom: 8px; color: #1e293b;
+                        }
+                        .pip-note-panel textarea:focus { outline: none; border-color: #6366f1; }
+                        .pip-note-actions { display: flex; gap: 8px; justify-content: flex-end; }
+                        .pip-note-actions button {
+                            padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600;
+                            font-size: 13px; border: none;
+                        }
+                    </style>
+                `;
+
+                pipDoc.body.innerHTML = `
+                    <div id="pip-content" contenteditable="true" spellcheck="false">${contentHTML}</div>
+                    <div class="pip-popup" id="pip-popup">
+                        <button class="pip-btn" id="pip-mark" style="background:#eab308;color:#1e293b;">&#x1F4CC; Mark</button>
+                        <button class="pip-btn" id="pip-add-note" style="background:#10b981;">&#x1F4AC; Add Note</button>
+                        <button class="pip-btn" id="pip-copy" style="background:#6366f1;">&#x1F4CB; Copy</button>
+                    </div>
+                    <div class="pip-note-panel" id="pip-note-panel">
+                        <textarea id="pip-note-input" placeholder="Describe the B-roll or visual..."></textarea>
+                        <div class="pip-note-actions">
+                            <button style="background:#f1f5f9;color:#475569;" id="pip-note-cancel">Cancel</button>
+                            <button style="background:#6366f1;color:#fff;" id="pip-note-save">Save</button>
+                        </div>
+                    </div>
+                `;
+
+                // PiP internal logic
+                const pipContent = pipDoc.getElementById('pip-content');
+                const pipPopup = pipDoc.getElementById('pip-popup');
+                const pipNotePanel = pipDoc.getElementById('pip-note-panel');
+                const pipNoteInput = pipDoc.getElementById('pip-note-input');
+                let pipRange = null;
+                let pipNoteContainer = null;
+
+                // Show popup on selection
+                pipDoc.addEventListener('mouseup', (ev) => {
+                    if (ev.target.closest('.pip-popup') || ev.target.closest('.pip-note-panel')) return;
+                    const sel = pipWindow.getSelection();
+                    if (!sel.isCollapsed && sel.toString().trim().length > 0) {
+                        pipRange = sel.getRangeAt(0).cloneRange();
+                        pipPopup.style.display = 'flex';
+                        pipPopup.style.left = `${Math.min(ev.clientX, pipWindow.innerWidth - 280)}px`;
+                        pipPopup.style.top = `${ev.clientY - 45}px`;
+                    } else {
+                        pipPopup.style.display = 'none';
+                    }
+                });
+
+                // Mark
+                pipDoc.getElementById('pip-mark').addEventListener('mousedown', (ev) => {
+                    ev.preventDefault(); if (!pipRange) return;
+                    pipPopup.style.display = 'none';
+                    pipWrapHighlight(pipRange, null);
+                });
+
+                // Add Note
+                pipDoc.getElementById('pip-add-note').addEventListener('mousedown', (ev) => {
+                    ev.preventDefault(); if (!pipRange) return;
+                    pipPopup.style.display = 'none';
+                    pipNoteContainer = pipWrapHighlight(pipRange, null);
+                    if (pipNoteContainer) {
+                        pipNoteInput.value = '';
+                        pipNotePanel.style.display = 'block';
+                        pipNoteInput.focus();
+                    }
+                });
+
+                // Copy
+                pipDoc.getElementById('pip-copy').addEventListener('mousedown', (ev) => {
+                    ev.preventDefault(); if (!pipRange) return;
+                    const text = pipRange.toString();
+                    navigator.clipboard.writeText(text);
+                    pipPopup.style.display = 'none';
+                    pipWindow.getSelection().removeAllRanges();
+                });
+
+                // Note save
+                pipDoc.getElementById('pip-note-save').addEventListener('click', () => {
+                    if (pipNoteContainer && pipNoteInput.value.trim()) {
+                        pipNoteContainer.classList.add('has-note');
+                        pipNoteContainer.setAttribute('data-note', pipNoteInput.value.trim());
+                    }
+                    pipNotePanel.style.display = 'none';
+                    pipNoteContainer = null;
+                });
+
+                // Enter saves note in PiP
+                pipNoteInput.addEventListener('keydown', (ev) => {
+                    if (ev.key === 'Enter' && !ev.shiftKey) {
+                        ev.preventDefault();
+                        pipDoc.getElementById('pip-note-save').click();
+                    }
+                });
+
+                pipDoc.getElementById('pip-note-cancel').addEventListener('click', () => {
+                    pipNotePanel.style.display = 'none';
+                    pipNoteContainer = null;
+                });
+
+                // Click highlight to edit note
+                pipDoc.addEventListener('click', (ev) => {
+                    const ht = ev.target.closest('.highlight-text');
+                    if (ht) {
+                        const sel = pipWindow.getSelection();
+                        if (!sel.isCollapsed && sel.toString().trim().length > 0) return;
+                        const cont = ht.closest('.highlight-container');
+                        if (!cont) return;
+                        pipNoteContainer = cont;
+                        pipNoteInput.value = cont.getAttribute('data-note') || '';
+                        pipNotePanel.style.display = 'block';
+                        pipNoteInput.focus();
+                    }
+                });
+
+                function pipWrapHighlight(range, noteText) {
+                    const c = pipDoc.createElement('span');
+                    c.className = 'highlight-container';
+                    const ts = pipDoc.createElement('span'); ts.className = 'highlight-text';
+                    try {
+                        ts.appendChild(range.extractContents());
+                        c.appendChild(ts);
+                        range.insertNode(c);
+                        pipWindow.getSelection().removeAllRanges();
+                        pipRange = null;
+                        return c;
+                    } catch(err) { return null; }
+                }
+
+                // Sync back to main page when PiP closes
+                pipWindow.addEventListener('pagehide', () => {
+                    // Copy PiP content back to the main block
+                    const pipHTML = pipContent.innerHTML;
+                    contentEl.innerHTML = pipHTML;
+                    // Rebind hover events
+                    contentEl.querySelectorAll('.highlight-container').forEach(cont => {
+                        const noteData = cont.getAttribute('data-note');
+                        if (noteData) {
+                            cont.classList.add('has-note');
+                            // Create proper broll-card from data-note
+                            const existing = cont.querySelector('.broll-card');
+                            if (!existing) {
+                                const card = document.createElement('div'); card.className = 'broll-card';
+                                card.innerHTML = `<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit Note" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${noteData}</div>`;
+                                cont.appendChild(card);
+                            }
+                            cont.removeAttribute('data-note');
+                        }
+                        bindHoverEvents(cont);
+                    });
+                    pipWindow = null;
+                });
+
+            } catch(err) {
+                console.error('PiP error:', err);
+                alert('Could not open Picture-in-Picture window. Make sure you are using Chrome 116+ and the page is focused.');
+            }
         });
 
-        /* === INIT === */
-        window.onload = () => { const restored = loadAutoSave(); if (!restored) window.scrollTo((6000 - window.innerWidth) / 2, 400); };
     </script>
 </body>
 </html>
