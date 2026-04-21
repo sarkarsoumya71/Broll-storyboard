@@ -748,7 +748,9 @@
             if(pd.blocks) pd.blocks.forEach(bd=>{
                 const nb=document.createElement('div');nb.className='document-block';
                 nb.style.left=bd.left;nb.style.top=bd.top;nb.style.width=bd.width;
-                nb.innerHTML=`<div class="document-header"><span>&#x2807; Drag to move</span><button class="delete-btn">&times;</button></div><div class="document-content" contenteditable="true" spellcheck="false">${bd.content}</div><button class="block-export-btn">Export Block</button><div class="resize-handle"></div>`;
+                nb.innerHTML='<div class="document-header"><span>&#x2807; Drag to move</span><button class="delete-btn">&times;</button></div><div class="document-content" contenteditable="true" spellcheck="false"></div><button class="block-export-btn">Export Block</button><div class="resize-handle"></div>';
+                // Set content separately to avoid template literal escaping issues
+                nb.querySelector('.document-content').innerHTML = bd.content;
                 blocksContainer.appendChild(nb);makeBlockInteractive(nb);
                 nb.querySelectorAll('.highlight-container').forEach(bindHoverEvents);
             });
@@ -765,7 +767,15 @@
         // Collect current state into a project object
         function collectProjectData() {
             const pd={version:4,viewport:{zoom:zoomLevel,scrollX:window.scrollX,scrollY:window.scrollY},shapes,blocks:[],images:[]};
-            document.querySelectorAll('.document-block').forEach(b=>{pd.blocks.push({left:b.style.left,top:b.style.top,width:b.style.width,content:b.querySelector('.document-content').innerHTML});});
+            document.querySelectorAll('.document-block').forEach(b=>{
+                const contentEl = b.querySelector('.document-content');
+                // Clone to normalize without affecting live DOM
+                const clone = contentEl.cloneNode(true);
+                // Remove trailing <br> that browsers inject in contenteditable
+                const lastChild = clone.lastElementChild;
+                if (lastChild && lastChild.tagName === 'BR') lastChild.remove();
+                pd.blocks.push({left:b.style.left,top:b.style.top,width:b.style.width,content:clone.innerHTML});
+            });
             document.querySelectorAll('.image-block').forEach(ib=>{const img=ib.querySelector('.image-wrapper img'),hs=ib.querySelector('.document-header span');pd.images.push({left:ib.style.left,top:ib.style.top,width:ib.style.width,height:ib.style.height,src:img?img.src:'',imgType:img?img.dataset.imgType:'url',label:hs?hs.textContent.replace(/^. /,'').trim():'Image'});});
             return pd;
         }
@@ -782,15 +792,17 @@
         fileImport.addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(ev){try{const pd=JSON.parse(ev.target.result);loadProjectData(pd);}catch(err){alert("Invalid project file.");console.error(err);}};reader.readAsText(file);this.value='';});
 
         // Auto-save to localStorage every 5 seconds
-        setInterval(() => {
+        function autoSave() {
             try {
                 const pd = collectProjectData();
                 localStorage.setItem('broll-autosave', JSON.stringify(pd));
             } catch(err) {
-                // localStorage might be full with base64 images — silently fail
                 console.warn('Auto-save failed:', err);
             }
-        }, 5000);
+        }
+        setInterval(autoSave, 5000);
+        // Also save immediately when leaving the page
+        window.addEventListener('beforeunload', autoSave);
 
         /* === SPACEBAR PAN & SHORTCUTS === */
         let isSpacePanning=false,hasPannedDuringSpace=false,panStartX=0,panStartY=0,scrollStartX=0,scrollStartY=0;
