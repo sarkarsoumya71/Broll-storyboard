@@ -420,6 +420,27 @@
 
     /* Dark mode placeholder text */
     body.dark .document-content p[style*="color:#94a3b8"] { color: #475569 !important; }
+
+    /* ---- Note modal extras ---- */
+    .phrase-preview {
+        font-size: 13px; color: #64748b; margin-bottom: 14px; padding: 8px 12px;
+        background: #f8fafc; border-radius: 8px; border-left: 3px solid #fbbf24;
+        font-style: italic; line-height: 1.5;
+    }
+    body.dark .phrase-preview { background: #0f172a; color: #94a3b8; }
+
+    .note-type-row { display: flex; gap: 6px; margin-bottom: 12px; }
+    .note-type-btn {
+        padding: 6px 14px; border-radius: 10px; cursor: pointer; font-weight: 600;
+        font-size: 12px; border: 1.5px solid #e5e7eb; background: #fff; color: #475569;
+        font-family: 'Inter', sans-serif; transition: all 0.12s;
+        text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .note-type-btn:hover { border-color: #818cf8; color: #4f46e5; }
+    .note-type-btn.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+    body.dark .note-type-btn { background: #1e293b; border-color: #334155; color: #94a3b8; }
+    body.dark .note-type-btn:hover { border-color: #818cf8; color: #818cf8; }
+    body.dark .note-type-btn.active { background: #6366f1; color: #fff; border-color: #6366f1; }
 </style>
 </head>
 <body>
@@ -444,14 +465,19 @@
     </div>
 
     <!-- Floating Note Modal -->
-    <div id="note-modal-floating" class="floating-modal">
+    <div id="note-modal-floating" class="floating-modal" style="width:400px;">
         <div class="drag-handle">
             <h3 id="note-modal-header" style="margin:0; color:#0f172a; font-size:17px; font-weight:700; letter-spacing:-0.2px;">Production Note</h3>
             <span class="grip-dots">&#x2630; drag</span>
         </div>
         <div class="modal-body">
+            <div id="note-phrase-preview" class="phrase-preview" style="display:none;"></div>
+            <div class="note-type-row">
+                <button class="note-type-btn active" id="btn-type-direction">B-Roll Direction</button>
+                <button class="note-type-btn" id="btn-type-ai-image">AI Image</button>
+            </div>
             <label class="input-label">Note</label>
-            <textarea id="note-modal-input" placeholder="Describe the B-roll, visual, or animation..."></textarea>
+            <textarea id="note-modal-input" placeholder="Describe the B-roll visual..."></textarea>
             <div class="modal-actions">
                 <button class="modal-btn modal-btn-cancel" id="note-modal-cancel">Cancel</button>
                 <button class="modal-btn modal-btn-save" id="note-modal-save">Save</button>
@@ -650,7 +676,10 @@
         const noteModal = document.getElementById('note-modal-floating');
         const noteHeader = document.getElementById('note-modal-header');
         const noteInput = document.getElementById('note-modal-input');
+        const phrasePreview = document.getElementById('note-phrase-preview');
         let noteModalCallback = null;
+        let noteModalPhrase = '';
+
         function makeFloatingDraggable(el) {
             const h=el.querySelector('.drag-handle'); let drag=false,sx,sy,ol,ot;
             h.addEventListener('mousedown', (e) => { if(['INPUT','TEXTAREA','BUTTON'].includes(e.target.tagName)) return; drag=true; const r=el.getBoundingClientRect(); ol=r.left;ot=r.top;sx=e.clientX;sy=e.clientY; el.style.right='auto';el.style.transform='none';el.style.left=ol+'px';el.style.top=ot+'px'; e.preventDefault(); });
@@ -659,16 +688,102 @@
         }
         makeFloatingDraggable(noteModal);
         function resetNoteModalPos() { noteModal.style.left='auto'; noteModal.style.right='24px'; noteModal.style.top='50%'; noteModal.style.transform='translateY(-50%)'; }
-        function openNoteModal(header, def, cb) { noteHeader.innerText=header; noteInput.value=def; resetNoteModalPos(); noteModal.style.display='block'; noteInput.focus(); noteModalCallback=cb; }
+
+        // B-Roll Direction vs AI Image toggle
+        const btnTypeDirection = document.getElementById('btn-type-direction');
+        const btnTypeAiImage = document.getElementById('btn-type-ai-image');
+
+        btnTypeDirection.addEventListener('click', () => {
+            btnTypeDirection.classList.add('active');
+            btnTypeAiImage.classList.remove('active');
+            noteInput.value = '';
+            noteInput.placeholder = 'Describe the B-roll visual...';
+            noteInput.focus();
+        });
+
+        btnTypeAiImage.addEventListener('click', () => {
+            btnTypeAiImage.classList.add('active');
+            btnTypeDirection.classList.remove('active');
+            const phrase = noteModalPhrase || 'this segment';
+            noteInput.value = `[AI IMAGE] Generate a cinematic 16:9 B-roll image depicting: "${phrase}"`;
+            noteInput.placeholder = 'Edit the AI image prompt if needed...';
+            noteInput.focus();
+            // Select all so user can easily edit
+            noteInput.select();
+        });
+
+        function openNoteModal(header, def, phrase, cb) {
+            noteHeader.innerText = header;
+            noteInput.value = def;
+            noteModalPhrase = phrase || '';
+
+            // Show phrase preview
+            if (noteModalPhrase) {
+                phrasePreview.textContent = '"' + noteModalPhrase + '"';
+                phrasePreview.style.display = 'block';
+            } else {
+                phrasePreview.style.display = 'none';
+            }
+
+            // Reset to B-Roll Direction mode
+            btnTypeDirection.classList.add('active');
+            btnTypeAiImage.classList.remove('active');
+            noteInput.placeholder = 'Describe the B-roll visual...';
+
+            resetNoteModalPos();
+            noteModal.style.display = 'block';
+            noteInput.focus();
+            noteModalCallback = cb;
+        }
+
         document.getElementById('note-modal-cancel').addEventListener('click', () => { noteModal.style.display='none'; noteModalCallback=null; });
         document.getElementById('note-modal-save').addEventListener('click', saveAndCloseNoteModal);
         noteInput.addEventListener('keydown', (e) => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();saveAndCloseNoteModal();} });
-        function saveAndCloseNoteModal() { noteModal.style.display='none'; if(noteModalCallback&&noteInput.value.trim()) noteModalCallback(noteInput.value.trim()); noteModalCallback=null; }
 
-        /* === MARK UNDO STACK === */
-        let markUndoStack = [];
-        function pushMarkUndo(el) { markUndoStack.push({el,html:el.innerHTML}); if(markUndoStack.length>50)markUndoStack.shift(); }
-        function popMarkUndo() { if(!markUndoStack.length) return false; const e=markUndoStack.pop(); e.el.innerHTML=e.html; e.el.querySelectorAll('.highlight-container').forEach(bindHoverEvents); return true; }
+        function saveAndCloseNoteModal() {
+            noteModal.style.display = 'none';
+            if (noteModalCallback && noteInput.value.trim()) noteModalCallback(noteInput.value.trim());
+            noteModalCallback = null;
+        }
+
+        /* === MARK UNDO STACK (SURGICAL) ===
+         * Instead of storing entire block snapshots (which wipes other notes),
+         * we store a reference to the highlight container that was created.
+         * Undo = unwrap that specific highlight back into plain text.
+         * This never touches other highlights or their notes.
+         */
+        let markUndoStack = []; // each entry: { container: the .highlight-container element }
+
+        function pushMarkUndo(container) {
+            markUndoStack.push({ container });
+            if (markUndoStack.length > 50) markUndoStack.shift();
+        }
+
+        function popMarkUndo() {
+            if (!markUndoStack.length) return false;
+            const entry = markUndoStack.pop();
+            const container = entry.container;
+            // Only unwrap if still in the DOM
+            if (!document.body.contains(container)) return true;
+
+            const parent = container.parentNode;
+            if (!parent) return true;
+
+            // Extract the plain text from the highlight and replace the container with it
+            const textContent = container.querySelector('.highlight-text');
+            if (textContent) {
+                // Move all child nodes of highlight-text before the container
+                while (textContent.firstChild) {
+                    parent.insertBefore(textContent.firstChild, container);
+                }
+            }
+            // Remove the container (which now only has the broll-card if any)
+            parent.removeChild(container);
+
+            // Normalize to merge adjacent text nodes
+            parent.normalize();
+            return true;
+        }
 
         /* === HIGHLIGHT + CLICK-TO-ANNOTATE === */
         let appMode = 'view';
@@ -687,10 +802,30 @@
             if(appMode==='draw') return;
             if(e.target.closest('.floating-modal')||e.target.closest('.modal-overlay')||e.target.closest('#comment-popup')) return;
             const editBtn=e.target.closest('.btn-edit-note');
-            if(editBtn) { const card=editBtn.closest('.broll-card'),t=card.querySelector('.broll-note-text'),container=card.closest('.highlight-container'),contentEl=container.closest('.document-content'); openNoteModal("Edit Production Note",t.innerText,(nt)=>{if(contentEl)pushMarkUndo(contentEl);t.innerText=nt;}); return; }
+            if(editBtn) {
+                const card=editBtn.closest('.broll-card'), t=card.querySelector('.broll-note-text');
+                const container=card.closest('.highlight-container');
+                const phrase = container ? container.querySelector('.highlight-text').textContent.trim() : '';
+                openNoteModal("Edit Production Note", t.innerText, phrase, (nt)=>{ t.innerText=nt; });
+                return;
+            }
             const ht=e.target.closest('.highlight-text');
-            if(ht) { const container=ht.closest('.highlight-container'); if(!container) return; const sel=window.getSelection(); if(!sel.isCollapsed&&sel.toString().trim().length>0) return; const contentEl=container.closest('.document-content'),existingNote=container.querySelector('.broll-note-text'),defaultText=existingNote?existingNote.textContent:'',headerText=existingNote?"Edit Production Note":"Add Production Note";
-                openNoteModal(headerText,defaultText,(note)=>{if(contentEl)pushMarkUndo(contentEl); const old=container.querySelector('.broll-card'); if(old)old.remove(); const card=document.createElement('div');card.className='broll-card'; card.innerHTML=`<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${note}</div>`; container.appendChild(card); container.classList.add('has-note'); bindHoverEvents(container); }); return; }
+            if(ht) {
+                const container=ht.closest('.highlight-container'); if(!container) return;
+                const sel=window.getSelection(); if(!sel.isCollapsed&&sel.toString().trim().length>0) return;
+                const contentEl=container.closest('.document-content');
+                const existingNote=container.querySelector('.broll-note-text');
+                const defaultText=existingNote?existingNote.textContent:'';
+                const headerText=existingNote?"Edit Production Note":"Add Production Note";
+                const phrase=ht.textContent.trim();
+                openNoteModal(headerText, defaultText, phrase, (note)=>{
+                    const old=container.querySelector('.broll-card'); if(old)old.remove();
+                    const card=document.createElement('div');card.className='broll-card';
+                    card.innerHTML=`<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${note}</div>`;
+                    container.appendChild(card); container.classList.add('has-note'); bindHoverEvents(container);
+                });
+                return;
+            }
         });
 
         // Show popup on text selection
@@ -702,8 +837,8 @@
             else { commentPopup.style.display='none'; }
         });
 
-        document.getElementById('btn-mark').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; commentPopup.style.display='none'; if(savedSelectionBlock)pushMarkUndo(savedSelectionBlock); wrapAsHighlight(savedSelectionRange); });
-        document.getElementById('btn-add-note').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; commentPopup.style.display='none'; const ce=savedSelectionBlock; if(ce)pushMarkUndo(ce); const c=wrapAsHighlight(savedSelectionRange); if(c){openNoteModal("Add Production Note","",(note)=>{const card=document.createElement('div');card.className='broll-card';card.innerHTML=`<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${note}</div>`;c.appendChild(card);c.classList.add('has-note');bindHoverEvents(c);});} });
+        document.getElementById('btn-mark').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; commentPopup.style.display='none'; const c=wrapAsHighlight(savedSelectionRange); if(c) pushMarkUndo(c); });
+        document.getElementById('btn-add-note').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; commentPopup.style.display='none'; const phrase=savedSelectionRange.toString().trim(); const c=wrapAsHighlight(savedSelectionRange); if(c){pushMarkUndo(c);openNoteModal("Add Production Note","",phrase,(note)=>{const card=document.createElement('div');card.className='broll-card';card.innerHTML=`<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${note}</div>`;c.appendChild(card);c.classList.add('has-note');bindHoverEvents(c);});} });
         document.getElementById('btn-copy-text').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; const text=savedSelectionRange.toString(); if(text){navigator.clipboard.writeText(text).catch(()=>{const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}); const btn=document.getElementById('btn-copy-text');const o=btn.innerHTML;btn.innerHTML='Copied!';setTimeout(()=>btn.innerHTML=o,1000);} commentPopup.style.display='none'; window.getSelection().removeAllRanges(); });
 
         function wrapAsHighlight(range) {
