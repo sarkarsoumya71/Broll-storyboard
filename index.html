@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>B-Roll Editor Web App Workspace</title>
+<title>B-Roll Editor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230f172a'/><text x='50' y='68' font-size='52' font-weight='bold' text-anchor='middle' fill='%23fbbf24' font-family='system-ui'>B</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -441,9 +442,61 @@
     body.dark .note-type-btn { background: #1e293b; border-color: #334155; color: #94a3b8; }
     body.dark .note-type-btn:hover { border-color: #818cf8; color: #818cf8; }
     body.dark .note-type-btn.active { background: #6366f1; color: #fff; border-color: #6366f1; }
+
+    /* ---- Project name bar ---- */
+    .project-bar {
+        position: fixed; top: 16px; left: 16px; z-index: 999;
+        display: flex; align-items: center; gap: 8px;
+        background: rgba(255,255,255,0.88);
+        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        padding: 8px 14px; border-radius: 14px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+        font-family: 'Inter', sans-serif;
+    }
+    .project-logo {
+        width: 26px; height: 26px; border-radius: 7px; background: #0f172a;
+        display: flex; align-items: center; justify-content: center;
+        color: #fbbf24; font-weight: 800; font-size: 14px; flex-shrink: 0;
+        letter-spacing: -0.5px;
+    }
+    .project-name {
+        font-size: 14px; font-weight: 600; color: #1e293b;
+        border: none; background: transparent; outline: none;
+        padding: 3px 6px; border-radius: 6px; min-width: 80px; max-width: 220px;
+        cursor: text; transition: all 0.12s;
+        font-family: 'Inter', sans-serif;
+    }
+    .project-name:hover { background: rgba(0,0,0,0.04); }
+    .project-name:focus { background: #fff; box-shadow: 0 0 0 2px rgba(99,102,241,0.3); }
+    .project-save-name {
+        padding: 4px 10px; border-radius: 8px; cursor: pointer; font-weight: 600;
+        font-size: 11px; border: 1.5px solid #e5e7eb; background: #fff; color: #475569;
+        font-family: 'Inter', sans-serif; transition: all 0.12s;
+        text-transform: uppercase; letter-spacing: 0.5px;
+        opacity: 0; pointer-events: none;
+    }
+    .project-save-name.visible { opacity: 1; pointer-events: auto; }
+    .project-save-name:hover { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+
+    body.dark .project-bar {
+        background: rgba(15,23,42,0.85);
+        box-shadow: 0 2px 12px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.05);
+    }
+    body.dark .project-name { color: #e2e8f0; }
+    body.dark .project-name:hover { background: rgba(255,255,255,0.05); }
+    body.dark .project-name:focus { background: rgba(255,255,255,0.08); box-shadow: 0 0 0 2px rgba(129,140,248,0.3); }
+    body.dark .project-save-name { background: #1e293b; border-color: #334155; color: #94a3b8; }
+    body.dark .project-save-name:hover { background: #6366f1; color: #fff; border-color: #6366f1; }
 </style>
 </head>
 <body>
+
+    <!-- Project Name Bar -->
+    <div class="project-bar">
+        <div class="project-logo">B</div>
+        <input type="text" class="project-name" id="project-name" value="Untitled Project" spellcheck="false">
+        <button class="project-save-name" id="project-save-name">Save</button>
+    </div>
 
     <input type="file" id="file-import" accept=".json" style="display: none;">
     <div id="paste-toast" class="paste-toast">Image pasted onto canvas</div>
@@ -569,6 +622,55 @@
     <script>
         // Dark mode: restore from localStorage
         if (localStorage.getItem('broll-dark-mode') === 'true') document.body.classList.add('dark');
+
+        // Project name: restore and set up handlers
+        const projectNameInput = document.getElementById('project-name');
+        const projectSaveBtn = document.getElementById('project-save-name');
+        let savedProjectName = localStorage.getItem('broll-project-name') || 'Untitled Project';
+        projectNameInput.value = savedProjectName;
+        document.title = savedProjectName + ' — B-Roll Editor';
+
+        projectNameInput.addEventListener('focus', () => {
+            projectSaveBtn.classList.add('visible');
+        });
+
+        projectNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); saveProjectName(); }
+            if (e.key === 'Escape') { projectNameInput.value = savedProjectName; projectNameInput.blur(); projectSaveBtn.classList.remove('visible'); }
+        });
+
+        projectNameInput.addEventListener('blur', () => {
+            // Small delay so clicking Save still works
+            setTimeout(() => {
+                if (document.activeElement !== projectSaveBtn) {
+                    projectSaveBtn.classList.remove('visible');
+                    // If name changed without saving, revert
+                    if (projectNameInput.value.trim() !== savedProjectName) {
+                        projectNameInput.value = savedProjectName;
+                    }
+                }
+            }, 150);
+        });
+
+        projectSaveBtn.addEventListener('click', saveProjectName);
+
+        function saveProjectName() {
+            const name = projectNameInput.value.trim() || 'Untitled Project';
+            projectNameInput.value = name;
+            savedProjectName = name;
+            document.title = name + ' — B-Roll Editor';
+            localStorage.setItem('broll-project-name', name);
+            projectSaveBtn.classList.remove('visible');
+            projectNameInput.blur();
+
+            // Quick flash confirmation
+            projectSaveBtn.textContent = '✓';
+            projectSaveBtn.classList.add('visible');
+            setTimeout(() => {
+                projectSaveBtn.textContent = 'Save';
+                projectSaveBtn.classList.remove('visible');
+            }, 800);
+        }
 
         window.onload = () => {
             const bc = document.getElementById('blocks-container');
@@ -898,16 +1000,21 @@
             });
             shapes=pd.shapes||[];undoStack=[];renderAllShapes();
             if(pd.viewport){zoomLevel=pd.viewport.zoom||1;applyZoom();setTimeout(()=>window.scrollTo(pd.viewport.scrollX||0,pd.viewport.scrollY||0),50);}
+            // Restore project name
+            if (pd.projectName) {
+                savedProjectName = pd.projectName;
+                projectNameInput.value = savedProjectName;
+                document.title = savedProjectName + ' — B-Roll Editor';
+                localStorage.setItem('broll-project-name', savedProjectName);
+            }
         }
 
         // Collect current state into a project object
         function collectProjectData() {
-            const pd={version:4,viewport:{zoom:zoomLevel,scrollX:window.scrollX,scrollY:window.scrollY},shapes,blocks:[],images:[]};
+            const pd={version:5,projectName:savedProjectName,viewport:{zoom:zoomLevel,scrollX:window.scrollX,scrollY:window.scrollY},shapes,blocks:[],images:[]};
             document.querySelectorAll('.document-block').forEach(b=>{
                 const contentEl = b.querySelector('.document-content');
-                // Clone to normalize without affecting live DOM
                 const clone = contentEl.cloneNode(true);
-                // Remove trailing <br> that browsers inject in contenteditable
                 const lastChild = clone.lastElementChild;
                 if (lastChild && lastChild.tagName === 'BR') lastChild.remove();
                 pd.blocks.push({left:b.style.left,top:b.style.top,width:b.style.width,content:clone.innerHTML});
@@ -916,10 +1023,11 @@
             return pd;
         }
 
-        // Manual save: download JSON file
+        // Manual save: download JSON file using project name as filename
         document.getElementById('btn-save-project').addEventListener('click',()=>{
             const pd=collectProjectData();
-            const a=document.createElement('a');a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(pd));a.download="broll_project.json";document.body.appendChild(a);a.click();a.remove();
+            const filename = savedProjectName.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.json';
+            const a=document.createElement('a');a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(pd));a.download=filename;document.body.appendChild(a);a.click();a.remove();
         });
 
         // Manual load: file picker
