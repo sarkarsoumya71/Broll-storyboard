@@ -598,6 +598,7 @@
             <div class="divider"></div>
             <button id="btn-export" class="tool-btn" style="background:rgba(16,185,129,0.85); color:#fff; border-color:rgba(16,185,129,0.4);">Export</button>
             <button id="btn-screenshot" class="tool-btn capture">Capture</button>
+            <button id="btn-clear-all" class="tool-btn danger" title="Clear everything: blocks, marks, notes, drawings">Clear All</button>
             <div class="divider"></div>
             <button id="btn-dark-mode" class="tool-btn dark-toggle" title="Toggle dark mode">&#x263D;</button>
         </div>
@@ -630,46 +631,48 @@
         projectNameInput.value = savedProjectName;
         document.title = savedProjectName + ' — B-Roll Editor';
 
+        // Update tab title live as user types
+        projectNameInput.addEventListener('input', () => {
+            const name = projectNameInput.value.trim() || 'Untitled Project';
+            document.title = name + ' — B-Roll Editor';
+            projectSaveBtn.classList.add('visible');
+        });
+
         projectNameInput.addEventListener('focus', () => {
             projectSaveBtn.classList.add('visible');
         });
 
         projectNameInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') { e.preventDefault(); saveProjectName(); }
-            if (e.key === 'Escape') { projectNameInput.value = savedProjectName; projectNameInput.blur(); projectSaveBtn.classList.remove('visible'); }
+            if (e.key === 'Enter') { e.preventDefault(); commitProjectName(); }
+            if (e.key === 'Escape') { projectNameInput.blur(); }
         });
 
+        // Auto-save name on blur
         projectNameInput.addEventListener('blur', () => {
-            // Small delay so clicking Save still works
-            setTimeout(() => {
-                if (document.activeElement !== projectSaveBtn) {
-                    projectSaveBtn.classList.remove('visible');
-                    // If name changed without saving, revert
-                    if (projectNameInput.value.trim() !== savedProjectName) {
-                        projectNameInput.value = savedProjectName;
-                    }
-                }
-            }, 150);
+            commitProjectName();
         });
 
-        projectSaveBtn.addEventListener('click', saveProjectName);
+        // Use mousedown so it fires before blur
+        projectSaveBtn.addEventListener('mousedown', (e) => {
+            e.preventDefault(); // prevent blur from firing
+            commitProjectName();
+        });
 
-        function saveProjectName() {
+        function commitProjectName() {
             const name = projectNameInput.value.trim() || 'Untitled Project';
             projectNameInput.value = name;
             savedProjectName = name;
             document.title = name + ' — B-Roll Editor';
             localStorage.setItem('broll-project-name', name);
-            projectSaveBtn.classList.remove('visible');
             projectNameInput.blur();
 
-            // Quick flash confirmation
+            // Brief flash
             projectSaveBtn.textContent = '✓';
             projectSaveBtn.classList.add('visible');
             setTimeout(() => {
                 projectSaveBtn.textContent = 'Save';
                 projectSaveBtn.classList.remove('visible');
-            }, 800);
+            }, 600);
         }
 
         window.onload = () => {
@@ -1083,6 +1086,30 @@
             const isDark = document.body.classList.contains('dark');
             localStorage.setItem('broll-dark-mode', isDark);
             updateDarkModeBtn();
+        });
+
+        /* === CLEAR ALL === */
+        document.getElementById('btn-clear-all').addEventListener('click', () => {
+            if (!confirm('Clear everything? This will remove all text blocks, images, marks, notes, and drawings. This cannot be undone.')) return;
+
+            // Clear all blocks and images
+            blocksContainer.innerHTML = '';
+
+            // Clear drawings
+            shapes = []; undoStack = []; markUndoStack = [];
+            renderAllShapes();
+
+            // Add back a fresh default block
+            const cx = (window.scrollX + window.innerWidth / 2) / zoomLevel;
+            const cy = (window.scrollY + window.innerHeight / 2) / zoomLevel;
+            const nb = document.createElement('div'); nb.className = 'document-block';
+            nb.style.left = `${cx - 350}px`; nb.style.top = `${cy - 100}px`; nb.style.width = '700px';
+            nb.innerHTML = '<div class="document-header"><span>&#x2807; Drag to move</span><button class="delete-btn">&times;</button></div><div class="document-content" contenteditable="true" spellcheck="false"><h2>Episode Title</h2><p><strong>Segment: Cold Open</strong></p><p>Paste your transcript here.</p></div><button class="block-export-btn">Export Block</button><div class="resize-handle"></div>';
+            blocksContainer.appendChild(nb);
+            makeBlockInteractive(nb);
+
+            // Clear auto-save
+            localStorage.removeItem('broll-autosave');
         });
 
         /* === PICTURE-IN-PICTURE === */
