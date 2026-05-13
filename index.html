@@ -851,43 +851,85 @@
             noteModalCallback = null;
         }
 
-        /* === MARK UNDO STACK (SURGICAL) ===
-         * Instead of storing entire block snapshots (which wipes other notes),
-         * we store a reference to the highlight container that was created.
-         * Undo = unwrap that specific highlight back into plain text.
-         * This never touches other highlights or their notes.
+        /* === MARK UNDO/REDO (TEXT NODE SWAP) ===
+         * Undo: replace highlight container with a plain text node. Keep the container intact.
+         * Redo: swap the text node back with the container. Exact, no text searching needed.
          */
-        let markUndoStack = []; // each entry: { container: the .highlight-container element }
+        let markUndoStack = []; // { container }
+        let markRedoStack = []; // { textNode, container }
+        let drawRedoStack = []; // for drawing redo
 
         function pushMarkUndo(container) {
             markUndoStack.push({ container });
             if (markUndoStack.length > 50) markUndoStack.shift();
+            markRedoStack = [];
         }
 
         function popMarkUndo() {
             if (!markUndoStack.length) return false;
             const entry = markUndoStack.pop();
             const container = entry.container;
-            // Only unwrap if still in the DOM
             if (!document.body.contains(container)) return true;
 
             const parent = container.parentNode;
             if (!parent) return true;
 
-            // Extract the plain text from the highlight and replace the container with it
-            const textContent = container.querySelector('.highlight-text');
-            if (textContent) {
-                // Move all child nodes of highlight-text before the container
-                while (textContent.firstChild) {
-                    parent.insertBefore(textContent.firstChild, container);
-                }
-            }
-            // Remove the container (which now only has the broll-card if any)
-            parent.removeChild(container);
+            // Get the plain text from the highlight
+            const textSpan = container.querySelector('.highlight-text');
+            const plainText = textSpan ? textSpan.textContent : '';
 
-            // Normalize to merge adjacent text nodes
-            parent.normalize();
+            // Create a text node to replace the container
+            const textNode = document.createTextNode(plainText);
+            parent.replaceChild(textNode, container);
+
+            // Push to redo — we keep references to both the textNode and the original container
+            markRedoStack.push({ textNode, container });
             return true;
+        }
+
+        function popMarkRedo() {
+            if (!markRedoStack.length) return false;
+            const entry = markRedoStack.pop();
+            const { textNode, container } = entry;
+
+            if (!document.body.contains(textNode)) return true;
+
+            const parent = textNode.parentNode;
+            if (!parent) return true;
+
+            // Swap the text node back with the original container (which still has its text + notes intact)
+            parent.replaceChild(container, textNode);
+            bindHoverEvents(container);
+
+            // Push back to undo stack
+            markUndoStack.push({ container });
+            return true;
+        }
+
+        /* Drawing redo */
+        function drawingUndo() {
+            if (undoStack.length > 0) {
+                const current = JSON.parse(JSON.stringify(shapes));
+                undoStack.pop();
+                shapes = undoStack.length ? JSON.parse(JSON.stringify(undoStack[undoStack.length - 1])) : [];
+                drawRedoStack.push(current);
+            } else { shapes = []; }
+            renderAllShapes();
+        }
+
+        function drawingRedo() {
+            if (!drawRedoStack.length) return;
+            const state = drawRedoStack.pop();
+            shapes = state;
+            undoStack.push(JSON.parse(JSON.stringify(shapes)));
+            renderAllShapes();
+        }
+
+        // Override saveDrawingState to clear redo on new action
+        function saveDrawingState() {
+            undoStack.push(JSON.parse(JSON.stringify(shapes)));
+            if (undoStack.length > 50) undoStack.shift();
+            drawRedoStack = [];
         }
 
         /* === HIGHLIGHT + CLICK-TO-ANNOTATE === */
@@ -947,8 +989,71 @@
         document.getElementById('btn-copy-text').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; const text=savedSelectionRange.toString(); if(text){navigator.clipboard.writeText(text).catch(()=>{const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}); const btn=document.getElementById('btn-copy-text');const o=btn.innerHTML;btn.innerHTML='Copied!';setTimeout(()=>btn.innerHTML=o,1000);} commentPopup.style.display='none'; window.getSelection().removeAllRanges(); });
 
         function wrapAsHighlight(range) {
-            const c=document.createElement('span');c.className='highlight-container';const ts=document.createElement('span');ts.className='highlight-text';
-            try{ts.appendChild(range.extractContents());c.appendChild(ts);range.insertNode(c);bindHoverEvents(c);window.getSelection().removeAllRanges();savedSelectionRange=null;savedSelectionBlock=null;return c;}catch(err){alert("Select text within a single paragraph.");return null;}
+            // Trim range: adjust start past leading whitespace/newlines, end before trailing
+            try {
+                // Trim start: skip forward past empty text nodes and whitespace
+                let sc = range.startContainer, so = range.startOffset;
+                if (sc.nodeType === 3) {
+                    const txt = sc.textContent.substring(so);
+                    const trimmed = txt.replace(/^[\s\n\r]+/, '');
+                    if (trimmed.length < txt.length) {
+                        so += (txt.length - trimmed.length);
+                        range.setStart(sc, Math.min(so, sc.textContent.length));
+                    }
+                }
+
+                // Trim end: pull back past trailing whitespace/newlines
+                let ec = range.endContainer, eo = range.endOffset;
+                if (ec.nodeType === 3) {
+                    const txt = ec.textContent.substring(0, eo);
+                    const trimmed = txt.replace(/[\s\n\r]+$/, '');
+                    if (trimmed.length < txt.length) {
+                        range.setEnd(ec, trimmed.length);
+                    }
+                }
+
+                // If range is now collapsed or empty, bail
+                if (range.collapsed || range.toString().trim().length === 0) return null;
+
+                // Ensure range is within a single block — don't span across <p> tags
+                const startBlock = range.startContainer.nodeType === 3 
+                    ? range.startContainer.parentElement.closest('p, div, h1, h2, h3, h4, h5, h6')
+                    : range.startContainer.closest('p, div, h1, h2, h3, h4, h5, h6');
+                const endBlock = range.endContainer.nodeType === 3 
+                    ? range.endContainer.parentElement.closest('p, div, h1, h2, h3, h4, h5, h6')
+                    : range.endContainer.closest('p, div, h1, h2, h3, h4, h5, h6');
+
+                if (startBlock && endBlock && startBlock !== endBlock) {
+                    // Clamp range to end of start block
+                    range.setEnd(startBlock, startBlock.childNodes.length);
+                }
+
+                const c = document.createElement('span'); c.className = 'highlight-container';
+                const ts = document.createElement('span'); ts.className = 'highlight-text';
+                ts.appendChild(range.extractContents());
+
+                // Clean extracted content: remove stray <br>, empty <p>, leading/trailing whitespace nodes
+                const cleanChildren = Array.from(ts.childNodes);
+                for (let i = cleanChildren.length - 1; i >= 0; i--) {
+                    const node = cleanChildren[i];
+                    if (node.nodeType === 1 && (node.tagName === 'BR' || (node.tagName === 'P' && !node.textContent.trim()))) {
+                        ts.removeChild(node);
+                    }
+                }
+
+                // If nothing left after cleanup, bail
+                if (!ts.textContent.trim()) return null;
+
+                c.appendChild(ts);
+                range.insertNode(c);
+                bindHoverEvents(c);
+                window.getSelection().removeAllRanges();
+                savedSelectionRange = null; savedSelectionBlock = null;
+                return c;
+            } catch(err) {
+                console.warn('Highlight wrap failed:', err);
+                return null;
+            }
         }
 
         /* === EXPORT === */
@@ -980,8 +1085,6 @@
         document.addEventListener('paste',(e)=>{const items=e.clipboardData&&e.clipboardData.items;if(!items)return;for(let i=0;i<items.length;i++){if(items[i].type.startsWith('image/')){e.preventDefault();const file=items[i].getAsFile();const reader=new FileReader();reader.onload=(ev)=>{spawnImageBlock(ev.target.result,'base64','Pasted Image');pasteToast.classList.add('show');setTimeout(()=>pasteToast.classList.remove('show'),1500);};reader.readAsDataURL(file);return;}}});
 
         /* === SAVE / LOAD === */
-        function saveDrawingState(){undoStack.push(JSON.parse(JSON.stringify(shapes)));if(undoStack.length>50)undoStack.shift();}
-        function drawingUndo(){if(undoStack.length>0){undoStack.pop();shapes=undoStack.length?JSON.parse(JSON.stringify(undoStack[undoStack.length-1])):[];}else{shapes=[];}renderAllShapes();}
 
         // Shared load function used by both file-import and auto-restore
         function loadProjectData(pd) {
@@ -1052,14 +1155,55 @@
         window.addEventListener('beforeunload', autoSave);
 
         /* === SPACEBAR PAN & SHORTCUTS === */
-        let isSpacePanning=false,hasPannedDuringSpace=false,panStartX=0,panStartY=0,scrollStartX=0,scrollStartY=0;
+        let isSpacePanning=false,hasPannedDuringSpace=false,spaceTarget=null,panStartX=0,panStartY=0,scrollStartX=0,scrollStartY=0;
+
         document.addEventListener('keydown',(e)=>{
-            if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){if(appMode==='draw'){e.preventDefault();drawingUndo();}else{if(markUndoStack.length>0){e.preventDefault();popMarkUndo();}}}
+            // Ctrl+Z: Undo
+            if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!e.shiftKey){
+                if(appMode==='draw'){e.preventDefault();drawingUndo();}
+                else{if(markUndoStack.length>0){e.preventDefault();popMarkUndo();}}
+            }
+            // Ctrl+Shift+Z or Ctrl+Y: Redo
+            if((e.ctrlKey||e.metaKey)&&((e.key.toLowerCase()==='z'&&e.shiftKey)||e.key.toLowerCase()==='y')){
+                if(appMode==='draw'&&drawRedoStack.length>0){e.preventDefault();drawingRedo();}
+                else if(markRedoStack.length>0){e.preventDefault();popMarkRedo();}
+                // If both stacks empty, don't preventDefault — let browser handle native text redo
+            }
             if((e.ctrlKey||e.metaKey)&&e.key==='0'){e.preventDefault();zoomLevel=1;applyZoom();window.scrollTo((6000-window.innerWidth)/2,400);}
             if(e.key==='Escape'){if(noteModal.style.display==='block'){noteModal.style.display='none';noteModalCallback=null;return;}}
-            if(e.code==='Space'){const tag=document.activeElement.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||document.activeElement.isContentEditable)return;if(!isSpacePanning){isSpacePanning=true;hasPannedDuringSpace=false;document.body.style.cursor='grab';}e.preventDefault();}
+
+            // Spacebar: ALWAYS enter pan mode, remember target for space insertion on release
+            if(e.code==='Space'){
+                // Skip if inside the note modal textarea or other actual inputs
+                const tag=document.activeElement.tagName;
+                if(tag==='INPUT'||tag==='TEXTAREA') return;
+
+                // Remember the editable target so we can insert a space on release if no pan
+                spaceTarget = document.activeElement.isContentEditable ? document.activeElement : null;
+
+                if(!isSpacePanning){
+                    isSpacePanning=true; hasPannedDuringSpace=false;
+                    document.body.style.cursor='grab';
+                }
+                e.preventDefault();
+            }
         });
-        document.addEventListener('keyup',(e)=>{if(e.code==='Space'){if(!isSpacePanning)return;isSpacePanning=false;document.body.style.cursor='default';}});
+
+        document.addEventListener('keyup',(e)=>{
+            if(e.code==='Space'){
+                if(!isSpacePanning) return;
+                isSpacePanning=false;
+                document.body.style.cursor='default';
+
+                // If user just tapped space without panning, and was in a contenteditable, insert a space
+                if(!hasPannedDuringSpace && spaceTarget && document.body.contains(spaceTarget)){
+                    spaceTarget.focus();
+                    document.execCommand('insertText', false, ' ');
+                }
+                spaceTarget=null;
+            }
+        });
+
         window.addEventListener('mousedown',(e)=>{if(isSpacePanning||e.button===1){if(e.button===1)e.preventDefault();document.body.style.cursor='grabbing';panStartX=e.clientX;panStartY=e.clientY;scrollStartX=window.scrollX;scrollStartY=window.scrollY;if(document.activeElement&&document.activeElement!==document.body)document.activeElement.blur();}});
         window.addEventListener('mousemove',(e)=>{if((isSpacePanning&&e.buttons===1)||e.buttons===4){e.preventDefault();hasPannedDuringSpace=true;window.scrollTo(scrollStartX-(e.clientX-panStartX),scrollStartY-(e.clientY-panStartY));}});
         window.addEventListener('mouseup',(e)=>{if(isSpacePanning||e.button===1)document.body.style.cursor=isSpacePanning?'grab':'default';});
@@ -1096,7 +1240,7 @@
             blocksContainer.innerHTML = '';
 
             // Clear drawings
-            shapes = []; undoStack = []; markUndoStack = [];
+            shapes = []; undoStack = []; markUndoStack = []; markRedoStack = []; drawRedoStack = [];
             renderAllShapes();
 
             // Add back a fresh default block
