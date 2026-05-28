@@ -1539,7 +1539,7 @@
             }
             const gist = await resp.json();
             const file = gist.files['broll-workspace.json'];
-            if (!file) throw new Error('Gist exists but has no broll-workspace.json file.');
+            if (!file) return null; // File doesn't exist yet — will be created on push
             return JSON.parse(file.content);
         }
 
