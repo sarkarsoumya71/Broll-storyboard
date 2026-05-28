@@ -487,6 +487,97 @@
     body.dark .project-name:focus { background: rgba(255,255,255,0.08); box-shadow: 0 0 0 2px rgba(129,140,248,0.3); }
     body.dark .project-save-name { background: #1e293b; border-color: #334155; color: #94a3b8; }
     body.dark .project-save-name:hover { background: #6366f1; color: #fff; border-color: #6366f1; }
+
+    /* ---- Settings drawer ---- */
+    .settings-drawer {
+        position: fixed; top: 0; right: -420px; width: 400px; height: 100vh;
+        background: rgba(255,255,255,0.97);
+        backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+        z-index: 10001; padding: 32px 28px;
+        box-shadow: -8px 0 40px rgba(0,0,0,0.1);
+        border-left: 1px solid rgba(0,0,0,0.05);
+        transition: right 0.25s ease;
+        overflow-y: auto;
+        font-family: 'Inter', sans-serif;
+    }
+    .settings-drawer.open { right: 0; }
+    .settings-drawer h3 {
+        margin: 0 0 4px 0; font-size: 18px; font-weight: 700; color: #0f172a; letter-spacing: -0.2px;
+    }
+    .settings-drawer .subtitle {
+        font-size: 13px; color: #64748b; margin: 0 0 24px 0; line-height: 1.5;
+    }
+    .settings-section {
+        margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #f0f0f3;
+    }
+    .settings-section:last-child { border-bottom: none; }
+    .settings-section h4 {
+        font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase;
+        letter-spacing: 1px; margin: 0 0 12px 0;
+    }
+    .settings-input {
+        width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1.5px solid #e5e7eb;
+        border-radius: 10px; font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace;
+        font-size: 13px; color: #1e293b; background: #fafbfc; transition: all 0.15s;
+        margin-bottom: 10px;
+    }
+    .settings-input:focus { outline: none; border-color: #818cf8; background: #fff; box-shadow: 0 0 0 3px rgba(129,140,248,0.1); }
+    .settings-input::placeholder { color: #94a3b8; font-family: 'Inter', sans-serif; }
+    .settings-hint {
+        font-size: 12px; color: #94a3b8; line-height: 1.5; margin-bottom: 12px;
+    }
+    .settings-hint code {
+        background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: 11px;
+        font-family: 'SF Mono', ui-monospace, monospace;
+    }
+    .settings-btn-row { display: flex; gap: 8px; margin-top: 6px; }
+    .settings-btn {
+        padding: 8px 16px; border-radius: 10px; cursor: pointer; font-weight: 600;
+        font-size: 13px; border: none; font-family: 'Inter', sans-serif; transition: all 0.12s;
+    }
+    .settings-btn-primary { background: #4f46e5; color: #fff; }
+    .settings-btn-primary:hover { background: #4338ca; box-shadow: 0 4px 12px rgba(79,70,229,0.25); }
+    .settings-btn-secondary { background: #f1f5f9; color: #475569; }
+    .settings-btn-secondary:hover { background: #e2e8f0; }
+    .settings-close {
+        position: absolute; top: 24px; right: 24px; background: transparent; border: none;
+        font-size: 20px; color: #94a3b8; cursor: pointer; padding: 4px 8px;
+        border-radius: 8px; transition: all 0.12s; line-height: 1;
+    }
+    .settings-close:hover { color: #475569; background: #f1f5f9; }
+    .sync-status {
+        font-size: 12px; padding: 8px 12px; border-radius: 8px; margin-top: 10px;
+        line-height: 1.4;
+    }
+    .sync-status.success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+    .sync-status.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .sync-status.info { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+
+    /* Sync indicator on toolbar button */
+    .tool-btn.syncing { animation: syncPulse 1s ease infinite; }
+    @keyframes syncPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+    }
+
+    body.dark .settings-drawer {
+        background: rgba(15,23,42,0.97);
+        border-left-color: rgba(255,255,255,0.05);
+        box-shadow: -8px 0 40px rgba(0,0,0,0.3);
+    }
+    body.dark .settings-drawer h3 { color: #f1f5f9; }
+    body.dark .settings-drawer .subtitle { color: #64748b; }
+    body.dark .settings-section { border-bottom-color: #1e293b; }
+    body.dark .settings-section h4 { color: #64748b; }
+    body.dark .settings-input { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+    body.dark .settings-input:focus { border-color: #6366f1; background: #1e293b; }
+    body.dark .settings-hint { color: #64748b; }
+    body.dark .settings-hint code { background: #1e293b; color: #94a3b8; }
+    body.dark .settings-close:hover { background: rgba(255,255,255,0.06); color: #94a3b8; }
+    body.dark .settings-btn-secondary { background: #334155; color: #94a3b8; }
+    body.dark .sync-status.success { background: #052e16; color: #4ade80; border-color: #166534; }
+    body.dark .sync-status.error { background: #450a0a; color: #f87171; border-color: #991b1b; }
+    body.dark .sync-status.info { background: #172554; color: #60a5fa; border-color: #1e40af; }
 </style>
 </head>
 <body>
@@ -551,6 +642,39 @@
         </div>
     </div>
 
+    <!-- Settings Drawer -->
+    <div class="settings-drawer" id="settings-drawer">
+        <button class="settings-close" id="settings-close">&times;</button>
+        <h3>Settings</h3>
+        <p class="subtitle">Configure cloud sync via GitHub Gist to access your workspace across devices.</p>
+
+        <div class="settings-section">
+            <h4>GitHub Gist Sync</h4>
+            <p class="settings-hint">
+                Create a Personal Access Token at
+                <code>github.com/settings/tokens</code> with the <code>gist</code> scope.
+            </p>
+            <input type="password" class="settings-input" id="settings-pat" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+
+            <p class="settings-hint" style="margin-top:4px;">
+                Gist ID — create a new Gist at <code>gist.github.com</code> with any filename,
+                then paste the ID from the URL here. Leave blank to auto-create on first sync.
+            </p>
+            <input type="text" class="settings-input" id="settings-gist-id" placeholder="e.g. a1b2c3d4e5f6789...">
+
+            <div class="settings-btn-row">
+                <button class="settings-btn settings-btn-primary" id="settings-save-sync">Save Settings</button>
+                <button class="settings-btn settings-btn-secondary" id="settings-test-sync">Test Connection</button>
+            </div>
+            <div id="sync-status-msg" class="sync-status" style="display:none;"></div>
+        </div>
+
+        <div class="settings-section">
+            <h4>Sync Info</h4>
+            <p class="settings-hint" id="sync-last-info">No sync performed yet.</p>
+        </div>
+    </div>
+
     <!-- Canvas -->
     <div id="zoom-container">
         <canvas id="drawing-layer" width="6000" height="6000"></canvas>
@@ -595,6 +719,8 @@
             <button id="btn-pip" class="tool-btn" title="Pop out transcript into picture-in-picture">Pop Out</button>
             <button id="btn-save-project" class="tool-btn io-btn">Save</button>
             <button id="btn-load-project" class="tool-btn io-btn">Load</button>
+            <button id="btn-sync" class="tool-btn" style="background:rgba(99,102,241,0.8); color:#fff; border-color:rgba(99,102,241,0.4);" title="Sync workspace to/from GitHub Gist">Sync</button>
+            <button id="btn-settings" class="tool-btn" title="Sync settings">&#x2699;</button>
             <div class="divider"></div>
             <button id="btn-export" class="tool-btn" style="background:rgba(16,185,129,0.85); color:#fff; border-color:rgba(16,185,129,0.4);">Export</button>
             <button id="btn-screenshot" class="tool-btn capture">Capture</button>
@@ -1255,6 +1381,213 @@
             // Clear auto-save
             localStorage.removeItem('broll-autosave');
         });
+
+        /* === GIST SYNC === */
+        const settingsDrawer = document.getElementById('settings-drawer');
+        const syncStatusMsg = document.getElementById('sync-status-msg');
+        const syncLastInfo = document.getElementById('sync-last-info');
+        const settingsPat = document.getElementById('settings-pat');
+        const settingsGistId = document.getElementById('settings-gist-id');
+
+        // Load saved settings
+        settingsPat.value = localStorage.getItem('broll-gist-pat') || '';
+        settingsGistId.value = localStorage.getItem('broll-gist-id') || '';
+        updateSyncInfo();
+
+        // Settings drawer open/close
+        document.getElementById('btn-settings').addEventListener('click', () => {
+            settingsDrawer.classList.add('open');
+        });
+        document.getElementById('settings-close').addEventListener('click', () => {
+            settingsDrawer.classList.remove('open');
+        });
+        // Close on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && settingsDrawer.classList.contains('open')) {
+                settingsDrawer.classList.remove('open');
+            }
+        });
+
+        // Save settings
+        document.getElementById('settings-save-sync').addEventListener('click', () => {
+            const pat = settingsPat.value.trim();
+            const gistId = settingsGistId.value.trim();
+            localStorage.setItem('broll-gist-pat', pat);
+            localStorage.setItem('broll-gist-id', gistId);
+            showSyncStatus('Settings saved.', 'success');
+        });
+
+        // Test connection
+        document.getElementById('settings-test-sync').addEventListener('click', async () => {
+            const pat = settingsPat.value.trim();
+            if (!pat) { showSyncStatus('Enter a Personal Access Token first.', 'error'); return; }
+
+            showSyncStatus('Testing connection...', 'info');
+            try {
+                const resp = await fetch('https://api.github.com/user', {
+                    headers: { 'Authorization': `token ${pat}` }
+                });
+                if (resp.ok) {
+                    const user = await resp.json();
+                    showSyncStatus(`Connected as ${user.login}`, 'success');
+                } else {
+                    showSyncStatus(`Auth failed (${resp.status}). Check your token.`, 'error');
+                }
+            } catch (err) {
+                showSyncStatus('Network error: ' + err.message, 'error');
+            }
+        });
+
+        // Sync button
+        document.getElementById('btn-sync').addEventListener('click', async () => {
+            const pat = localStorage.getItem('broll-gist-pat') || '';
+            let gistId = localStorage.getItem('broll-gist-id') || '';
+
+            if (!pat) {
+                settingsDrawer.classList.add('open');
+                showSyncStatus('Add your GitHub token to enable sync.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btn-sync');
+            btn.classList.add('syncing');
+            btn.textContent = 'Syncing...';
+
+            try {
+                const localData = collectProjectData();
+                localData.syncTimestamp = Date.now();
+
+                if (!gistId) {
+                    // Auto-create a new Gist
+                    gistId = await createGist(pat, localData);
+                    localStorage.setItem('broll-gist-id', gistId);
+                    settingsGistId.value = gistId;
+                    localStorage.setItem('broll-last-sync', new Date().toISOString());
+                    updateSyncInfo();
+                    btn.textContent = 'Sync';
+                    btn.classList.remove('syncing');
+                    showSyncStatus('Created new Gist and synced.', 'success');
+                    return;
+                }
+
+                // Read existing Gist
+                const remote = await readGist(pat, gistId);
+
+                if (remote && remote.syncTimestamp) {
+                    const localTime = parseInt(localStorage.getItem('broll-sync-timestamp') || '0');
+
+                    if (remote.syncTimestamp > localTime) {
+                        // Remote is newer — pull it in
+                        loadProjectData(remote);
+                        document.getElementById('blocks-container').style.opacity = '1';
+                        localStorage.setItem('broll-sync-timestamp', String(remote.syncTimestamp));
+                        localStorage.setItem('broll-last-sync', new Date().toISOString());
+                        updateSyncInfo();
+                        btn.textContent = 'Sync';
+                        btn.classList.remove('syncing');
+                        showSyncStatus('Pulled newer version from cloud.', 'success');
+                        return;
+                    }
+                }
+
+                // Local is newer or same — push to Gist (read-then-merge)
+                await writeGist(pat, gistId, localData);
+                localStorage.setItem('broll-sync-timestamp', String(localData.syncTimestamp));
+                localStorage.setItem('broll-last-sync', new Date().toISOString());
+                updateSyncInfo();
+                btn.textContent = 'Sync';
+                btn.classList.remove('syncing');
+                showSyncStatus('Pushed to cloud.', 'success');
+
+            } catch (err) {
+                console.error('Sync error:', err);
+                btn.textContent = 'Sync';
+                btn.classList.remove('syncing');
+                showSyncStatus('Sync failed: ' + err.message, 'error');
+            }
+        });
+
+        async function createGist(pat, data) {
+            const resp = await fetch('https://api.github.com/gists', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `token ${pat}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    description: 'B-Roll Editor — ' + (data.projectName || 'Workspace'),
+                    public: false,
+                    files: {
+                        'broll-workspace.json': {
+                            content: JSON.stringify(data)
+                        }
+                    }
+                })
+            });
+            if (!resp.ok) throw new Error('Failed to create Gist (' + resp.status + ')');
+            const gist = await resp.json();
+            return gist.id;
+        }
+
+        async function readGist(pat, gistId) {
+            const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
+                headers: { 'Authorization': `token ${pat}` }
+            });
+            if (!resp.ok) {
+                if (resp.status === 404) throw new Error('Gist not found. Check the ID.');
+                throw new Error('Failed to read Gist (' + resp.status + ')');
+            }
+            const gist = await resp.json();
+            const file = gist.files['broll-workspace.json'];
+            if (!file) throw new Error('Gist exists but has no broll-workspace.json file.');
+            return JSON.parse(file.content);
+        }
+
+        async function writeGist(pat, gistId, data) {
+            // Read-then-merge: read the Gist first to preserve any other files
+            const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
+                headers: { 'Authorization': `token ${pat}` }
+            });
+            if (!resp.ok) throw new Error('Failed to read Gist for merge (' + resp.status + ')');
+            const gist = await resp.json();
+
+            // Only update our file, preserve everything else
+            const files = {};
+            for (const fname in gist.files) {
+                files[fname] = { content: gist.files[fname].content };
+            }
+            files['broll-workspace.json'] = { content: JSON.stringify(data) };
+
+            const writeResp = await fetch(`https://api.github.com/gists/${gistId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `token ${pat}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ files })
+            });
+            if (!writeResp.ok) throw new Error('Failed to write Gist (' + writeResp.status + ')');
+        }
+
+        function showSyncStatus(msg, type) {
+            syncStatusMsg.textContent = msg;
+            syncStatusMsg.className = 'sync-status ' + type;
+            syncStatusMsg.style.display = 'block';
+            if (type === 'success') {
+                setTimeout(() => { syncStatusMsg.style.display = 'none'; }, 4000);
+            }
+        }
+
+        function updateSyncInfo() {
+            const lastSync = localStorage.getItem('broll-last-sync');
+            const gistId = localStorage.getItem('broll-gist-id');
+            if (lastSync && gistId) {
+                const d = new Date(lastSync);
+                syncLastInfo.innerHTML = `Last synced: ${d.toLocaleString()}<br>Gist: <code style="font-size:11px;">${gistId.substring(0,12)}...</code>`;
+            } else {
+                syncLastInfo.textContent = 'No sync performed yet.';
+            }
+        }
 
         /* === PICTURE-IN-PICTURE === */
         let pipWindow=null;
