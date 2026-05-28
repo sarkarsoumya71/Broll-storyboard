@@ -1225,7 +1225,12 @@
                 if (bd.encoding === 'base64') {
                     try { html = decodeURIComponent(escape(atob(bd.content))); } catch(e) { console.warn('Base64 decode failed, using raw:', e); }
                 }
-                nb.querySelector('.document-content').innerHTML = html;
+                const contentDiv = nb.querySelector('.document-content');
+                // Disable contenteditable before setting innerHTML to prevent
+                // browser normalization that inserts spurious <br> tags
+                contentDiv.setAttribute('contenteditable', 'false');
+                contentDiv.innerHTML = html;
+                contentDiv.setAttribute('contenteditable', 'true');
                 blocksContainer.appendChild(nb);makeBlockInteractive(nb);
                 nb.querySelectorAll('.highlight-container').forEach(c => {
                     bindHoverEvents(c);
@@ -1256,10 +1261,10 @@
             const pd={version:6,projectName:savedProjectName,viewport:{zoom:zoomLevel,scrollX:window.scrollX,scrollY:window.scrollY},shapes,blocks:[],images:[]};
             document.querySelectorAll('.document-block').forEach(b=>{
                 const contentEl = b.querySelector('.document-content');
-                const clone = contentEl.cloneNode(true);
-                const lastChild = clone.lastElementChild;
-                if (lastChild && lastChild.tagName === 'BR') lastChild.remove();
-                const rawHTML = clone.innerHTML;
+                // Read innerHTML directly — cloneNode can add whitespace artifacts
+                let rawHTML = contentEl.innerHTML;
+                // Strip trailing BR that browsers inject in contenteditable
+                rawHTML = rawHTML.replace(/(<br\s*\/?\s*>)+$/i, '');
                 // Base64-encode to prevent serialization corruption
                 const encoded = btoa(unescape(encodeURIComponent(rawHTML)));
                 pd.blocks.push({left:b.style.left,top:b.style.top,width:b.style.width,content:encoded,encoding:'base64'});
