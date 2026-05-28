@@ -719,7 +719,8 @@
             <button id="btn-pip" class="tool-btn" title="Pop out transcript into picture-in-picture">Pop Out</button>
             <button id="btn-save-project" class="tool-btn io-btn">Save</button>
             <button id="btn-load-project" class="tool-btn io-btn">Load</button>
-            <button id="btn-sync" class="tool-btn" style="background:rgba(99,102,241,0.8); color:#fff; border-color:rgba(99,102,241,0.4);" title="Sync workspace to/from GitHub Gist">Sync</button>
+            <button id="btn-sync-push" class="tool-btn" style="background:rgba(99,102,241,0.8); color:#fff; border-color:rgba(99,102,241,0.4);" title="Push workspace to cloud">Push &#x2191;</button>
+            <button id="btn-sync-pull" class="tool-btn" style="background:rgba(16,185,129,0.8); color:#fff; border-color:rgba(16,185,129,0.4);" title="Pull workspace from cloud">Pull &#x2193;</button>
             <button id="btn-settings" class="tool-btn" title="Sync settings">&#x2699;</button>
             <div class="divider"></div>
             <button id="btn-export" class="tool-btn" style="background:rgba(16,185,129,0.85); color:#fff; border-color:rgba(16,185,129,0.4);">Export</button>
@@ -1219,10 +1220,18 @@
                 const nb=document.createElement('div');nb.className='document-block';
                 nb.style.left=bd.left;nb.style.top=bd.top;nb.style.width=bd.width;
                 nb.innerHTML='<div class="document-header"><span>&#x2807; Drag to move</span><button class="delete-btn">&times;</button></div><div class="document-content" contenteditable="true" spellcheck="false"></div><button class="block-export-btn">Export Block</button><div class="resize-handle"></div>';
-                // Set content separately to avoid template literal escaping issues
-                nb.querySelector('.document-content').innerHTML = bd.content;
+                // Decode content: base64 if encoded, raw HTML for backward compat
+                let html = bd.content;
+                if (bd.encoding === 'base64') {
+                    try { html = decodeURIComponent(escape(atob(bd.content))); } catch(e) { console.warn('Base64 decode failed, using raw:', e); }
+                }
+                nb.querySelector('.document-content').innerHTML = html;
                 blocksContainer.appendChild(nb);makeBlockInteractive(nb);
-                nb.querySelectorAll('.highlight-container').forEach(bindHoverEvents);
+                nb.querySelectorAll('.highlight-container').forEach(c => {
+                    bindHoverEvents(c);
+                    // Ensure has-note class is set if broll-card exists
+                    if (c.querySelector('.broll-card')) c.classList.add('has-note');
+                });
             });
             if(pd.images) pd.images.forEach(id=>{
                 const ib=document.createElement('div');ib.className='image-block';
@@ -1242,14 +1251,18 @@
         }
 
         // Collect current state into a project object
+        // Content is base64-encoded to prevent any JSON/HTML serialization corruption
         function collectProjectData() {
-            const pd={version:5,projectName:savedProjectName,viewport:{zoom:zoomLevel,scrollX:window.scrollX,scrollY:window.scrollY},shapes,blocks:[],images:[]};
+            const pd={version:6,projectName:savedProjectName,viewport:{zoom:zoomLevel,scrollX:window.scrollX,scrollY:window.scrollY},shapes,blocks:[],images:[]};
             document.querySelectorAll('.document-block').forEach(b=>{
                 const contentEl = b.querySelector('.document-content');
                 const clone = contentEl.cloneNode(true);
                 const lastChild = clone.lastElementChild;
                 if (lastChild && lastChild.tagName === 'BR') lastChild.remove();
-                pd.blocks.push({left:b.style.left,top:b.style.top,width:b.style.width,content:clone.innerHTML});
+                const rawHTML = clone.innerHTML;
+                // Base64-encode to prevent serialization corruption
+                const encoded = btoa(unescape(encodeURIComponent(rawHTML)));
+                pd.blocks.push({left:b.style.left,top:b.style.top,width:b.style.width,content:encoded,encoding:'base64'});
             });
             document.querySelectorAll('.image-block').forEach(ib=>{const img=ib.querySelector('.image-wrapper img'),hs=ib.querySelector('.document-header span');pd.images.push({left:ib.style.left,top:ib.style.top,width:ib.style.width,height:ib.style.height,src:img?img.src:'',imgType:img?img.dataset.imgType:'url',label:hs?hs.textContent.replace(/^. /,'').trim():'Image'});});
             return pd;
@@ -1438,72 +1451,74 @@
             }
         });
 
-        // Sync button
-        document.getElementById('btn-sync').addEventListener('click', async () => {
+        // PUSH: local → cloud
+        document.getElementById('btn-sync-push').addEventListener('click', async () => {
             const pat = localStorage.getItem('broll-gist-pat') || '';
             let gistId = localStorage.getItem('broll-gist-id') || '';
 
-            if (!pat) {
-                settingsDrawer.classList.add('open');
-                showSyncStatus('Add your GitHub token to enable sync.', 'error');
-                return;
-            }
+            if (!pat) { settingsDrawer.classList.add('open'); showSyncStatus('Add your GitHub token first.', 'error'); return; }
 
-            const btn = document.getElementById('btn-sync');
-            btn.classList.add('syncing');
-            btn.textContent = 'Syncing...';
+            const btn = document.getElementById('btn-sync-push');
+            btn.classList.add('syncing'); btn.textContent = 'Pushing...';
 
             try {
                 const localData = collectProjectData();
                 localData.syncTimestamp = Date.now();
 
                 if (!gistId) {
-                    // Auto-create a new Gist
                     gistId = await createGist(pat, localData);
                     localStorage.setItem('broll-gist-id', gistId);
                     settingsGistId.value = gistId;
-                    localStorage.setItem('broll-last-sync', new Date().toISOString());
-                    updateSyncInfo();
-                    btn.textContent = 'Sync';
-                    btn.classList.remove('syncing');
-                    showSyncStatus('Created new Gist and synced.', 'success');
+                } else {
+                    await writeGist(pat, gistId, localData);
+                }
+
+                localStorage.setItem('broll-last-sync', new Date().toISOString());
+                updateSyncInfo();
+                btn.textContent = 'Push \u2191'; btn.classList.remove('syncing');
+                showSyncStatus('Pushed to cloud.', 'success');
+            } catch (err) {
+                console.error('Push error:', err);
+                btn.textContent = 'Push \u2191'; btn.classList.remove('syncing');
+                showSyncStatus('Push failed: ' + err.message, 'error');
+            }
+        });
+
+        // PULL: cloud → local
+        document.getElementById('btn-sync-pull').addEventListener('click', async () => {
+            const pat = localStorage.getItem('broll-gist-pat') || '';
+            const gistId = localStorage.getItem('broll-gist-id') || '';
+
+            if (!pat) { settingsDrawer.classList.add('open'); showSyncStatus('Add your GitHub token first.', 'error'); return; }
+            if (!gistId) { settingsDrawer.classList.add('open'); showSyncStatus('Add a Gist ID first, or Push to create one.', 'error'); return; }
+
+            const btn = document.getElementById('btn-sync-pull');
+            btn.classList.add('syncing'); btn.textContent = 'Pulling...';
+
+            try {
+                const remote = await readGist(pat, gistId);
+
+                if (!remote) {
+                    btn.textContent = 'Pull \u2193'; btn.classList.remove('syncing');
+                    showSyncStatus('No workspace found in that Gist. Push first from your main device.', 'error');
                     return;
                 }
 
-                // Read existing Gist
-                const remote = await readGist(pat, gistId);
-
-                if (remote && remote.syncTimestamp) {
-                    const localTime = parseInt(localStorage.getItem('broll-sync-timestamp') || '0');
-
-                    if (remote.syncTimestamp > localTime) {
-                        // Remote is newer — pull it in
-                        loadProjectData(remote);
-                        document.getElementById('blocks-container').style.opacity = '1';
-                        localStorage.setItem('broll-sync-timestamp', String(remote.syncTimestamp));
-                        localStorage.setItem('broll-last-sync', new Date().toISOString());
-                        updateSyncInfo();
-                        btn.textContent = 'Sync';
-                        btn.classList.remove('syncing');
-                        showSyncStatus('Pulled newer version from cloud.', 'success');
-                        return;
-                    }
+                if (!confirm('Pull will replace your current workspace with the cloud version. Continue?')) {
+                    btn.textContent = 'Pull \u2193'; btn.classList.remove('syncing');
+                    return;
                 }
 
-                // Local is newer or same — push to Gist (read-then-merge)
-                await writeGist(pat, gistId, localData);
-                localStorage.setItem('broll-sync-timestamp', String(localData.syncTimestamp));
+                loadProjectData(remote);
+                document.getElementById('blocks-container').style.opacity = '1';
                 localStorage.setItem('broll-last-sync', new Date().toISOString());
                 updateSyncInfo();
-                btn.textContent = 'Sync';
-                btn.classList.remove('syncing');
-                showSyncStatus('Pushed to cloud.', 'success');
-
+                btn.textContent = 'Pull \u2193'; btn.classList.remove('syncing');
+                showSyncStatus('Pulled from cloud. Workspace updated.', 'success');
             } catch (err) {
-                console.error('Sync error:', err);
-                btn.textContent = 'Sync';
-                btn.classList.remove('syncing');
-                showSyncStatus('Sync failed: ' + err.message, 'error');
+                console.error('Pull error:', err);
+                btn.textContent = 'Pull \u2193'; btn.classList.remove('syncing');
+                showSyncStatus('Pull failed: ' + err.message, 'error');
             }
         });
 
