@@ -78,6 +78,74 @@
     }
     .block-export-btn:hover { background: #059669; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
 
+    /* ---- Segment divider ---- */
+    .segment-divider {
+        border: none; border-top: 2px dashed #cbd5e1;
+        margin: 24px 0; height: 0; position: relative; user-select: none;
+        cursor: default;
+    }
+    .segment-divider .seg-export {
+        position: absolute; top: -11px; right: 26px;
+        background: #fff; color: #10b981; border: 1px solid #a7f3d0; cursor: pointer;
+        font-size: 9px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+        padding: 3px 9px; border-radius: 6px; white-space: nowrap;
+        font-family: 'Inter', sans-serif; transition: all 0.12s;
+    }
+    .segment-divider .seg-export:hover { background: #10b981; color: #fff; border-color: #10b981; }
+    .segment-divider .seg-del {
+        position: absolute; top: -12px; right: 0;
+        background: #fff; border: none; color: #cbd5e1; cursor: pointer;
+        font-size: 15px; padding: 0 6px; border-radius: 4px; line-height: 1.4;
+    }
+    .segment-divider .seg-del:hover { color: #ef4444; }
+    body.dark .segment-divider { border-top-color: #334155; }
+    body.dark .segment-divider .seg-export { background: #1a1f2e; color: #34d399; border-color: #065f46; }
+    body.dark .segment-divider .seg-export:hover { background: #10b981; color: #fff; border-color: #10b981; }
+    body.dark .segment-divider .seg-del { background: #1a1f2e; color: #475569; }
+    body.dark .segment-divider .seg-del:hover { color: #f87171; }
+
+    /* ---- Export segment boxes ---- */
+    .export-segment {
+        background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+        margin-bottom: 14px; overflow: hidden;
+    }
+    .export-segment-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #f0f0f3;
+    }
+    .export-segment-label {
+        font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px;
+    }
+    .export-seg-copy {
+        padding: 4px 12px; border-radius: 8px; cursor: pointer; font-weight: 600;
+        font-size: 11px; border: none; background: #4f46e5; color: #fff;
+        font-family: 'Inter', sans-serif; transition: all 0.12s;
+    }
+    .export-seg-copy:hover { background: #4338ca; }
+    .export-segment-text {
+        margin: 0; padding: 14px; font-size: 12px; line-height: 1.7;
+        font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace;
+        white-space: pre-wrap; color: #334155; max-height: 200px; overflow-y: auto;
+    }
+    body.dark .export-segment { background: #1a1f2e; border-color: #334155; }
+    body.dark .export-segment-header { background: #161b27; border-bottom-color: #1e293b; }
+    body.dark .export-segment-label { color: #94a3b8; }
+    body.dark .export-segment-text { color: #cbd5e1; }
+
+    /* ---- Phrase copy button in note modal ---- */
+    .note-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .phrase-preview-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+    .phrase-preview-row .phrase-preview { margin-bottom: 0; flex-grow: 1; }
+    .phrase-copy-btn {
+        flex-shrink: 0; padding: 8px 12px; border-radius: 8px; cursor: pointer;
+        font-weight: 600; font-size: 12px; border: 1.5px solid #e5e7eb;
+        background: #fff; color: #475569; font-family: 'Inter', sans-serif; transition: all 0.12s;
+        white-space: nowrap;
+    }
+    .phrase-copy-btn:hover { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+    body.dark .phrase-copy-btn { background: #1e293b; border-color: #334155; color: #94a3b8; }
+    body.dark .phrase-copy-btn:hover { background: #6366f1; color: #fff; border-color: #6366f1; }
+
     h2 { margin-top: 0; color: #0f172a; font-weight: 700; font-size: 22px; letter-spacing: -0.3px; }
 
     /* ---- HIGHLIGHTS ---- */
@@ -615,12 +683,10 @@
             <span class="grip-dots">&#x2630; drag</span>
         </div>
         <div class="modal-body">
-            <div id="note-phrase-preview" class="phrase-preview" style="display:none;"></div>
-            <div class="note-type-row">
-                <button class="note-type-btn active" id="btn-type-direction">B-Roll Direction</button>
-                <button class="note-type-btn" id="btn-type-ai-image">AI Image</button>
+            <div class="note-label-row">
+                <label class="input-label" style="margin-bottom:0;">Note</label>
+                <button id="note-copy-phrase" class="phrase-copy-btn">Copy phrase</button>
             </div>
-            <label class="input-label">Note</label>
             <textarea id="note-modal-input" placeholder="Describe the B-roll visual..."></textarea>
             <div class="modal-actions">
                 <button class="modal-btn modal-btn-cancel" id="note-modal-cancel">Cancel</button>
@@ -825,20 +891,57 @@
         const exportContent = document.getElementById('export-content');
 
         function generateExportTextForBlock(block) {
-            const cc = block.querySelector('.document-content').cloneNode(true);
-            cc.querySelectorAll('.broll-card').forEach(c => c.remove());
-            cc.innerHTML = cc.innerHTML.replace(/[\n\r\t]+/g, ' ').replace(/<br\s*[\/]?>/gi, '\n').replace(/<\/p>|<\/div>|<\/h[1-6]>/gi, '\n\n');
-            let raw = cc.textContent.replace(/ {2,}/g, ' ').replace(/\s+([.,!?;:])/g, '$1').replace(/\n\s*\n/g, '\n\n').trim();
+            const contentEl = block.querySelector('.document-content');
+            return generateExportTextForNodes(Array.from(contentEl.childNodes));
+        }
+
+        // Generate export text from a list of nodes (a segment or whole block)
+        function generateExportTextForNodes(nodes) {
+            const cc = document.createElement('div');
+            nodes.forEach(n => {
+                if (n.nodeType === 1 && n.classList && n.classList.contains('segment-divider')) return;
+                cc.appendChild(n.cloneNode(true));
+            });
+            // Collect notes before stripping cards
             let notes = "";
-            block.querySelectorAll('.highlight-container').forEach(c => {
+            cc.querySelectorAll('.highlight-container').forEach(c => {
                 const p = c.querySelector('.highlight-text'), n = c.querySelector('.broll-note-text');
                 if (p) {
                     const phrase = p.textContent.trim(), note = n ? n.textContent.trim() : '';
                     if (phrase) notes += note ? `"${phrase}"\n- ${note}\n\n` : `"${phrase}"\n- (marked, no note)\n\n`;
                 }
             });
+            cc.querySelectorAll('.broll-card').forEach(c => c.remove());
+            cc.innerHTML = cc.innerHTML.replace(/[\n\r\t]+/g, ' ').replace(/<br\s*[\/]?>/gi, '\n').replace(/<\/p>|<\/div>|<\/h[1-6]>/gi, '\n\n');
+            let raw = cc.textContent.replace(/ {2,}/g, ' ').replace(/\s+([.,!?;:])/g, '$1').replace(/\n\s*\n/g, '\n\n').trim();
             if (!notes) notes = "No highlights added.";
             return `${raw}\n\n--- B-ROLL NOTES ---\n\n${notes}`;
+        }
+
+        // Split a block's content into segments at segment-divider elements
+        function getSegments(contentEl) {
+            const segments = [];
+            let current = [];
+            Array.from(contentEl.childNodes).forEach(node => {
+                if (node.nodeType === 1 && node.classList && node.classList.contains('segment-divider')) {
+                    segments.push(current);
+                    current = [];
+                } else {
+                    current.push(node);
+                }
+            });
+            segments.push(current);
+            return segments.filter(seg => seg.some(n => (n.textContent || '').trim().length > 0));
+        }
+
+        // Export the whole block as one continuous text (ignores segment dividers)
+        let currentExportFullText = '';
+        function openBlockExport(block) {
+            const contentEl = block.querySelector('.document-content');
+            const text = generateExportTextForNodes(Array.from(contentEl.childNodes));
+            exportContent.textContent = text;
+            currentExportFullText = text;
+            exportModal.style.display = 'flex';
         }
 
         /* === ZOOM === */
@@ -864,7 +967,7 @@
         function makeBlockInteractive(block) {
             const h=block.querySelector('.document-header'), r=block.querySelector('.resize-handle'), d=block.querySelector('.delete-btn'), ex=block.querySelector('.block-export-btn');
             d.addEventListener('click', () => block.remove());
-            if (ex) ex.addEventListener('click', () => { exportContent.innerText = generateExportTextForBlock(block); exportModal.style.display = 'flex'; });
+            if (ex) ex.addEventListener('click', () => { openBlockExport(block); });
             h.addEventListener('mousedown', (e) => { if (e.target===d||appMode==='draw') return; isDraggingBlock=true; activeBlock=block; blockStartX=parseFloat(block.style.left)||0; blockStartY=parseFloat(block.style.top)||0; mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation(); });
             r.addEventListener('mousedown', (e) => { if (appMode==='draw') return; isResizingBlock=true; activeBlock=block; blockStartW=block.offsetWidth; blockStartH=block.offsetHeight; mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation(); });
         }
@@ -887,6 +990,111 @@
         const transcriptTitleInput = document.getElementById('transcript-title-input');
         const blocksContainer = document.getElementById('blocks-container');
         const transcriptBtnSave = document.getElementById('transcript-btn-save');
+
+        /* === SEGMENT DIVIDERS (Shift+Enter) === */
+        function insertSegmentDivider(contentEl, range) {
+            // Find the block-level child of contentEl that the cursor sits in
+            let node = range.startContainer;
+            let block = node.nodeType === 3 ? node.parentElement : node;
+            while (block && block.parentElement !== contentEl && block !== contentEl && block.parentElement) {
+                block = block.parentElement;
+            }
+
+            const divider = document.createElement('div');
+            divider.className = 'segment-divider';
+            divider.setAttribute('contenteditable', 'false');
+            const exportBtn = document.createElement('button');
+            exportBtn.className = 'seg-export';
+            exportBtn.title = 'Export the segment above this break';
+            exportBtn.textContent = 'Export';
+            divider.appendChild(exportBtn);
+            const delBtn = document.createElement('button');
+            delBtn.className = 'seg-del';
+            delBtn.title = 'Remove break';
+            delBtn.textContent = '\u00D7';
+            divider.appendChild(delBtn);
+
+            if (block && block.parentElement === contentEl && block.nodeType === 1) {
+                // Split the block at the cursor: everything after the cursor moves to a new block
+                const afterRange = document.createRange();
+                afterRange.setStart(range.startContainer, range.startOffset);
+                afterRange.setEnd(block, block.childNodes.length);
+                const afterContents = afterRange.extractContents();
+
+                // Build the "after" block as the same tag as the original
+                const afterBlock = document.createElement(block.tagName);
+                // Copy over class/style if any (e.g. paragraph styling)
+                if (block.className) afterBlock.className = block.className;
+                afterBlock.appendChild(afterContents);
+
+                // Insert divider, then the after-block, right after the original block
+                block.after(divider);
+                divider.after(afterBlock);
+
+                // If the after-block is empty (cursor was at very end), keep it as an empty paragraph
+                if (!afterBlock.textContent.trim() && afterBlock.childNodes.length === 0) {
+                    afterBlock.innerHTML = '<br>';
+                }
+                // If the original block became empty (cursor was at very start), give it a br
+                if (!block.textContent.trim() && block.childNodes.length === 0) {
+                    block.innerHTML = '<br>';
+                }
+
+                // Place cursor at the start of the after-block
+                const sel = window.getSelection();
+                const newRange = document.createRange();
+                newRange.setStart(afterBlock, 0);
+                newRange.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(newRange);
+            } else {
+                // Fallback: insert at cursor directly
+                range.insertNode(divider);
+            }
+        }
+
+        // Delegated: Shift+Enter inside any document-content inserts a segment break
+        blocksContainer.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.shiftKey) {
+                const sel = window.getSelection();
+                if (!sel.rangeCount) return;
+                const anchor = sel.anchorNode;
+                const contentEl = anchor ? (anchor.nodeType === 3 ? anchor.parentElement : anchor).closest('.document-content') : null;
+                if (!contentEl) return;
+                e.preventDefault();
+                insertSegmentDivider(contentEl, sel.getRangeAt(0));
+            }
+        });
+
+        // Delegated: click the × on a segment divider to remove it
+        blocksContainer.addEventListener('click', (e) => {
+            const del = e.target.closest('.seg-del');
+            if (del) {
+                const divider = del.closest('.segment-divider');
+                if (divider) divider.remove();
+                return;
+            }
+            // Click "Export ↑" on a divider — export the segment directly above it
+            const segExp = e.target.closest('.seg-export');
+            if (segExp) {
+                const divider = segExp.closest('.segment-divider');
+                const contentEl = divider.closest('.document-content');
+                if (!contentEl || !divider) return;
+                // Collect nodes from the previous divider (or start) up to this divider
+                const nodes = [];
+                let n = divider.previousSibling;
+                while (n) {
+                    if (n.nodeType === 1 && n.classList && n.classList.contains('segment-divider')) break;
+                    nodes.unshift(n);
+                    n = n.previousSibling;
+                }
+                const text = generateExportTextForNodes(nodes);
+                exportContent.textContent = text;
+                currentExportFullText = text;
+                exportModal.style.display = 'flex';
+                return;
+            }
+        });
         document.getElementById('btn-transcript').addEventListener('click', () => { transcriptInput.value=''; transcriptTitleInput.value=''; transcriptModal.style.display='flex'; transcriptTitleInput.focus(); });
         document.getElementById('transcript-btn-cancel').addEventListener('click', () => transcriptModal.style.display='none');
         transcriptTitleInput.addEventListener('keydown', (e) => { if(e.key==='Enter'){e.preventDefault();transcriptBtnSave.click();} });
@@ -908,7 +1116,6 @@
         const noteModal = document.getElementById('note-modal-floating');
         const noteHeader = document.getElementById('note-modal-header');
         const noteInput = document.getElementById('note-modal-input');
-        const phrasePreview = document.getElementById('note-phrase-preview');
         let noteModalCallback = null;
         let noteModalPhrase = '';
 
@@ -921,52 +1128,34 @@
         makeFloatingDraggable(noteModal);
         function resetNoteModalPos() { noteModal.style.left='auto'; noteModal.style.right='24px'; noteModal.style.top='50%'; noteModal.style.transform='translateY(-50%)'; }
 
-        // B-Roll Direction vs AI Image toggle
-        const btnTypeDirection = document.getElementById('btn-type-direction');
-        const btnTypeAiImage = document.getElementById('btn-type-ai-image');
-
-        btnTypeDirection.addEventListener('click', () => {
-            btnTypeDirection.classList.add('active');
-            btnTypeAiImage.classList.remove('active');
-            noteInput.value = '';
-            noteInput.placeholder = 'Describe the B-roll visual...';
-            noteInput.focus();
-        });
-
-        btnTypeAiImage.addEventListener('click', () => {
-            btnTypeAiImage.classList.add('active');
-            btnTypeDirection.classList.remove('active');
-            const phrase = noteModalPhrase || 'this segment';
-            noteInput.value = `[AI IMAGE] Generate a cinematic 16:9 B-roll image depicting: "${phrase}"`;
-            noteInput.placeholder = 'Edit the AI image prompt if needed...';
-            noteInput.focus();
-            // Select all so user can easily edit
-            noteInput.select();
-        });
-
         function openNoteModal(header, def, phrase, cb) {
             noteHeader.innerText = header;
             noteInput.value = def;
             noteModalPhrase = phrase || '';
-
-            // Show phrase preview
-            if (noteModalPhrase) {
-                phrasePreview.textContent = '"' + noteModalPhrase + '"';
-                phrasePreview.style.display = 'block';
-            } else {
-                phrasePreview.style.display = 'none';
-            }
-
-            // Reset to B-Roll Direction mode
-            btnTypeDirection.classList.add('active');
-            btnTypeAiImage.classList.remove('active');
             noteInput.placeholder = 'Describe the B-roll visual...';
+
+            // Show/hide the Copy phrase button based on whether we have a phrase
+            const copyBtn = document.getElementById('note-copy-phrase');
+            copyBtn.style.display = noteModalPhrase ? 'inline-flex' : 'none';
 
             resetNoteModalPos();
             noteModal.style.display = 'block';
             noteInput.focus();
             noteModalCallback = cb;
         }
+
+        // Copy phrase button in note modal
+        document.getElementById('note-copy-phrase').addEventListener('click', (e) => {
+            if (!noteModalPhrase) return;
+            navigator.clipboard.writeText(noteModalPhrase).catch(() => {
+                const ta = document.createElement('textarea'); ta.value = noteModalPhrase;
+                ta.style.position = 'fixed'; ta.style.opacity = '0';
+                document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+            });
+            const btn = e.target; const o = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = o, 1200);
+        });
 
         document.getElementById('note-modal-cancel').addEventListener('click', () => { noteModal.style.display='none'; noteModalCallback=null; });
         document.getElementById('note-modal-save').addEventListener('click', saveAndCloseNoteModal);
@@ -1184,9 +1373,21 @@
         }
 
         /* === EXPORT === */
-        document.getElementById('btn-export').addEventListener('click', () => { const blocks=document.querySelectorAll('.document-block'); let txt=""; if(!blocks.length){txt="No transcript blocks found.";}else{blocks.forEach((b,i)=>{txt+=generateExportTextForBlock(b);if(i<blocks.length-1)txt+="\n\n========================================\n\n";});} exportContent.innerText=txt.trim(); exportModal.style.display='flex'; });
+        document.getElementById('btn-export').addEventListener('click', () => {
+            const blocks=document.querySelectorAll('.document-block');
+            let txt="";
+            if(!blocks.length){txt="No transcript blocks found.";}
+            else{blocks.forEach((b,i)=>{txt+=generateExportTextForBlock(b);if(i<blocks.length-1)txt+="\n\n========================================\n\n";});}
+            txt = txt.trim();
+            exportContent.innerText=txt;
+            currentExportFullText = txt;
+            exportModal.style.display='flex';
+        });
         document.getElementById('export-btn-close').addEventListener('click', () => exportModal.style.display='none');
-        document.getElementById('export-btn-copy').addEventListener('click', (e) => { const ta=document.createElement('textarea');ta.value=exportContent.innerText;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');const b=e.target,o=b.innerText;b.innerText="Copied!";setTimeout(()=>b.innerText=o,2000);}catch(err){}document.body.removeChild(ta); });
+        document.getElementById('export-btn-copy').addEventListener('click', (e) => {
+            const textToCopy = currentExportFullText || exportContent.innerText;
+            const ta=document.createElement('textarea');ta.value=textToCopy;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');const b=e.target,o=b.innerText;b.innerText="Copied!";setTimeout(()=>b.innerText=o,2000);}catch(err){}document.body.removeChild(ta);
+        });
 
         /* === DRAWING === */
         const canvas=document.getElementById('drawing-layer'), ctx=canvas.getContext('2d');
@@ -1264,6 +1465,24 @@
                     bindHoverEvents(c);
                     if (c.querySelector('.broll-card')) c.classList.add('has-note');
                 });
+                // Regenerate segment-divider buttons (stripped on save)
+                contentDiv.querySelectorAll('.segment-divider').forEach(divider => {
+                    divider.setAttribute('contenteditable', 'false');
+                    if (!divider.querySelector('.seg-export')) {
+                        const exportBtn = document.createElement('button');
+                        exportBtn.className = 'seg-export';
+                        exportBtn.title = 'Export the segment above this break';
+                        exportBtn.textContent = 'Export';
+                        divider.appendChild(exportBtn);
+                    }
+                    if (!divider.querySelector('.seg-del')) {
+                        const delBtn = document.createElement('button');
+                        delBtn.className = 'seg-del';
+                        delBtn.title = 'Remove break';
+                        delBtn.textContent = '\u00D7';
+                        divider.appendChild(delBtn);
+                    }
+                });
             });
             if(pd.images) pd.images.forEach(id=>{
                 const ib=document.createElement('div');ib.className='image-block';
@@ -1303,6 +1522,8 @@
                 clone.querySelectorAll('.broll-card').forEach(card => card.remove());
                 // Also strip has-note class since notes are stored separately
                 clone.querySelectorAll('.highlight-container.has-note').forEach(hl => hl.classList.remove('has-note'));
+                // Strip segment-divider buttons (regenerated on load); keep the divider div itself
+                clone.querySelectorAll('.segment-divider .seg-del, .segment-divider .seg-export').forEach(b => b.remove());
 
                 let rawHTML = clone.innerHTML;
                 rawHTML = rawHTML.replace(/(<br\s*\/?\s*>)+$/i, '');
