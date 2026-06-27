@@ -57,7 +57,7 @@
 
     .document-content {
         position: relative; z-index: 10; 
-        padding: 36px 44px; outline: none; flex-grow: 1;
+        padding: 36px 64px 36px 44px; outline: none; flex-grow: 1;
         font-size: 16px; line-height: 1.85; color: #334155;
     }
 
@@ -78,31 +78,27 @@
     }
     .block-export-btn:hover { background: #059669; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
 
-    /* ---- Segment divider ---- */
-    .segment-divider {
-        border: none; border-top: 2px dashed #cbd5e1;
-        margin: 24px 0; height: 0; position: relative; user-select: none;
-        cursor: default;
+    /* ---- Per-paragraph export buttons ---- */
+    /* Each paragraph in the transcript gets a small Export button on its right */
+    .document-content > p,
+    .document-content > h1, .document-content > h2, .document-content > h3,
+    .document-content > h4, .document-content > h5, .document-content > h6,
+    .document-content > ul, .document-content > ol, .document-content > blockquote {
+        position: relative;
     }
-    .segment-divider .seg-export {
-        position: absolute; top: -11px; right: 26px;
+    .para-export-btn {
+        position: absolute; top: 1px; right: -52px;
         background: #fff; color: #10b981; border: 1px solid #a7f3d0; cursor: pointer;
-        font-size: 9px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
-        padding: 3px 9px; border-radius: 6px; white-space: nowrap;
-        font-family: 'Inter', sans-serif; transition: all 0.12s;
+        font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+        padding: 3px 8px; border-radius: 6px; white-space: nowrap;
+        font-family: 'Inter', sans-serif; transition: opacity 0.12s, background 0.12s, color 0.12s;
+        opacity: 0; pointer-events: none; user-select: none;
+        z-index: 30;
     }
-    .segment-divider .seg-export:hover { background: #10b981; color: #fff; border-color: #10b981; }
-    .segment-divider .seg-del {
-        position: absolute; top: -12px; right: 0;
-        background: #fff; border: none; color: #cbd5e1; cursor: pointer;
-        font-size: 15px; padding: 0 6px; border-radius: 4px; line-height: 1.4;
-    }
-    .segment-divider .seg-del:hover { color: #ef4444; }
-    body.dark .segment-divider { border-top-color: #334155; }
-    body.dark .segment-divider .seg-export { background: #1a1f2e; color: #34d399; border-color: #065f46; }
-    body.dark .segment-divider .seg-export:hover { background: #10b981; color: #fff; border-color: #10b981; }
-    body.dark .segment-divider .seg-del { background: #1a1f2e; color: #475569; }
-    body.dark .segment-divider .seg-del:hover { color: #f87171; }
+    .document-block:hover .para-export-btn { opacity: 0.5; pointer-events: auto; }
+    .para-export-btn:hover { opacity: 1 !important; background: #10b981; color: #fff; border-color: #10b981; }
+    body.dark .para-export-btn { background: #1a1f2e; color: #34d399; border-color: #065f46; }
+    body.dark .para-export-btn:hover { background: #10b981; color: #fff; border-color: #10b981; }
 
     /* ---- Export segment boxes ---- */
     .export-segment {
@@ -164,15 +160,8 @@
     }
 
     .broll-card {
-        visibility: hidden; opacity: 0; position: absolute; bottom: 120%; left: 50%;
-        transform: translateX(-50%) translateY(6px); background: #fff; color: #333;
-        padding: 16px 20px; border-radius: 14px; font-size: 14px; width: 340px; z-index: 500;
-        box-shadow: 0 16px 48px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.04);
-        border: 1px solid rgba(0,0,0,0.05);
-        transition: opacity 0.15s, visibility 0.15s, transform 0.15s;
-        line-height: 1.5; cursor: default;
+        display: none; /* hidden data store for note text; clicking the highlight opens the editable modal */
     }
-    .broll-card.visible { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(0); }
     
     .broll-card-header {
         display: flex; justify-content: space-between; align-items: flex-start;
@@ -884,6 +873,7 @@
             // No saved data — show default block and scroll to center
             bc.style.opacity = '1';
             document.querySelectorAll('.document-block').forEach(makeBlockInteractive);
+            refreshAllParaExportButtons();
             window.scrollTo((6000 - window.innerWidth)/2, 400);
         };
 
@@ -895,12 +885,13 @@
             return generateExportTextForNodes(Array.from(contentEl.childNodes));
         }
 
-        // Generate export text from a list of nodes (a segment or whole block)
+        // Generate export text from a list of nodes (a paragraph or whole block)
         function generateExportTextForNodes(nodes) {
             const cc = document.createElement('div');
             nodes.forEach(n => {
-                if (n.nodeType === 1 && n.classList && n.classList.contains('segment-divider')) return;
-                cc.appendChild(n.cloneNode(true));
+                const clone = n.cloneNode(true);
+                if (clone.nodeType === 1) clone.querySelectorAll && clone.querySelectorAll('.para-export-btn').forEach(b => b.remove());
+                cc.appendChild(clone);
             });
             // Collect notes before stripping cards
             let notes = "";
@@ -918,23 +909,52 @@
             return `${raw}\n\n--- B-ROLL NOTES ---\n\n${notes}`;
         }
 
-        // Split a block's content into segments at segment-divider elements
-        function getSegments(contentEl) {
-            const segments = [];
-            let current = [];
-            Array.from(contentEl.childNodes).forEach(node => {
-                if (node.nodeType === 1 && node.classList && node.classList.contains('segment-divider')) {
-                    segments.push(current);
-                    current = [];
-                } else {
-                    current.push(node);
-                }
-            });
-            segments.push(current);
-            return segments.filter(seg => seg.some(n => (n.textContent || '').trim().length > 0));
+        // Export a single paragraph element
+        function exportSingleParagraph(paraEl) {
+            // Clone the paragraph, remove its export button, export it
+            const clone = paraEl.cloneNode(true);
+            clone.querySelectorAll('.para-export-btn').forEach(b => b.remove());
+            const text = generateExportTextForNodes([clone]);
+            exportContent.textContent = text;
+            currentExportFullText = text;
+            exportModal.style.display = 'flex';
         }
 
-        // Export the whole block as one continuous text (ignores segment dividers)
+        // Block-level tags that should get an export button
+        const PARA_TAGS = ['P','H1','H2','H3','H4','H5','H6','UL','OL','BLOCKQUOTE'];
+
+        // Add an export button to a single paragraph (if it doesn't have one and has text)
+        function addParaExportButton(para) {
+            if (!PARA_TAGS.includes(para.tagName)) return;
+            if (para.querySelector(':scope > .para-export-btn')) return;
+            if (!para.textContent.trim()) return; // skip empty paragraphs
+            const btn = document.createElement('button');
+            btn.className = 'para-export-btn';
+            btn.setAttribute('contenteditable', 'false');
+            btn.textContent = 'Export';
+            btn.title = 'Export this line and its B-roll notes';
+            para.appendChild(btn);
+        }
+
+        // Refresh export buttons across all paragraphs in a content element
+        function refreshParaExportButtons(contentEl) {
+            // Remove buttons from now-empty paragraphs
+            contentEl.querySelectorAll('.para-export-btn').forEach(btn => {
+                const para = btn.parentElement;
+                if (!para || !para.textContent.replace(btn.textContent, '').trim()) {
+                    btn.remove();
+                }
+            });
+            // Add buttons to paragraphs that need them
+            Array.from(contentEl.children).forEach(child => addParaExportButton(child));
+        }
+
+        // Refresh buttons for every block on the canvas
+        function refreshAllParaExportButtons() {
+            document.querySelectorAll('.document-content').forEach(refreshParaExportButtons);
+        }
+
+        // Export the whole block as one continuous text
         let currentExportFullText = '';
         function openBlockExport(block) {
             const contentEl = block.querySelector('.document-content');
@@ -991,110 +1011,28 @@
         const blocksContainer = document.getElementById('blocks-container');
         const transcriptBtnSave = document.getElementById('transcript-btn-save');
 
-        /* === SEGMENT DIVIDERS (Shift+Enter) === */
-        function insertSegmentDivider(contentEl, range) {
-            // Find the block-level child of contentEl that the cursor sits in
-            let node = range.startContainer;
-            let block = node.nodeType === 3 ? node.parentElement : node;
-            while (block && block.parentElement !== contentEl && block !== contentEl && block.parentElement) {
-                block = block.parentElement;
-            }
-
-            const divider = document.createElement('div');
-            divider.className = 'segment-divider';
-            divider.setAttribute('contenteditable', 'false');
-            const exportBtn = document.createElement('button');
-            exportBtn.className = 'seg-export';
-            exportBtn.title = 'Export the segment above this break';
-            exportBtn.textContent = 'Export';
-            divider.appendChild(exportBtn);
-            const delBtn = document.createElement('button');
-            delBtn.className = 'seg-del';
-            delBtn.title = 'Remove break';
-            delBtn.textContent = '\u00D7';
-            divider.appendChild(delBtn);
-
-            if (block && block.parentElement === contentEl && block.nodeType === 1) {
-                // Split the block at the cursor: everything after the cursor moves to a new block
-                const afterRange = document.createRange();
-                afterRange.setStart(range.startContainer, range.startOffset);
-                afterRange.setEnd(block, block.childNodes.length);
-                const afterContents = afterRange.extractContents();
-
-                // Build the "after" block as the same tag as the original
-                const afterBlock = document.createElement(block.tagName);
-                // Copy over class/style if any (e.g. paragraph styling)
-                if (block.className) afterBlock.className = block.className;
-                afterBlock.appendChild(afterContents);
-
-                // Insert divider, then the after-block, right after the original block
-                block.after(divider);
-                divider.after(afterBlock);
-
-                // If the after-block is empty (cursor was at very end), keep it as an empty paragraph
-                if (!afterBlock.textContent.trim() && afterBlock.childNodes.length === 0) {
-                    afterBlock.innerHTML = '<br>';
-                }
-                // If the original block became empty (cursor was at very start), give it a br
-                if (!block.textContent.trim() && block.childNodes.length === 0) {
-                    block.innerHTML = '<br>';
-                }
-
-                // Place cursor at the start of the after-block
-                const sel = window.getSelection();
-                const newRange = document.createRange();
-                newRange.setStart(afterBlock, 0);
-                newRange.collapse(true);
-                sel.removeAllRanges();
-                sel.addRange(newRange);
-            } else {
-                // Fallback: insert at cursor directly
-                range.insertNode(divider);
-            }
-        }
-
-        // Delegated: Shift+Enter inside any document-content inserts a segment break
-        blocksContainer.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && e.shiftKey) {
-                const sel = window.getSelection();
-                if (!sel.rangeCount) return;
-                const anchor = sel.anchorNode;
-                const contentEl = anchor ? (anchor.nodeType === 3 ? anchor.parentElement : anchor).closest('.document-content') : null;
-                if (!contentEl) return;
-                e.preventDefault();
-                insertSegmentDivider(contentEl, sel.getRangeAt(0));
-            }
-        });
-
-        // Delegated: click the × on a segment divider to remove it
+        /* === PER-PARAGRAPH EXPORT BUTTONS === */
+        // Click a paragraph's Export button → export just that paragraph
         blocksContainer.addEventListener('click', (e) => {
-            const del = e.target.closest('.seg-del');
-            if (del) {
-                const divider = del.closest('.segment-divider');
-                if (divider) divider.remove();
-                return;
-            }
-            // Click "Export ↑" on a divider — export the segment directly above it
-            const segExp = e.target.closest('.seg-export');
-            if (segExp) {
-                const divider = segExp.closest('.segment-divider');
-                const contentEl = divider.closest('.document-content');
-                if (!contentEl || !divider) return;
-                // Collect nodes from the previous divider (or start) up to this divider
-                const nodes = [];
-                let n = divider.previousSibling;
-                while (n) {
-                    if (n.nodeType === 1 && n.classList && n.classList.contains('segment-divider')) break;
-                    nodes.unshift(n);
-                    n = n.previousSibling;
-                }
-                const text = generateExportTextForNodes(nodes);
-                exportContent.textContent = text;
-                currentExportFullText = text;
-                exportModal.style.display = 'flex';
+            const btn = e.target.closest('.para-export-btn');
+            if (btn) {
+                e.preventDefault();
+                const para = btn.parentElement;
+                if (para) exportSingleParagraph(para);
                 return;
             }
         });
+
+        // Keep buttons in sync as the user types / edits / adds paragraphs.
+        // Debounced so it doesn't run on every keystroke.
+        let paraBtnTimer = null;
+        blocksContainer.addEventListener('input', (e) => {
+            const contentEl = e.target.closest('.document-content');
+            if (!contentEl) return;
+            clearTimeout(paraBtnTimer);
+            paraBtnTimer = setTimeout(() => refreshParaExportButtons(contentEl), 400);
+        });
+
         document.getElementById('btn-transcript').addEventListener('click', () => { transcriptInput.value=''; transcriptTitleInput.value=''; transcriptModal.style.display='flex'; transcriptTitleInput.focus(); });
         document.getElementById('transcript-btn-cancel').addEventListener('click', () => transcriptModal.style.display='none');
         transcriptTitleInput.addEventListener('keydown', (e) => { if(e.key==='Enter'){e.preventDefault();transcriptBtnSave.click();} });
@@ -1108,6 +1046,7 @@
                 nb.style.left=`${cx-350}px`; nb.style.top=`${cy-100}px`; nb.style.width='700px';
                 nb.innerHTML=`<div class="document-header"><span>&#x2807; Drag to move</span><button class="delete-btn">&times;</button></div><div class="document-content" contenteditable="true" spellcheck="false"><p><strong>${title}</strong></p>${paras}</div><button class="block-export-btn">Export Block</button><div class="resize-handle"></div>`;
                 blocksContainer.appendChild(nb); makeBlockInteractive(nb);
+                refreshParaExportButtons(nb.querySelector('.document-content'));
             }
             transcriptModal.style.display='none';
         });
@@ -1254,9 +1193,8 @@
         let savedSelectionRange = null, savedSelectionBlock = null;
 
         function bindHoverEvents(container) {
-            let timeout;
-            container.addEventListener('mouseenter', () => { if(appMode==='draw') return; container.style.zIndex='9999'; const card=container.querySelector('.broll-card'); if(!card) return; clearTimeout(timeout); card.style.left='50%'; card.style.transform='translateX(-50%) translateY(0)'; card.classList.add('visible'); container.classList.add('active'); });
-            container.addEventListener('mouseleave', () => { container.style.zIndex=''; const card=container.querySelector('.broll-card'); if(!card) return; timeout=setTimeout(()=>{card.classList.remove('visible');container.classList.remove('active');card.style.transform='translateX(-50%) translateY(6px)';},250); });
+            // Hover tooltip removed — clicking a highlight opens the modal to edit the note / copy the phrase.
+            // The broll-card div is kept hidden in the DOM only as the storage for the note text.
         }
         document.querySelectorAll('.highlight-container').forEach(bindHoverEvents);
 
@@ -1465,24 +1403,10 @@
                     bindHoverEvents(c);
                     if (c.querySelector('.broll-card')) c.classList.add('has-note');
                 });
-                // Regenerate segment-divider buttons (stripped on save)
-                contentDiv.querySelectorAll('.segment-divider').forEach(divider => {
-                    divider.setAttribute('contenteditable', 'false');
-                    if (!divider.querySelector('.seg-export')) {
-                        const exportBtn = document.createElement('button');
-                        exportBtn.className = 'seg-export';
-                        exportBtn.title = 'Export the segment above this break';
-                        exportBtn.textContent = 'Export';
-                        divider.appendChild(exportBtn);
-                    }
-                    if (!divider.querySelector('.seg-del')) {
-                        const delBtn = document.createElement('button');
-                        delBtn.className = 'seg-del';
-                        delBtn.title = 'Remove break';
-                        delBtn.textContent = '\u00D7';
-                        divider.appendChild(delBtn);
-                    }
-                });
+                // Remove any old segment-divider elements from previous versions
+                contentDiv.querySelectorAll('.segment-divider').forEach(d => d.remove());
+                // Add per-paragraph export buttons
+                refreshParaExportButtons(contentDiv);
             });
             if(pd.images) pd.images.forEach(id=>{
                 const ib=document.createElement('div');ib.className='image-block';
@@ -1522,8 +1446,8 @@
                 clone.querySelectorAll('.broll-card').forEach(card => card.remove());
                 // Also strip has-note class since notes are stored separately
                 clone.querySelectorAll('.highlight-container.has-note').forEach(hl => hl.classList.remove('has-note'));
-                // Strip segment-divider buttons (regenerated on load); keep the divider div itself
-                clone.querySelectorAll('.segment-divider .seg-del, .segment-divider .seg-export').forEach(b => b.remove());
+                // Strip per-paragraph export buttons (regenerated on load)
+                clone.querySelectorAll('.para-export-btn').forEach(b => b.remove());
 
                 let rawHTML = clone.innerHTML;
                 rawHTML = rawHTML.replace(/(<br\s*\/?\s*>)+$/i, '');
@@ -1657,6 +1581,7 @@
             nb.innerHTML = '<div class="document-header"><span>&#x2807; Drag to move</span><button class="delete-btn">&times;</button></div><div class="document-content" contenteditable="true" spellcheck="false"><h2>Episode Title</h2><p><strong>Segment: Cold Open</strong></p><p>Paste your transcript here.</p></div><button class="block-export-btn">Export Block</button><div class="resize-handle"></div>';
             blocksContainer.appendChild(nb);
             makeBlockInteractive(nb);
+            refreshParaExportButtons(nb.querySelector('.document-content'));
 
             // Clear auto-save
             localStorage.removeItem('broll-autosave');
