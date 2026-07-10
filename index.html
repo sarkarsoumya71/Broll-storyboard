@@ -3,1823 +3,789 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>B-Roll Editor</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230f172a'/><text x='50' y='68' font-size='52' font-weight='bold' text-anchor='middle' fill='%23fbbf24' font-family='system-ui'>B</text></svg>">
+<title>CatalystX Storyboard — scene-detect contact sheet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
-    *, *::before, *::after { box-sizing: border-box; }
+  :root{
+    --ink:#0A141D;
+    --panel:#101E2B;
+    --panel2:#0D1924;
+    --line:#1C3242;
+    --teal:#2DD9C4;
+    --teal-dim:#1A8478;
+    --text:#E8F0F2;
+    --dim:#7C93A0;
+    --amber:#E8B44A;
+    --mono:'IBM Plex Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--ink);color:var(--text);font-family:'Inter Tight',sans-serif;font-size:15px;line-height:1.5}
+  body{padding:28px clamp(16px,4vw,48px) 80px}
 
-    body { 
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
-        line-height: 1.75; color: #1e293b; font-size: 16px;
-        background-color: #eef1f5; 
-        background-image: radial-gradient(#d0d7e2 1px, transparent 1px);
-        background-size: 20px 20px;
-        margin: 0; padding: 0; overflow: auto; 
-        overscroll-behavior: none;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-    }
-    
-    #zoom-container {
-        position: relative; width: 6000px; height: 6000px;
-        background-color: #eef1f5; 
-        background-image: radial-gradient(#d0d7e2 1px, transparent 1px);
-        background-size: 20px 20px; 
-        transform-origin: 0 0;
-    }
+  header{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:22px}
+  header h1{font-family:'Big Shoulders Display',sans-serif;font-weight:700;font-size:30px;letter-spacing:.06em;text-transform:uppercase}
+  header h1 span{color:var(--teal)}
+  header .tag{font-family:var(--mono);font-size:12px;color:var(--dim)}
 
-    /* ---- DOCUMENT BLOCK ---- */
-    .document-block {
-        background: #ffffff; position: absolute; border-radius: 16px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
-        z-index: 100; display: flex; flex-direction: column;
-        border: 1px solid rgba(0,0,0,0.05); overflow: visible; 
-    }
+  /* ---- drop zone ---- */
+  #dropzone{
+    border:1px dashed var(--line);border-radius:8px;background:var(--panel2);
+    padding:26px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  #dropzone.dragover{border-color:var(--teal);background:#0F2430}
+  #dropzone .dz-label{color:var(--dim)}
+  #dropzone strong{color:var(--text);font-weight:600}
+  button, .btn{
+    font-family:'Inter Tight',sans-serif;font-weight:600;font-size:14px;
+    background:var(--teal);color:#06241F;border:none;border-radius:6px;
+    padding:9px 18px;cursor:pointer;transition:filter .12s;
+  }
+  button:hover{filter:brightness(1.1)}
+  button:disabled{background:var(--line);color:var(--dim);cursor:not-allowed;filter:none}
+  button.ghost{background:transparent;color:var(--teal);border:1px solid var(--teal-dim)}
+  button.ghost:disabled{border-color:var(--line);color:var(--dim)}
+  #videoMeta{font-family:var(--mono);font-size:12px;color:var(--dim);margin-left:auto}
 
-    .document-header {
-        position: relative; z-index: 1; 
-        background: #f9fafb; padding: 10px 20px;
-        border-radius: 16px 16px 0 0; border-bottom: 1px solid #f0f1f3;
-        display: flex; justify-content: space-between; align-items: center;
-        cursor: grab; user-select: none; color: #a0aec0; font-size: 11px; font-weight: 600;
-        text-transform: uppercase; letter-spacing: 1.2px;
-    }
-    .document-header:active { cursor: grabbing; }
-    
-    .delete-btn {
-        background: transparent; border: none; cursor: pointer; font-size: 18px;
-        color: #d1d5db; transition: all 0.15s; padding: 2px 6px; line-height: 1; border-radius: 6px;
-    }
-    .delete-btn:hover { color: #ef4444; background: #fef2f2; }
+  /* ---- controls ---- */
+  #controls{display:none;margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px 20px}
+  .ctrl-row{display:flex;align-items:center;gap:26px;flex-wrap:wrap}
+  .ctrl{display:flex;align-items:center;gap:10px}
+  .ctrl label{font-size:13px;color:var(--dim);white-space:nowrap}
+  .ctrl input[type=number]{
+    width:72px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;
+    color:var(--text);font-family:var(--mono);font-size:13px;padding:6px 8px;
+  }
+  .ctrl input[type=range]{width:180px;accent-color:var(--teal)}
+  .ctrl .val{font-family:var(--mono);font-size:13px;color:var(--teal);min-width:30px;text-align:right}
+  #sceneCount{font-family:var(--mono);font-size:13px;color:var(--text)}
+  #sceneCount b{color:var(--teal);font-weight:500}
+  .actions{display:flex;gap:10px;margin-left:auto;align-items:center}
 
-    .document-content {
-        position: relative; z-index: 10; 
-        padding: 36px 64px 36px 44px; outline: none; flex-grow: 1;
-        font-size: 16px; line-height: 1.85; color: #334155;
-    }
+  /* ---- diff timeline (signature) ---- */
+  #timelineWrap{margin-top:16px}
+  #timelineWrap .tl-caption{font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:6px}
 
-    .resize-handle {
-        position: absolute; right: 0; bottom: 0;
-        width: 20px; height: 20px; cursor: se-resize;
-        background: linear-gradient(135deg, transparent 50%, #d1d5db 50%);
-        border-radius: 0 0 16px 0; opacity: 0; transition: opacity 0.2s; z-index: 20;
-    }
-    .document-block:hover .resize-handle { opacity: 0.5; }
+  /* ---- mode tabs ---- */
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tab{background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:8px 16px}
+  .tab.active{background:var(--teal);color:#06241F;border-color:var(--teal)}
+  .tab:hover{filter:none;color:var(--text)}
+  .tab.active:hover{color:#06241F}
 
-    .block-export-btn {
-        position: absolute; bottom: 14px; right: 20px; 
-        background: #10b981; color: #fff; border: none; border-radius: 8px;
-        padding: 6px 14px; font-size: 11px; font-weight: 700; cursor: pointer;
-        box-shadow: 0 2px 8px rgba(16,185,129,0.2); transition: all 0.15s; z-index: 20;
-        text-transform: uppercase; letter-spacing: 0.8px; font-family: 'Inter', sans-serif;
-    }
-    .block-export-btn:hover { background: #059669; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+  /* ---- frame-by-frame panel ---- */
+  #framePanel{display:none}
+  #fbPreview{display:block;width:100%;max-height:340px;background:#000;border:1px solid var(--line);border-radius:6px;object-fit:contain}
+  #fbTrack{position:relative;height:34px;margin:14px 0 6px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;cursor:pointer;touch-action:none}
+  #fbRegion{position:absolute;top:0;bottom:0;background:rgba(45,217,196,.18);border-left:1px solid var(--teal-dim);border-right:1px solid var(--teal-dim);pointer-events:none}
+  .fb-handle{
+    position:absolute;top:-5px;bottom:-5px;width:14px;margin-left:-7px;
+    background:var(--teal);border-radius:4px;cursor:ew-resize;touch-action:none;
+    box-shadow:0 0 0 1px #06241F;
+  }
+  .fb-handle.active{box-shadow:0 0 0 2px var(--text)}
+  .fb-handle::after{content:'';position:absolute;left:5px;right:5px;top:8px;bottom:8px;background:#06241F;border-radius:2px}
+  #fbReadout{font-family:var(--mono);font-size:12px;color:var(--dim);display:flex;gap:22px;flex-wrap:wrap;margin-bottom:12px}
+  #fbReadout b{color:var(--teal);font-weight:500}
+  #fbEstimate{font-family:var(--mono);font-size:12px;color:var(--text)}
 
-    /* ---- Per-paragraph export buttons ---- */
-    /* Each paragraph in the transcript gets a small Export button on its right */
-    .document-content > p,
-    .document-content > h1, .document-content > h2, .document-content > h3,
-    .document-content > h4, .document-content > h5, .document-content > h6,
-    .document-content > ul, .document-content > ol, .document-content > blockquote {
-        position: relative;
-    }
-    .para-export-btn {
-        position: absolute; top: 1px; right: -52px;
-        background: #fff; color: #10b981; border: 1px solid #a7f3d0; cursor: pointer;
-        font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
-        padding: 3px 8px; border-radius: 6px; white-space: nowrap;
-        font-family: 'Inter', sans-serif; transition: opacity 0.12s, background 0.12s, color 0.12s;
-        opacity: 0; pointer-events: none; user-select: none;
-        z-index: 30;
-    }
-    .document-block:hover .para-export-btn { opacity: 0.5; pointer-events: auto; }
-    .para-export-btn:hover { opacity: 1 !important; background: #10b981; color: #fff; border-color: #10b981; }
-    body.dark .para-export-btn { background: #1a1f2e; color: #34d399; border-color: #065f46; }
-    body.dark .para-export-btn:hover { background: #10b981; color: #fff; border-color: #10b981; }
+  #timeline{display:block;width:100%;height:64px;background:var(--panel2);border:1px solid var(--line);border-radius:6px}
 
-    /* ---- Export segment boxes ---- */
-    .export-segment {
-        background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
-        margin-bottom: 14px; overflow: hidden;
-    }
-    .export-segment-header {
-        display: flex; justify-content: space-between; align-items: center;
-        padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #f0f0f3;
-    }
-    .export-segment-label {
-        font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px;
-    }
-    .export-seg-copy {
-        padding: 4px 12px; border-radius: 8px; cursor: pointer; font-weight: 600;
-        font-size: 11px; border: none; background: #4f46e5; color: #fff;
-        font-family: 'Inter', sans-serif; transition: all 0.12s;
-    }
-    .export-seg-copy:hover { background: #4338ca; }
-    .export-segment-text {
-        margin: 0; padding: 14px; font-size: 12px; line-height: 1.7;
-        font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace;
-        white-space: pre-wrap; color: #334155; max-height: 200px; overflow-y: auto;
-    }
-    body.dark .export-segment { background: #1a1f2e; border-color: #334155; }
-    body.dark .export-segment-header { background: #161b27; border-bottom-color: #1e293b; }
-    body.dark .export-segment-label { color: #94a3b8; }
-    body.dark .export-segment-text { color: #cbd5e1; }
+  #status{font-family:var(--mono);font-size:12px;color:var(--amber);margin-top:12px;min-height:18px}
+  .note{font-size:12.5px;color:var(--dim);margin-top:10px;max-width:70ch}
+  .note em{color:var(--amber);font-style:normal}
 
-    /* ---- Phrase copy button in note modal ---- */
-    .note-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .phrase-preview-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-    .phrase-preview-row .phrase-preview { margin-bottom: 0; flex-grow: 1; }
-    .phrase-copy-btn {
-        flex-shrink: 0; padding: 8px 12px; border-radius: 8px; cursor: pointer;
-        font-weight: 600; font-size: 12px; border: 1.5px solid #e5e7eb;
-        background: #fff; color: #475569; font-family: 'Inter', sans-serif; transition: all 0.12s;
-        white-space: nowrap;
-    }
-    .phrase-copy-btn:hover { background: #4f46e5; color: #fff; border-color: #4f46e5; }
-    body.dark .phrase-copy-btn { background: #1e293b; border-color: #334155; color: #94a3b8; }
-    body.dark .phrase-copy-btn:hover { background: #6366f1; color: #fff; border-color: #6366f1; }
+  /* ---- grid ---- */
+  #gridWrap{margin-top:26px}
+  #grid{display:block;width:100%;border:1px solid var(--line);border-radius:8px;background:var(--panel2);cursor:zoom-in}
 
-    h2 { margin-top: 0; color: #0f172a; font-weight: 700; font-size: 22px; letter-spacing: -0.3px; }
+  /* ---- lightbox ---- */
+  #lightbox{
+    position:fixed;inset:0;background:rgba(5,12,18,.92);display:none;
+    flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:30px;z-index:50;
+  }
+  #lightbox.open{display:flex}
+  #lbCanvas{max-width:92vw;max-height:78vh;border:1px solid var(--line);border-radius:4px}
+  #lbBar{display:flex;align-items:center;gap:18px}
+  #lbInfo{font-family:var(--mono);font-size:13px;color:var(--text)}
+  #lbInfo b{color:var(--teal);font-weight:500}
+  #lbClose{background:transparent;color:var(--dim);border:1px solid var(--line);position:fixed;top:18px;right:18px}
 
-    /* ---- HIGHLIGHTS ---- */
-    .highlight-container { position: relative; display: inline; }
-    .highlight-text {
-        background-color: rgba(251,191,36,0.18); border-bottom: 2px solid #fbbf24;
-        cursor: pointer; padding: 1px 2px; border-radius: 2px;
-        transition: background-color 0.15s ease;
-        box-decoration-break: clone; -webkit-box-decoration-break: clone;
-    }
-    .highlight-container.has-note .highlight-text {
-        background-color: rgba(251,191,36,0.25); border-bottom: 2px dashed #f59e0b;
-    }
-    .highlight-container:hover .highlight-text, .highlight-container.active .highlight-text {
-        background-color: rgba(251,191,36,0.4);
-    }
-
-    .broll-card {
-        display: none; /* hidden data store for note text; clicking the highlight opens the editable modal */
-    }
-    
-    .broll-card-header {
-        display: flex; justify-content: space-between; align-items: flex-start;
-        margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;
-    }
-    .broll-title { color: #64748b; font-size: 10px; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
-    .btn-edit-note {
-        background: transparent; border: none; cursor: pointer; font-size: 13px; 
-        padding: 3px 6px; border-radius: 6px; transition: background 0.1s; color: #94a3b8;
-    }
-    .btn-edit-note:hover { background: #f1f5f9; color: #475569; }
-    .broll-note-text { margin-bottom: 6px; color: #334155; white-space: pre-wrap; font-size: 14px; line-height: 1.6; }
-
-    /* ---- POPUP BUTTONS ---- */
-    .btn {
-        display: inline-flex; align-items: center; justify-content: center; padding: 7px 16px; border-radius: 10px;
-        font-size: 13px; font-weight: 600; color: #fff; border: none; cursor: pointer; 
-        transition: all 0.12s; text-decoration: none; white-space: nowrap;
-        letter-spacing: 0.2px; font-family: 'Inter', sans-serif;
-    }
-    .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
-    .btn:active { transform: translateY(0); }
-
-    #drawing-layer {
-        position: absolute; top: 0; left: 0; 
-        width: 6000px; height: 6000px; 
-        z-index: 150; pointer-events: none; touch-action: none; 
-    }
-
-    /* ---- GLASS TOOLBAR ---- */
-    .drawing-toolbar {
-        position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
-        background: rgba(15, 23, 42, 0.72);
-        backdrop-filter: blur(28px) saturate(180%);
-        -webkit-backdrop-filter: blur(28px) saturate(180%);
-        padding: 10px 18px; border-radius: 18px;
-        display: flex; flex-direction: column; gap: 8px; align-items: center;
-        box-shadow: 0 8px 40px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06);
-        z-index: 1000; 
-        border: 1px solid rgba(255,255,255,0.07);
-        width: max-content; 
-    }
-    .toolbar-row { display: flex; gap: 4px; align-items: center; justify-content: center; width: 100%; }
-
-    .tool-btn {
-        background: transparent; border: 1.5px solid transparent; color: rgba(255,255,255,0.6);
-        padding: 6px 14px; border-radius: 10px; cursor: pointer; font-size: 13px;
-        font-weight: 600; transition: all 0.12s; display: inline-flex; align-items: center; justify-content: center;
-        white-space: nowrap; letter-spacing: 0.2px; font-family: 'Inter', sans-serif;
-    }
-    .tool-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
-    .tool-btn.active { background: rgba(99,102,241,0.8); color: #fff; border-color: rgba(99,102,241,0.4); }
-    .tool-btn.danger { color: #fca5a5; }
-    .tool-btn.danger:hover { background: rgba(239,68,68,0.12); }
-    .tool-btn.capture { background: rgba(234,179,8,0.85); color: #1e293b; border-color: rgba(234,179,8,0.4); font-weight: 700; }
-    .tool-btn.capture:hover { background: rgba(250,204,21,0.9); }
-    .tool-btn.io-btn { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); }
-    .tool-btn.io-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
-
-    .zoom-group { display: flex; align-items: center; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 2px; }
-    .zoom-btn { padding: 5px 10px; font-size: 14px; }
-    #zoom-level { color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 700; min-width: 44px; text-align: center; user-select: none; font-family: 'Inter', sans-serif; }
-
-    .divider { width: 1px; height: 18px; background: rgba(255,255,255,0.08); margin: 0 2px; }
-
-    .mode-btn { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7); border: 1.5px solid rgba(255,255,255,0.08); }
-    .mode-btn.active-draw { background: rgba(239,68,68,0.8); border-color: rgba(239,68,68,0.4); color: #fff; box-shadow: 0 0 16px rgba(239,68,68,0.2); }
-
-    .color-picker-group { display: flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.15); padding: 4px 10px; border-radius: 10px; }
-    .color-btn { width: 18px; height: 18px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; transition: transform 0.1s; }
-    .color-btn:hover { transform: scale(1.2); }
-    .color-btn.active { border-color: #fff; box-shadow: 0 0 0 2px rgba(99,102,241,0.6); }
-    .custom-color-input { width: 22px; height: 22px; padding: 0; border: none; border-radius: 5px; cursor: pointer; background: transparent; }
-    .custom-color-input::-webkit-color-swatch-wrapper { padding: 0; }
-    .custom-color-input::-webkit-color-swatch { border: 2px solid rgba(255,255,255,0.4); border-radius: 5px; }
-
-    /* ---- SELECTION POPUP (glass) ---- */
-    #comment-popup {
-        display: none; position: absolute; z-index: 800; 
-        background: rgba(255,255,255,0.92);
-        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-        padding: 5px; border-radius: 14px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.04);
-        border: 1px solid rgba(0,0,0,0.05);
-        gap: 4px; transform: translate(-50%, -100%); margin-top: -12px;
-        width: max-content; flex-direction: row; align-items: center; flex-wrap: nowrap;
-    }
-    #comment-popup .btn { white-space: nowrap !important; flex-shrink: 0; }
-
-    .modal-overlay {
-        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        background: rgba(15,23,42,0.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-        z-index: 9999; display: none; align-items: center; justify-content: center;
-    }
-
-    /* ---- FLOATING NOTE MODAL (glass, right side) ---- */
-    .floating-modal {
-        position: fixed; top: 50%; right: 24px; left: auto;
-        transform: translateY(-50%);
-        z-index: 10000; display: none; 
-        background: rgba(255,255,255,0.95);
-        backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-        border-radius: 20px; width: 380px; max-width: 90vw;
-        box-shadow: 0 24px 64px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.03);
-        border: 1px solid rgba(0,0,0,0.05); overflow: visible;
-    }
-    .floating-modal .drag-handle {
-        padding: 20px 24px 0 24px; cursor: grab; user-select: none;
-        display: flex; justify-content: space-between; align-items: center;
-    }
-    .floating-modal .drag-handle:active { cursor: grabbing; }
-    .floating-modal .drag-handle .grip-dots { color: #94a3b8; font-size: 10px; letter-spacing: 2px; font-weight: 700; text-transform: uppercase; }
-    .floating-modal .modal-body { padding: 12px 24px 24px 24px; }
-
-    .custom-modal {
-        background: #fff; padding: 32px; border-radius: 20px; width: 450px; max-width: 90vw;
-        box-shadow: 0 24px 64px rgba(0,0,0,0.12); border: 1px solid rgba(0,0,0,0.05);
-    }
-    .custom-modal h3 { margin-top: 0; margin-bottom: 8px; color: #0f172a; font-size: 18px; font-weight: 700; letter-spacing: -0.2px; }
-    .custom-modal p.subtitle { margin-top: 0; margin-bottom: 20px; font-size: 13px; color: #64748b; line-height: 1.5; }
-    .input-label { display: block; font-size: 10px; font-weight: 700; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
-    
-    .custom-modal input, .custom-modal textarea,
-    .floating-modal input, .floating-modal textarea {
-        width: 100%; box-sizing: border-box; padding: 11px 14px; border: 1.5px solid #e5e7eb;
-        border-radius: 12px; font-family: 'Inter', sans-serif; color: #1e293b; margin-bottom: 18px;
-        font-size: 14px; background: #fafbfc; transition: all 0.15s;
-    }
-    .custom-modal input, .floating-modal input { font-size: 14px; font-weight: 600; }
-    .custom-modal textarea, .floating-modal textarea { font-size: 14px; resize: vertical; min-height: 90px; line-height: 1.6; }
-    .custom-modal input:focus, .custom-modal textarea:focus,
-    .floating-modal input:focus, .floating-modal textarea:focus { outline: none; border-color: #818cf8; background: #fff; box-shadow: 0 0 0 3px rgba(129,140,248,0.1); }
-    
-    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
-    .modal-btn { padding: 9px 18px; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 13px; border: none; transition: all 0.12s; font-family: 'Inter', sans-serif; }
-    .modal-btn-cancel { background: #f1f5f9; color: #475569; }
-    .modal-btn-cancel:hover { background: #e2e8f0; }
-    .modal-btn-save { background: #4f46e5; color: #fff; }
-    .modal-btn-save:hover { background: #4338ca; box-shadow: 0 4px 12px rgba(79,70,229,0.25); }
-
-    #export-content {
-        flex-grow: 1; overflow-y: auto; background: #f8fafc; padding: 16px; 
-        border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 18px; 
-        font-size: 12px; font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace; 
-        white-space: pre-wrap; color: #334155; max-height: 400px; line-height: 1.7;
-    }
-
-    /* ---- IMAGE BLOCKS ---- */
-    .image-block {
-        background: #fff; position: absolute; border-radius: 16px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
-        z-index: 100; display: flex; flex-direction: column;
-        border: 1px solid rgba(0,0,0,0.05); overflow: hidden; min-width: 150px; min-height: 100px;
-    }
-    .image-block .document-header { border-radius: 16px 16px 0 0; }
-    .image-block .image-wrapper {
-        flex-grow: 1; display: flex; align-items: center; justify-content: center;
-        overflow: hidden; background: #f8fafc;
-    }
-    .image-block .image-wrapper img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
-    .image-block .resize-handle {
-        position: absolute; right: 0; bottom: 0; width: 20px; height: 20px; cursor: se-resize;
-        background: linear-gradient(135deg, transparent 50%, #d1d5db 50%);
-        border-radius: 0 0 16px 0; opacity: 0; transition: opacity 0.2s; z-index: 20;
-    }
-    .image-block:hover .resize-handle { opacity: 0.5; }
-
-    .paste-toast {
-        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-        background: rgba(15,23,42,0.8); backdrop-filter: blur(16px);
-        color: #fff; padding: 8px 22px; border-radius: 12px;
-        font-size: 13px; font-weight: 600; z-index: 11000;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-        opacity: 0; transition: opacity 0.2s; pointer-events: none;
-        font-family: 'Inter', sans-serif;
-    }
-    .paste-toast.show { opacity: 1; }
-
-    /* ============ DARK MODE ============ */
-    body.dark {
-        background-color: #0f1419;
-        background-image: radial-gradient(#1e2530 1px, transparent 1px);
-        color: #e2e8f0;
-    }
-    body.dark #zoom-container {
-        background-color: #0f1419;
-        background-image: radial-gradient(#1e2530 1px, transparent 1px);
-    }
-
-    /* Blocks */
-    body.dark .document-block {
-        background: #1a1f2e;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 8px 32px rgba(0,0,0,0.2);
-        border-color: rgba(255,255,255,0.06);
-    }
-    body.dark .document-header {
-        background: #161b27;
-        border-bottom-color: rgba(255,255,255,0.05);
-        color: #64748b;
-    }
-    body.dark .delete-btn { color: #475569; }
-    body.dark .delete-btn:hover { color: #f87171; background: rgba(248,113,113,0.1); }
-    body.dark .document-content { color: #cbd5e1; }
-    body.dark .document-content h2 { color: #f1f5f9; }
-    body.dark .document-content strong { color: #e2e8f0; }
-    body.dark .resize-handle { background: linear-gradient(135deg, transparent 50%, #334155 50%); }
-    body.dark .block-export-btn { background: #059669; box-shadow: 0 2px 8px rgba(5,150,105,0.3); }
-
-    /* Highlights */
-    body.dark .highlight-text {
-        background-color: rgba(251,191,36,0.12);
-        border-bottom-color: #b45309;
-    }
-    body.dark .highlight-container.has-note .highlight-text {
-        background-color: rgba(251,191,36,0.18);
-        border-bottom-color: #92400e;
-    }
-    body.dark .highlight-container:hover .highlight-text,
-    body.dark .highlight-container.active .highlight-text {
-        background-color: rgba(251,191,36,0.28);
-    }
-
-    /* B-Roll Cards */
-    body.dark .broll-card {
-        background: #1e293b;
-        border-color: rgba(255,255,255,0.08);
-        box-shadow: 0 16px 48px rgba(0,0,0,0.35);
-        color: #cbd5e1;
-    }
-    body.dark .broll-card-header { border-bottom-color: rgba(255,255,255,0.06); }
-    body.dark .broll-title { color: #64748b; }
-    body.dark .btn-edit-note { color: #64748b; }
-    body.dark .btn-edit-note:hover { background: rgba(255,255,255,0.06); color: #94a3b8; }
-    body.dark .broll-note-text { color: #94a3b8; }
-
-    /* Selection Popup */
-    body.dark #comment-popup {
-        background: rgba(30,41,59,0.92);
-        border-color: rgba(255,255,255,0.08);
-        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    }
-    body.dark #comment-popup #btn-mark { background: rgba(255,255,255,0.1); color: #e2e8f0; }
-    body.dark #comment-popup #btn-mark:hover { background: rgba(255,255,255,0.15); }
-
-    /* Modals */
-    body.dark .modal-overlay {
-        background: rgba(0,0,0,0.6);
-    }
-    body.dark .custom-modal {
-        background: #1a1f2e;
-        border-color: rgba(255,255,255,0.06);
-        box-shadow: 0 24px 64px rgba(0,0,0,0.4);
-    }
-    body.dark .custom-modal h3 { color: #f1f5f9; }
-    body.dark .custom-modal p.subtitle { color: #64748b; }
-    body.dark .input-label { color: #64748b; }
-    body.dark .custom-modal input,
-    body.dark .custom-modal textarea {
-        background: #0f172a; border-color: #334155; color: #e2e8f0;
-    }
-    body.dark .custom-modal input:focus,
-    body.dark .custom-modal textarea:focus {
-        border-color: #6366f1; background: #1e293b;
-        box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
-    }
-    body.dark .modal-btn-cancel { background: #334155; color: #94a3b8; }
-    body.dark .modal-btn-cancel:hover { background: #3f4a5e; }
-
-    /* Floating Note Modal */
-    body.dark .floating-modal {
-        background: rgba(26,31,46,0.97);
-        border-color: rgba(255,255,255,0.06);
-        box-shadow: 0 24px 64px rgba(0,0,0,0.4);
-    }
-    body.dark .floating-modal .drag-handle .grip-dots { color: #475569; }
-    body.dark #note-modal-header { color: #f1f5f9 !important; }
-    body.dark .floating-modal input,
-    body.dark .floating-modal textarea {
-        background: #0f172a; border-color: #334155; color: #e2e8f0;
-    }
-    body.dark .floating-modal input:focus,
-    body.dark .floating-modal textarea:focus {
-        border-color: #6366f1; background: #1e293b;
-        box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
-    }
-
-    /* Export content */
-    body.dark #export-content {
-        background: #0f172a; border-color: #334155; color: #94a3b8;
-    }
-
-    /* Image blocks */
-    body.dark .image-block {
-        background: #1a1f2e;
-        border-color: rgba(255,255,255,0.06);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 8px 32px rgba(0,0,0,0.2);
-    }
-    body.dark .image-block .image-wrapper { background: #0f172a; }
-
-    /* Toast */
-    body.dark .paste-toast {
-        background: rgba(30,41,59,0.9);
-    }
-
-    /* Toolbar in dark mode - slightly more opaque */
-    body.dark .drawing-toolbar {
-        background: rgba(10,15,25,0.82);
-        border-color: rgba(255,255,255,0.05);
-    }
-
-    /* Dark mode toggle button glow */
-    .tool-btn.dark-toggle { font-size: 15px; padding: 6px 10px; }
-    body.dark .tool-btn.dark-toggle { color: #fbbf24; }
-
-    /* Dark mode placeholder text */
-    body.dark .document-content p[style*="color:#94a3b8"] { color: #475569 !important; }
-
-    /* ---- Note modal extras ---- */
-    .phrase-preview {
-        font-size: 13px; color: #64748b; margin-bottom: 14px; padding: 8px 12px;
-        background: #f8fafc; border-radius: 8px; border-left: 3px solid #fbbf24;
-        font-style: italic; line-height: 1.5;
-    }
-    body.dark .phrase-preview { background: #0f172a; color: #94a3b8; }
-
-    .note-type-row { display: flex; gap: 6px; margin-bottom: 12px; }
-    .note-type-btn {
-        padding: 6px 14px; border-radius: 10px; cursor: pointer; font-weight: 600;
-        font-size: 12px; border: 1.5px solid #e5e7eb; background: #fff; color: #475569;
-        font-family: 'Inter', sans-serif; transition: all 0.12s;
-        text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .note-type-btn:hover { border-color: #818cf8; color: #4f46e5; }
-    .note-type-btn.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
-    body.dark .note-type-btn { background: #1e293b; border-color: #334155; color: #94a3b8; }
-    body.dark .note-type-btn:hover { border-color: #818cf8; color: #818cf8; }
-    body.dark .note-type-btn.active { background: #6366f1; color: #fff; border-color: #6366f1; }
-
-    /* ---- Project name bar ---- */
-    .project-bar {
-        position: fixed; top: 16px; left: 16px; z-index: 999;
-        display: flex; align-items: center; gap: 8px;
-        background: rgba(255,255,255,0.88);
-        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-        padding: 8px 14px; border-radius: 14px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
-        font-family: 'Inter', sans-serif;
-    }
-    .project-logo {
-        width: 26px; height: 26px; border-radius: 7px; background: #0f172a;
-        display: flex; align-items: center; justify-content: center;
-        color: #fbbf24; font-weight: 800; font-size: 14px; flex-shrink: 0;
-        letter-spacing: -0.5px;
-    }
-    .project-name {
-        font-size: 14px; font-weight: 600; color: #1e293b;
-        border: none; background: transparent; outline: none;
-        padding: 3px 6px; border-radius: 6px; min-width: 80px; max-width: 220px;
-        cursor: text; transition: all 0.12s;
-        font-family: 'Inter', sans-serif;
-    }
-    .project-name:hover { background: rgba(0,0,0,0.04); }
-    .project-name:focus { background: #fff; box-shadow: 0 0 0 2px rgba(99,102,241,0.3); }
-    .project-save-name {
-        padding: 4px 10px; border-radius: 8px; cursor: pointer; font-weight: 600;
-        font-size: 11px; border: 1.5px solid #e5e7eb; background: #fff; color: #475569;
-        font-family: 'Inter', sans-serif; transition: all 0.12s;
-        text-transform: uppercase; letter-spacing: 0.5px;
-        opacity: 0; pointer-events: none;
-    }
-    .project-save-name.visible { opacity: 1; pointer-events: auto; }
-    .project-save-name:hover { background: #4f46e5; color: #fff; border-color: #4f46e5; }
-
-    body.dark .project-bar {
-        background: rgba(15,23,42,0.85);
-        box-shadow: 0 2px 12px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.05);
-    }
-    body.dark .project-name { color: #e2e8f0; }
-    body.dark .project-name:hover { background: rgba(255,255,255,0.05); }
-    body.dark .project-name:focus { background: rgba(255,255,255,0.08); box-shadow: 0 0 0 2px rgba(129,140,248,0.3); }
-    body.dark .project-save-name { background: #1e293b; border-color: #334155; color: #94a3b8; }
-    body.dark .project-save-name:hover { background: #6366f1; color: #fff; border-color: #6366f1; }
-
-    /* ---- Settings drawer ---- */
-    .settings-drawer {
-        position: fixed; top: 0; right: -420px; width: 400px; height: 100vh;
-        background: rgba(255,255,255,0.97);
-        backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-        z-index: 10001; padding: 32px 28px;
-        box-shadow: -8px 0 40px rgba(0,0,0,0.1);
-        border-left: 1px solid rgba(0,0,0,0.05);
-        transition: right 0.25s ease;
-        overflow-y: auto;
-        font-family: 'Inter', sans-serif;
-    }
-    .settings-drawer.open { right: 0; }
-    .settings-drawer h3 {
-        margin: 0 0 4px 0; font-size: 18px; font-weight: 700; color: #0f172a; letter-spacing: -0.2px;
-    }
-    .settings-drawer .subtitle {
-        font-size: 13px; color: #64748b; margin: 0 0 24px 0; line-height: 1.5;
-    }
-    .settings-section {
-        margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #f0f0f3;
-    }
-    .settings-section:last-child { border-bottom: none; }
-    .settings-section h4 {
-        font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase;
-        letter-spacing: 1px; margin: 0 0 12px 0;
-    }
-    .settings-input {
-        width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1.5px solid #e5e7eb;
-        border-radius: 10px; font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace;
-        font-size: 13px; color: #1e293b; background: #fafbfc; transition: all 0.15s;
-        margin-bottom: 10px;
-    }
-    .settings-input:focus { outline: none; border-color: #818cf8; background: #fff; box-shadow: 0 0 0 3px rgba(129,140,248,0.1); }
-    .settings-input::placeholder { color: #94a3b8; font-family: 'Inter', sans-serif; }
-    .settings-hint {
-        font-size: 12px; color: #94a3b8; line-height: 1.5; margin-bottom: 12px;
-    }
-    .settings-hint code {
-        background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: 11px;
-        font-family: 'SF Mono', ui-monospace, monospace;
-    }
-    .settings-btn-row { display: flex; gap: 8px; margin-top: 6px; }
-    .settings-btn {
-        padding: 8px 16px; border-radius: 10px; cursor: pointer; font-weight: 600;
-        font-size: 13px; border: none; font-family: 'Inter', sans-serif; transition: all 0.12s;
-    }
-    .settings-btn-primary { background: #4f46e5; color: #fff; }
-    .settings-btn-primary:hover { background: #4338ca; box-shadow: 0 4px 12px rgba(79,70,229,0.25); }
-    .settings-btn-secondary { background: #f1f5f9; color: #475569; }
-    .settings-btn-secondary:hover { background: #e2e8f0; }
-    .settings-close {
-        position: absolute; top: 24px; right: 24px; background: transparent; border: none;
-        font-size: 20px; color: #94a3b8; cursor: pointer; padding: 4px 8px;
-        border-radius: 8px; transition: all 0.12s; line-height: 1;
-    }
-    .settings-close:hover { color: #475569; background: #f1f5f9; }
-    .sync-status {
-        font-size: 12px; padding: 8px 12px; border-radius: 8px; margin-top: 10px;
-        line-height: 1.4;
-    }
-    .sync-status.success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-    .sync-status.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-    .sync-status.info { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-
-    /* Sync indicator on toolbar button */
-    .tool-btn.syncing { animation: syncPulse 1s ease infinite; }
-    @keyframes syncPulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.4; }
-    }
-
-    body.dark .settings-drawer {
-        background: rgba(15,23,42,0.97);
-        border-left-color: rgba(255,255,255,0.05);
-        box-shadow: -8px 0 40px rgba(0,0,0,0.3);
-    }
-    body.dark .settings-drawer h3 { color: #f1f5f9; }
-    body.dark .settings-drawer .subtitle { color: #64748b; }
-    body.dark .settings-section { border-bottom-color: #1e293b; }
-    body.dark .settings-section h4 { color: #64748b; }
-    body.dark .settings-input { background: #0f172a; border-color: #334155; color: #e2e8f0; }
-    body.dark .settings-input:focus { border-color: #6366f1; background: #1e293b; }
-    body.dark .settings-hint { color: #64748b; }
-    body.dark .settings-hint code { background: #1e293b; color: #94a3b8; }
-    body.dark .settings-close:hover { background: rgba(255,255,255,0.06); color: #94a3b8; }
-    body.dark .settings-btn-secondary { background: #334155; color: #94a3b8; }
-    body.dark .sync-status.success { background: #052e16; color: #4ade80; border-color: #166534; }
-    body.dark .sync-status.error { background: #450a0a; color: #f87171; border-color: #991b1b; }
-    body.dark .sync-status.info { background: #172554; color: #60a5fa; border-color: #1e40af; }
+  @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 
-    <!-- Project Name Bar -->
-    <div class="project-bar">
-        <div class="project-logo">B</div>
-        <input type="text" class="project-name" id="project-name" value="Untitled Project" spellcheck="false">
-        <button class="project-save-name" id="project-save-name">Save</button>
+<header>
+  <h1>CatalystX <span>/ Storyboard</span></h1>
+  <div class="tag">scene-detect contact sheet · runs entirely in your browser</div>
+</header>
+
+<div id="dropzone" tabindex="0">
+  <button id="uploadBtn">Choose video</button>
+  <span class="dz-label">or drop a clip here — <strong>target under 90 seconds</strong></span>
+  <input type="file" id="fileInput" accept="video/*" hidden>
+  <span id="videoMeta"></span>
+</div>
+
+<section id="controls">
+  <div class="tabs">
+    <button id="modeScene" class="tab active">Scene detect</button>
+    <button id="modeFrames" class="tab">Frame-by-frame</button>
+  </div>
+
+  <div id="scenePanel">
+    <div class="ctrl-row">
+      <div class="ctrl">
+        <label for="sensitivity">Sensitivity threshold</label>
+        <input type="range" id="sensitivity" min="3" max="60" step="1" value="15">
+        <span class="val" id="sensitivityVal">15</span>
+      </div>
+      <div class="ctrl">
+        <label for="interval">Sampling interval (s)</label>
+        <input type="number" id="interval" min="0.05" max="2" step="0.05" value="0.2">
+      </div>
     </div>
-
-    <input type="file" id="file-import" accept=".json" style="display: none;">
-    <div id="paste-toast" class="paste-toast">Image pasted onto canvas</div>
-
-    <!-- Transcript Modal -->
-    <div id="transcript-modal-overlay" class="modal-overlay">
-        <div class="custom-modal" style="width: 700px;">
-            <h3>Add Transcript Block</h3>
-            <p class="subtitle">Paste your transcript text. The block will appear on the canvas ready to mark and annotate.</p>
-            <label class="input-label">Block Label</label>
-            <input type="text" id="transcript-title-input" placeholder="e.g. Segment 1: Cold Open">
-            <label class="input-label">Transcript Text</label>
-            <textarea id="transcript-input" style="min-height: 220px;" placeholder="Paste or type transcript text here..."></textarea>
-            <div class="modal-actions">
-                <button class="modal-btn modal-btn-cancel" id="transcript-btn-cancel">Cancel</button>
-                <button class="modal-btn modal-btn-save" id="transcript-btn-save">Add Block</button>
-            </div>
-        </div>
+    <div id="timelineWrap">
+      <div class="tl-caption">FRAME-DIFFERENCE TIMELINE — bars are per-sample pixel difference, teal line is the threshold, glowing ticks are detected cuts</div>
+      <canvas id="timeline"></canvas>
     </div>
+  </div>
 
-    <!-- Floating Note Modal -->
-    <div id="note-modal-floating" class="floating-modal" style="width:400px;">
-        <div class="drag-handle">
-            <h3 id="note-modal-header" style="margin:0; color:#0f172a; font-size:17px; font-weight:700; letter-spacing:-0.2px;">Production Note</h3>
-            <span class="grip-dots">&#x2630; drag</span>
-        </div>
-        <div class="modal-body">
-            <div class="note-label-row">
-                <label class="input-label" style="margin-bottom:0;">Note</label>
-                <button id="note-copy-phrase" class="phrase-copy-btn">Copy phrase</button>
-            </div>
-            <textarea id="note-modal-input" placeholder="Describe the B-roll visual..."></textarea>
-            <div class="modal-actions">
-                <button class="modal-btn modal-btn-cancel" id="note-modal-cancel">Cancel</button>
-                <button class="modal-btn modal-btn-save" id="note-modal-save">Save</button>
-            </div>
-        </div>
+  <div id="framePanel">
+    <canvas id="fbPreview"></canvas>
+    <div id="fbTrack">
+      <div id="fbRegion"></div>
+      <div id="fbInHandle" class="fb-handle" title="In point — drag, or click then use , and ."></div>
+      <div id="fbOutHandle" class="fb-handle" title="Out point — drag, or click then use , and ."></div>
     </div>
-
-    <!-- Export Modal -->
-    <div id="export-modal-overlay" class="modal-overlay">
-        <div class="custom-modal" style="width: 620px;">
-            <h3>Exported Notes</h3>
-            <p class="subtitle">All marked phrases and their production notes.</p>
-            <div id="export-content"></div>
-            <div class="modal-actions">
-                <button class="modal-btn modal-btn-cancel" id="export-btn-close">Close</button>
-                <button class="modal-btn modal-btn-save" id="export-btn-copy">Copy to Clipboard</button>
-            </div>
-        </div>
+    <div id="fbReadout">
+      <span>IN <b id="fbInLabel">0:00.00</b></span>
+      <span>OUT <b id="fbOutLabel">0:03.00</b></span>
+      <span>RANGE <b id="fbRangeLabel">3.00s</b></span>
+      <span>E / Shift+E (or , and .) nudge the active handle one frame — VLC-style</span>
     </div>
-
-    <!-- Settings Drawer -->
-    <div class="settings-drawer" id="settings-drawer">
-        <button class="settings-close" id="settings-close">&times;</button>
-        <h3>Settings</h3>
-        <p class="subtitle">Configure cloud sync via GitHub Gist to access your workspace across devices.</p>
-
-        <div class="settings-section">
-            <h4>GitHub Gist Sync</h4>
-            <p class="settings-hint">
-                Create a Personal Access Token at
-                <code>github.com/settings/tokens</code> with the <code>gist</code> scope.
-            </p>
-            <input type="password" class="settings-input" id="settings-pat" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
-
-            <p class="settings-hint" style="margin-top:4px;">
-                Gist ID — create a new Gist at <code>gist.github.com</code> with any filename,
-                then paste the ID from the URL here. Leave blank to auto-create on first sync.
-            </p>
-            <input type="text" class="settings-input" id="settings-gist-id" placeholder="e.g. a1b2c3d4e5f6789...">
-
-            <div class="settings-btn-row">
-                <button class="settings-btn settings-btn-primary" id="settings-save-sync">Save Settings</button>
-                <button class="settings-btn settings-btn-secondary" id="settings-test-sync">Test Connection</button>
-            </div>
-            <div id="sync-status-msg" class="sync-status" style="display:none;"></div>
-        </div>
-
-        <div class="settings-section">
-            <h4>Sync Info</h4>
-            <p class="settings-hint" id="sync-last-info">No sync performed yet.</p>
-        </div>
+    <div class="ctrl-row">
+      <div class="ctrl">
+        <label for="fbFps">Video FPS</label>
+        <input type="number" id="fbFps" min="1" max="120" step="1" value="24">
+      </div>
+      <div class="ctrl">
+        <label for="fbStep">Step (frames)</label>
+        <input type="number" id="fbStep" min="1" max="60" step="1" value="1">
+      </div>
+      <span id="fbEstimate"></span>
+      <div class="actions"><button id="fbExtractBtn">Extract frames</button></div>
     </div>
+  </div>
 
-    <!-- Canvas -->
-    <div id="zoom-container">
-        <canvas id="drawing-layer" width="6000" height="6000"></canvas>
-        <div id="blocks-container" style="opacity:0;">
-            <div class="document-block" style="left: 2550px; top: 600px; width: 900px;">
-                <div class="document-header">
-                    <span>&#x2807; Drag to move</span>
-                    <button class="delete-btn" title="Delete Block">&times;</button>
-                </div>
-                <div class="document-content" contenteditable="true" spellcheck="false">
-                    <h2>Episode Title</h2>
-                    <p><strong>Segment: Cold Open</strong></p>
-                    <p>Paste your transcript here. Select any phrase and click "Mark" to flag it for B-roll, or "+ Note" to mark and write a production note in one step. Click any existing highlight to edit its note.</p>
-                    <p style="color:#94a3b8; font-size:14px; margin-top:24px;"><em>Select text &rarr; Mark or + Note &rarr; Ctrl+Z to undo. Ctrl+V pastes screenshots onto the canvas.</em></p>
-                </div>
-                <button class="block-export-btn">Export Block</button>
-                <div class="resize-handle"></div>
-            </div>
-        </div>
-    </div> 
-
-    <!-- Selection Popup -->
-    <div id="comment-popup">
-        <button id="btn-mark" class="btn" style="background:#f1f5f9; color:#1e293b;">Mark</button>
-        <button id="btn-add-note" class="btn" style="background:#10b981;">+ Note</button>
-        <button id="btn-copy-text" class="btn" style="background:#475569;">Copy</button>
+  <div class="ctrl-row" style="margin-top:16px">
+    <div class="ctrl">
+      <label for="columns">Columns (0 = auto)</label>
+      <input type="number" id="columns" min="0" max="12" step="1" value="0">
     </div>
-
-    <!-- Glass Toolbar -->
-    <div class="drawing-toolbar">
-        <div class="toolbar-row">
-            <div class="zoom-group">
-                <button id="zoom-out" class="tool-btn zoom-btn">&minus;</button>
-                <span id="zoom-level">100%</span>
-                <button id="zoom-in" class="tool-btn zoom-btn">+</button>
-            </div>
-            <div class="divider"></div>
-            <button id="toggle-draw" class="tool-btn mode-btn">Draw</button>
-            <button id="btn-hide-drawings" class="tool-btn">Hide</button>
-            <div class="divider"></div>
-            <button id="btn-transcript" class="tool-btn">+ Transcript</button>
-            <button id="btn-pip" class="tool-btn" title="Pop out transcript into picture-in-picture">Pop Out</button>
-            <button id="btn-save-project" class="tool-btn io-btn">Save</button>
-            <button id="btn-load-project" class="tool-btn io-btn">Load</button>
-            <button id="btn-sync-push" class="tool-btn" style="background:rgba(99,102,241,0.8); color:#fff; border-color:rgba(99,102,241,0.4);" title="Push workspace to cloud">Push &#x2191;</button>
-            <button id="btn-sync-pull" class="tool-btn" style="background:rgba(16,185,129,0.8); color:#fff; border-color:rgba(16,185,129,0.4);" title="Pull workspace from cloud">Pull &#x2193;</button>
-            <button id="btn-settings" class="tool-btn" title="Sync settings">&#x2699;</button>
-            <div class="divider"></div>
-            <button id="btn-export" class="tool-btn" style="background:rgba(16,185,129,0.85); color:#fff; border-color:rgba(16,185,129,0.4);">Export</button>
-            <button id="btn-screenshot" class="tool-btn capture">Capture</button>
-            <button id="btn-clear-all" class="tool-btn danger" title="Clear everything: blocks, marks, notes, drawings">Clear All</button>
-            <div class="divider"></div>
-            <button id="btn-dark-mode" class="tool-btn dark-toggle" title="Toggle dark mode">&#x263D;</button>
-        </div>
-        <div class="toolbar-row" id="draw-tools" style="display: none; margin-top: 4px;">
-            <div class="color-picker-group">
-                <button class="color-btn active" style="background:#f43f5e;" data-color="#f43f5e"></button>
-                <button class="color-btn" style="background:#10b981;" data-color="#10b981"></button>
-                <button class="color-btn" style="background:#3b82f6;" data-color="#3b82f6"></button>
-                <button class="color-btn" style="background:#0f172a;" data-color="#0f172a"></button>
-                <input type="color" id="custom-color" class="custom-color-input" value="#f43f5e" title="Custom">
-            </div>
-            <div class="divider"></div>
-            <button id="tool-pen" class="tool-btn active draw-tool" data-tool="pen">Pen</button>
-            <button id="tool-arrow" class="tool-btn draw-tool" data-tool="arrow">Arrow</button>
-            <button id="tool-eraser" class="tool-btn draw-tool" data-tool="eraser">Eraser</button>
-            <div class="divider"></div>
-            <button id="tool-undo" class="tool-btn">Undo</button>
-            <button id="tool-clear" class="tool-btn danger">Clear</button>
-        </div>
+    <div id="sceneCount">Scenes detected: <b>0</b></div>
+    <div class="actions">
+      <button id="exportBtn" disabled>Export storyboard (PNG)</button>
+      <button id="zipBtn" class="ghost" disabled>Download all frames (ZIP)</button>
+      <button id="zipSelBtn" class="ghost" disabled>Download selected (0)</button>
+      <button id="clearSelBtn" class="ghost" disabled>Clear selection</button>
     </div>
-
-    <script>
-        // Dark mode: restore from localStorage
-        if (localStorage.getItem('broll-dark-mode') === 'true') document.body.classList.add('dark');
-
-        // Project name: restore and set up handlers
-        const projectNameInput = document.getElementById('project-name');
-        const projectSaveBtn = document.getElementById('project-save-name');
-        let savedProjectName = localStorage.getItem('broll-project-name') || 'Untitled Project';
-        projectNameInput.value = savedProjectName;
-        document.title = savedProjectName + ' — B-Roll Editor';
-
-        // Update tab title live as user types
-        projectNameInput.addEventListener('input', () => {
-            const name = projectNameInput.value.trim() || 'Untitled Project';
-            document.title = name + ' — B-Roll Editor';
-            projectSaveBtn.classList.add('visible');
-        });
-
-        projectNameInput.addEventListener('focus', () => {
-            projectSaveBtn.classList.add('visible');
-        });
-
-        projectNameInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') { e.preventDefault(); commitProjectName(); }
-            if (e.key === 'Escape') { projectNameInput.blur(); }
-        });
-
-        // Auto-save name on blur
-        projectNameInput.addEventListener('blur', () => {
-            commitProjectName();
-        });
-
-        // Use mousedown so it fires before blur
-        projectSaveBtn.addEventListener('mousedown', (e) => {
-            e.preventDefault(); // prevent blur from firing
-            commitProjectName();
-        });
-
-        function commitProjectName() {
-            const name = projectNameInput.value.trim() || 'Untitled Project';
-            projectNameInput.value = name;
-            savedProjectName = name;
-            document.title = name + ' — B-Roll Editor';
-            localStorage.setItem('broll-project-name', name);
-            projectNameInput.blur();
-
-            // Brief flash
-            projectSaveBtn.textContent = '✓';
-            projectSaveBtn.classList.add('visible');
-            setTimeout(() => {
-                projectSaveBtn.textContent = 'Save';
-                projectSaveBtn.classList.remove('visible');
-            }, 600);
-        }
-
-        window.onload = () => {
-            const bc = document.getElementById('blocks-container');
-            try {
-                const saved = localStorage.getItem('broll-autosave');
-                if (saved) {
-                    const pd = JSON.parse(saved);
-                    if (pd.blocks && pd.blocks.length > 0) {
-                        loadProjectData(pd);
-                        bc.style.opacity = '1';
-                        return;
-                    }
-                }
-            } catch(err) { console.warn('Auto-restore failed:', err); }
-            // No saved data — show default block and scroll to center
-            bc.style.opacity = '1';
-            document.querySelectorAll('.document-block').forEach(makeBlockInteractive);
-            refreshAllParaExportButtons();
-            window.scrollTo((6000 - window.innerWidth)/2, 400);
-        };
-
-        const exportModal = document.getElementById('export-modal-overlay');
-        const exportContent = document.getElementById('export-content');
-
-        function generateExportTextForBlock(block) {
-            const contentEl = block.querySelector('.document-content');
-            return generateExportTextForNodes(Array.from(contentEl.childNodes));
-        }
-
-        // Generate export text from a list of nodes (a paragraph or whole block)
-        function generateExportTextForNodes(nodes) {
-            const cc = document.createElement('div');
-            nodes.forEach(n => {
-                const clone = n.cloneNode(true);
-                if (clone.nodeType === 1) clone.querySelectorAll && clone.querySelectorAll('.para-export-btn').forEach(b => b.remove());
-                cc.appendChild(clone);
-            });
-            // Collect notes before stripping cards
-            let notes = "";
-            cc.querySelectorAll('.highlight-container').forEach(c => {
-                const p = c.querySelector('.highlight-text'), n = c.querySelector('.broll-note-text');
-                if (p) {
-                    const phrase = p.textContent.trim(), note = n ? n.textContent.trim() : '';
-                    if (phrase) notes += note ? `"${phrase}"\n- ${note}\n\n` : `"${phrase}"\n- (marked, no note)\n\n`;
-                }
-            });
-            cc.querySelectorAll('.broll-card').forEach(c => c.remove());
-            cc.innerHTML = cc.innerHTML.replace(/[\n\r\t]+/g, ' ').replace(/<br\s*[\/]?>/gi, '\n').replace(/<\/p>|<\/div>|<\/h[1-6]>/gi, '\n\n');
-            let raw = cc.textContent.replace(/ {2,}/g, ' ').replace(/\s+([.,!?;:])/g, '$1').replace(/\n\s*\n/g, '\n\n').trim();
-            if (!notes) notes = "No highlights added.";
-            return `${raw}\n\n--- B-ROLL NOTES ---\n\n${notes}`;
-        }
-
-        // Export a single paragraph element
-        function exportSingleParagraph(paraEl) {
-            // Clone the paragraph, remove its export button, export it
-            const clone = paraEl.cloneNode(true);
-            clone.querySelectorAll('.para-export-btn').forEach(b => b.remove());
-            const text = generateExportTextForNodes([clone]);
-            exportContent.textContent = text;
-            currentExportFullText = text;
-            exportModal.style.display = 'flex';
-        }
-
-        // Block-level tags that should get an export button
-        const PARA_TAGS = ['P','H1','H2','H3','H4','H5','H6','UL','OL','BLOCKQUOTE'];
-
-        // Add an export button to a single paragraph (if it doesn't have one and has text)
-        function addParaExportButton(para) {
-            if (!PARA_TAGS.includes(para.tagName)) return;
-            if (para.querySelector(':scope > .para-export-btn')) return;
-            if (!para.textContent.trim()) return; // skip empty paragraphs
-            const btn = document.createElement('button');
-            btn.className = 'para-export-btn';
-            btn.setAttribute('contenteditable', 'false');
-            btn.textContent = 'Export';
-            btn.title = 'Export this line and its B-roll notes';
-            para.appendChild(btn);
-        }
-
-        // Refresh export buttons across all paragraphs in a content element
-        function refreshParaExportButtons(contentEl) {
-            // Remove buttons from now-empty paragraphs
-            contentEl.querySelectorAll('.para-export-btn').forEach(btn => {
-                const para = btn.parentElement;
-                if (!para || !para.textContent.replace(btn.textContent, '').trim()) {
-                    btn.remove();
-                }
-            });
-            // Add buttons to paragraphs that need them
-            Array.from(contentEl.children).forEach(child => addParaExportButton(child));
-        }
-
-        // Refresh buttons for every block on the canvas
-        function refreshAllParaExportButtons() {
-            document.querySelectorAll('.document-content').forEach(refreshParaExportButtons);
-        }
-
-        // Export the whole block as one continuous text
-        let currentExportFullText = '';
-        function openBlockExport(block) {
-            const contentEl = block.querySelector('.document-content');
-            const text = generateExportTextForNodes(Array.from(contentEl.childNodes));
-            exportContent.textContent = text;
-            currentExportFullText = text;
-            exportModal.style.display = 'flex';
-        }
-
-        /* === ZOOM === */
-        const zoomContainer = document.getElementById('zoom-container');
-        const zoomLevelText = document.getElementById('zoom-level');
-        let zoomLevel = 1;
-        function applyZoom() { zoomContainer.style.transform = `scale(${zoomLevel})`; zoomLevelText.innerText = `${Math.round(zoomLevel*100)}%`; }
-        document.addEventListener('wheel', (e) => {
-            if (e.ctrlKey || e.metaKey) {
-                e.preventDefault(); const oz = zoomLevel;
-                zoomLevel = Math.max(0.3, Math.min(4, zoomLevel + (e.deltaY > 0 ? -0.1 : 0.1)));
-                const mx=e.clientX, my=e.clientY, ux=(window.scrollX+mx)/oz, uy=(window.scrollY+my)/oz;
-                applyZoom(); window.scrollTo(ux*zoomLevel-mx, uy*zoomLevel-my);
-            }
-        }, { passive: false });
-        document.getElementById('zoom-in').addEventListener('click', () => { zoomLevel = Math.min(4, zoomLevel+0.2); applyZoom(); });
-        document.getElementById('zoom-out').addEventListener('click', () => { zoomLevel = Math.max(0.3, zoomLevel-0.2); applyZoom(); });
-
-        /* === BLOCK DRAG & RESIZE === */
-        let isDraggingBlock=false, isResizingBlock=false, activeBlock=null;
-        let blockStartX=0, blockStartY=0, blockStartW=0, blockStartH=0, mouseStartX=0, mouseStartY=0;
-
-        function makeBlockInteractive(block) {
-            const h=block.querySelector('.document-header'), r=block.querySelector('.resize-handle'), d=block.querySelector('.delete-btn'), ex=block.querySelector('.block-export-btn');
-            d.addEventListener('click', () => block.remove());
-            if (ex) ex.addEventListener('click', () => { openBlockExport(block); });
-            h.addEventListener('mousedown', (e) => { if (e.target===d||appMode==='draw') return; isDraggingBlock=true; activeBlock=block; blockStartX=parseFloat(block.style.left)||0; blockStartY=parseFloat(block.style.top)||0; mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation(); });
-            r.addEventListener('mousedown', (e) => { if (appMode==='draw') return; isResizingBlock=true; activeBlock=block; blockStartW=block.offsetWidth; blockStartH=block.offsetHeight; mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation(); });
-        }
-        function makeImageBlockInteractive(block) {
-            const h=block.querySelector('.document-header'), r=block.querySelector('.resize-handle'), d=block.querySelector('.delete-btn');
-            d.addEventListener('click', () => block.remove());
-            h.addEventListener('mousedown', (e) => { if (e.target===d||appMode==='draw') return; isDraggingBlock=true; activeBlock=block; blockStartX=parseFloat(block.style.left)||0; blockStartY=parseFloat(block.style.top)||0; mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation(); });
-            r.addEventListener('mousedown', (e) => { if (appMode==='draw') return; isResizingBlock=true; activeBlock=block; blockStartW=block.offsetWidth; blockStartH=block.offsetHeight; mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation(); });
-        }
-        document.querySelectorAll('.document-block').forEach(makeBlockInteractive);
-        document.addEventListener('mousemove', (e) => {
-            if (isDraggingBlock&&activeBlock) { activeBlock.style.left=`${blockStartX+(e.clientX-mouseStartX)/zoomLevel}px`; activeBlock.style.top=`${blockStartY+(e.clientY-mouseStartY)/zoomLevel}px`; }
-            else if (isResizingBlock&&activeBlock) { activeBlock.style.width=`${Math.max(150,blockStartW+(e.clientX-mouseStartX)/zoomLevel)}px`; if(activeBlock.classList.contains('image-block')) activeBlock.style.height=`${Math.max(100,blockStartH+(e.clientY-mouseStartY)/zoomLevel)}px`; }
-        });
-        document.addEventListener('mouseup', () => { isDraggingBlock=false; isResizingBlock=false; activeBlock=null; });
-
-        /* === TRANSCRIPT CREATION === */
-        const transcriptModal = document.getElementById('transcript-modal-overlay');
-        const transcriptInput = document.getElementById('transcript-input');
-        const transcriptTitleInput = document.getElementById('transcript-title-input');
-        const blocksContainer = document.getElementById('blocks-container');
-        const transcriptBtnSave = document.getElementById('transcript-btn-save');
-
-        /* === PER-PARAGRAPH EXPORT BUTTONS === */
-        // Click a paragraph's Export button → export just that paragraph
-        blocksContainer.addEventListener('click', (e) => {
-            const btn = e.target.closest('.para-export-btn');
-            if (btn) {
-                e.preventDefault();
-                const para = btn.parentElement;
-                if (para) exportSingleParagraph(para);
-                return;
-            }
-        });
-
-        // Keep buttons in sync as the user types / edits / adds paragraphs.
-        // Debounced so it doesn't run on every keystroke.
-        let paraBtnTimer = null;
-        blocksContainer.addEventListener('input', (e) => {
-            const contentEl = e.target.closest('.document-content');
-            if (!contentEl) return;
-            clearTimeout(paraBtnTimer);
-            paraBtnTimer = setTimeout(() => refreshParaExportButtons(contentEl), 400);
-        });
-
-        document.getElementById('btn-transcript').addEventListener('click', () => { transcriptInput.value=''; transcriptTitleInput.value=''; transcriptModal.style.display='flex'; transcriptTitleInput.focus(); });
-        document.getElementById('transcript-btn-cancel').addEventListener('click', () => transcriptModal.style.display='none');
-        transcriptTitleInput.addEventListener('keydown', (e) => { if(e.key==='Enter'){e.preventDefault();transcriptBtnSave.click();} });
-        transcriptInput.addEventListener('keydown', (e) => { if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();transcriptBtnSave.click();} });
-        transcriptBtnSave.addEventListener('click', () => {
-            const title = transcriptTitleInput.value.trim()||'New Segment', text = transcriptInput.value.trim();
-            if (text) {
-                const paras = text.split(/\n\n+/).map(p=>`<p>${p}</p>`).join('');
-                const cx=(window.scrollX+window.innerWidth/2)/zoomLevel, cy=(window.scrollY+window.innerHeight/2)/zoomLevel;
-                const nb = document.createElement('div'); nb.className='document-block';
-                nb.style.left=`${cx-350}px`; nb.style.top=`${cy-100}px`; nb.style.width='700px';
-                nb.innerHTML=`<div class="document-header"><span>&#x2807; Drag to move</span><button class="delete-btn">&times;</button></div><div class="document-content" contenteditable="true" spellcheck="false"><p><strong>${title}</strong></p>${paras}</div><button class="block-export-btn">Export Block</button><div class="resize-handle"></div>`;
-                blocksContainer.appendChild(nb); makeBlockInteractive(nb);
-                refreshParaExportButtons(nb.querySelector('.document-content'));
-            }
-            transcriptModal.style.display='none';
-        });
-
-        /* === FLOATING DRAGGABLE NOTE MODAL === */
-        const noteModal = document.getElementById('note-modal-floating');
-        const noteHeader = document.getElementById('note-modal-header');
-        const noteInput = document.getElementById('note-modal-input');
-        let noteModalCallback = null;
-        let noteModalPhrase = '';
-
-        function makeFloatingDraggable(el) {
-            const h=el.querySelector('.drag-handle'); let drag=false,sx,sy,ol,ot;
-            h.addEventListener('mousedown', (e) => { if(['INPUT','TEXTAREA','BUTTON'].includes(e.target.tagName)) return; drag=true; const r=el.getBoundingClientRect(); ol=r.left;ot=r.top;sx=e.clientX;sy=e.clientY; el.style.right='auto';el.style.transform='none';el.style.left=ol+'px';el.style.top=ot+'px'; e.preventDefault(); });
-            document.addEventListener('mousemove', (e) => { if(!drag) return; el.style.left=(ol+e.clientX-sx)+'px'; el.style.top=(ot+e.clientY-sy)+'px'; });
-            document.addEventListener('mouseup', () => { drag=false; });
-        }
-        makeFloatingDraggable(noteModal);
-        function resetNoteModalPos() { noteModal.style.left='auto'; noteModal.style.right='24px'; noteModal.style.top='50%'; noteModal.style.transform='translateY(-50%)'; }
-
-        function openNoteModal(header, def, phrase, cb) {
-            noteHeader.innerText = header;
-            noteInput.value = def;
-            noteModalPhrase = phrase || '';
-            noteInput.placeholder = 'Describe the B-roll visual...';
-
-            // Show/hide the Copy phrase button based on whether we have a phrase
-            const copyBtn = document.getElementById('note-copy-phrase');
-            copyBtn.style.display = noteModalPhrase ? 'inline-flex' : 'none';
-
-            resetNoteModalPos();
-            noteModal.style.display = 'block';
-            noteInput.focus();
-            noteModalCallback = cb;
-        }
-
-        // Copy phrase button in note modal
-        document.getElementById('note-copy-phrase').addEventListener('click', (e) => {
-            if (!noteModalPhrase) return;
-            navigator.clipboard.writeText(noteModalPhrase).catch(() => {
-                const ta = document.createElement('textarea'); ta.value = noteModalPhrase;
-                ta.style.position = 'fixed'; ta.style.opacity = '0';
-                document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-            });
-            const btn = e.target; const o = btn.textContent;
-            btn.textContent = 'Copied!';
-            setTimeout(() => btn.textContent = o, 1200);
-        });
-
-        document.getElementById('note-modal-cancel').addEventListener('click', () => { noteModal.style.display='none'; noteModalCallback=null; });
-        document.getElementById('note-modal-save').addEventListener('click', saveAndCloseNoteModal);
-        noteInput.addEventListener('keydown', (e) => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();saveAndCloseNoteModal();} });
-
-        function saveAndCloseNoteModal() {
-            noteModal.style.display = 'none';
-            if (noteModalCallback && noteInput.value.trim()) noteModalCallback(noteInput.value.trim());
-            noteModalCallback = null;
-        }
-
-        /* === MARK UNDO/REDO (TEXT NODE SWAP) ===
-         * Undo: replace highlight container with a plain text node. Keep the container intact.
-         * Redo: swap the text node back with the container. Exact, no text searching needed.
-         */
-        let markUndoStack = []; // { container }
-        let markRedoStack = []; // { textNode, container }
-        let drawRedoStack = []; // for drawing redo
-
-        function pushMarkUndo(container) {
-            markUndoStack.push({ container });
-            if (markUndoStack.length > 50) markUndoStack.shift();
-            markRedoStack = [];
-        }
-
-        function popMarkUndo() {
-            if (!markUndoStack.length) return false;
-            const entry = markUndoStack.pop();
-            const container = entry.container;
-            if (!document.body.contains(container)) return true;
-
-            const parent = container.parentNode;
-            if (!parent) return true;
-
-            // Get the plain text from the highlight
-            const textSpan = container.querySelector('.highlight-text');
-            const plainText = textSpan ? textSpan.textContent : '';
-
-            // Create a text node to replace the container
-            const textNode = document.createTextNode(plainText);
-            parent.replaceChild(textNode, container);
-
-            // Push to redo — we keep references to both the textNode and the original container
-            markRedoStack.push({ textNode, container });
-            return true;
-        }
-
-        function popMarkRedo() {
-            if (!markRedoStack.length) return false;
-            const entry = markRedoStack.pop();
-            const { textNode, container } = entry;
-
-            if (!document.body.contains(textNode)) return true;
-
-            const parent = textNode.parentNode;
-            if (!parent) return true;
-
-            // Swap the text node back with the original container (which still has its text + notes intact)
-            parent.replaceChild(container, textNode);
-            bindHoverEvents(container);
-
-            // Push back to undo stack
-            markUndoStack.push({ container });
-            return true;
-        }
-
-        /* Drawing redo */
-        function drawingUndo() {
-            if (undoStack.length > 0) {
-                const current = JSON.parse(JSON.stringify(shapes));
-                undoStack.pop();
-                shapes = undoStack.length ? JSON.parse(JSON.stringify(undoStack[undoStack.length - 1])) : [];
-                drawRedoStack.push(current);
-            } else { shapes = []; }
-            renderAllShapes();
-        }
-
-        function drawingRedo() {
-            if (!drawRedoStack.length) return;
-            const state = drawRedoStack.pop();
-            shapes = state;
-            undoStack.push(JSON.parse(JSON.stringify(shapes)));
-            renderAllShapes();
-        }
-
-        // Override saveDrawingState to clear redo on new action
-        function saveDrawingState() {
-            undoStack.push(JSON.parse(JSON.stringify(shapes)));
-            if (undoStack.length > 50) undoStack.shift();
-            drawRedoStack = [];
-        }
-
-        /* === HIGHLIGHT + CLICK-TO-ANNOTATE === */
-        let appMode = 'view';
-        const commentPopup = document.getElementById('comment-popup');
-        let savedSelectionRange = null, savedSelectionBlock = null;
-
-        function bindHoverEvents(container) {
-            // Hover tooltip removed — clicking a highlight opens the modal to edit the note / copy the phrase.
-            // The broll-card div is kept hidden in the DOM only as the storage for the note text.
-        }
-        document.querySelectorAll('.highlight-container').forEach(bindHoverEvents);
-
-        // Click highlight -> open note modal
-        document.addEventListener('click', (e) => {
-            if(appMode==='draw') return;
-            if(e.target.closest('.floating-modal')||e.target.closest('.modal-overlay')||e.target.closest('#comment-popup')) return;
-            const editBtn=e.target.closest('.btn-edit-note');
-            if(editBtn) {
-                const card=editBtn.closest('.broll-card'), t=card.querySelector('.broll-note-text');
-                const container=card.closest('.highlight-container');
-                const phrase = container ? container.querySelector('.highlight-text').textContent.trim() : '';
-                openNoteModal("Edit Production Note", t.innerText, phrase, (nt)=>{ t.innerText=nt; });
-                return;
-            }
-            const ht=e.target.closest('.highlight-text');
-            if(ht) {
-                const container=ht.closest('.highlight-container'); if(!container) return;
-                const sel=window.getSelection(); if(!sel.isCollapsed&&sel.toString().trim().length>0) return;
-                const contentEl=container.closest('.document-content');
-                const existingNote=container.querySelector('.broll-note-text');
-                const defaultText=existingNote?existingNote.textContent:'';
-                const headerText=existingNote?"Edit Production Note":"Add Production Note";
-                const phrase=ht.textContent.trim();
-                openNoteModal(headerText, defaultText, phrase, (note)=>{
-                    const old=container.querySelector('.broll-card'); if(old)old.remove();
-                    const card=document.createElement('div');card.className='broll-card';
-                    card.innerHTML=`<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${note}</div>`;
-                    container.appendChild(card); container.classList.add('has-note'); bindHoverEvents(container);
-                });
-                return;
-            }
-        });
-
-        // Show popup on text selection
-        document.addEventListener('mouseup', (e) => {
-            if(appMode==='draw') return;
-            if(e.target.closest('#comment-popup')||e.target.closest('.modal-overlay')||e.target.closest('.floating-modal')) return;
-            const sel=window.getSelection();
-            if(!sel.isCollapsed&&sel.toString().trim().length>0) { const anc=sel.anchorNode; const contentEl=anc?anc.parentElement.closest('.document-content'):null; if(!contentEl){commentPopup.style.display='none';return;} savedSelectionRange=sel.getRangeAt(0).cloneRange(); savedSelectionBlock=contentEl; commentPopup.style.display='flex'; commentPopup.style.left=`${e.pageX}px`; commentPopup.style.top=`${e.pageY-25}px`; }
-            else { commentPopup.style.display='none'; }
-        });
-
-        document.getElementById('btn-mark').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; commentPopup.style.display='none'; const c=wrapAsHighlight(savedSelectionRange); if(c) pushMarkUndo(c); });
-        document.getElementById('btn-add-note').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; commentPopup.style.display='none'; const phrase=savedSelectionRange.toString().trim(); const c=wrapAsHighlight(savedSelectionRange); if(c){pushMarkUndo(c);openNoteModal("Add Production Note","",phrase,(note)=>{const card=document.createElement('div');card.className='broll-card';card.innerHTML=`<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${note}</div>`;c.appendChild(card);c.classList.add('has-note');bindHoverEvents(c);});} });
-        document.getElementById('btn-copy-text').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; const text=savedSelectionRange.toString(); if(text){navigator.clipboard.writeText(text).catch(()=>{const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}); const btn=document.getElementById('btn-copy-text');const o=btn.innerHTML;btn.innerHTML='Copied!';setTimeout(()=>btn.innerHTML=o,1000);} commentPopup.style.display='none'; window.getSelection().removeAllRanges(); });
-
-        function wrapAsHighlight(range) {
-            // Trim range: adjust start past leading whitespace/newlines, end before trailing
-            try {
-                // Trim start: skip forward past empty text nodes and whitespace
-                let sc = range.startContainer, so = range.startOffset;
-                if (sc.nodeType === 3) {
-                    const txt = sc.textContent.substring(so);
-                    const trimmed = txt.replace(/^[\s\n\r]+/, '');
-                    if (trimmed.length < txt.length) {
-                        so += (txt.length - trimmed.length);
-                        range.setStart(sc, Math.min(so, sc.textContent.length));
-                    }
-                }
-
-                // Trim end: pull back past trailing whitespace/newlines
-                let ec = range.endContainer, eo = range.endOffset;
-                if (ec.nodeType === 3) {
-                    const txt = ec.textContent.substring(0, eo);
-                    const trimmed = txt.replace(/[\s\n\r]+$/, '');
-                    if (trimmed.length < txt.length) {
-                        range.setEnd(ec, trimmed.length);
-                    }
-                }
-
-                // If range is now collapsed or empty, bail
-                if (range.collapsed || range.toString().trim().length === 0) return null;
-
-                // Ensure range is within a single block — don't span across <p> tags
-                const startBlock = range.startContainer.nodeType === 3 
-                    ? range.startContainer.parentElement.closest('p, div, h1, h2, h3, h4, h5, h6')
-                    : range.startContainer.closest('p, div, h1, h2, h3, h4, h5, h6');
-                const endBlock = range.endContainer.nodeType === 3 
-                    ? range.endContainer.parentElement.closest('p, div, h1, h2, h3, h4, h5, h6')
-                    : range.endContainer.closest('p, div, h1, h2, h3, h4, h5, h6');
-
-                if (startBlock && endBlock && startBlock !== endBlock) {
-                    // Clamp range to end of start block
-                    range.setEnd(startBlock, startBlock.childNodes.length);
-                }
-
-                const c = document.createElement('span'); c.className = 'highlight-container';
-                const ts = document.createElement('span'); ts.className = 'highlight-text';
-                ts.appendChild(range.extractContents());
-
-                // Clean extracted content: remove stray <br>, empty <p>, leading/trailing whitespace nodes
-                const cleanChildren = Array.from(ts.childNodes);
-                for (let i = cleanChildren.length - 1; i >= 0; i--) {
-                    const node = cleanChildren[i];
-                    if (node.nodeType === 1 && (node.tagName === 'BR' || (node.tagName === 'P' && !node.textContent.trim()))) {
-                        ts.removeChild(node);
-                    }
-                }
-
-                // If nothing left after cleanup, bail
-                if (!ts.textContent.trim()) return null;
-
-                c.appendChild(ts);
-                range.insertNode(c);
-                bindHoverEvents(c);
-                window.getSelection().removeAllRanges();
-                savedSelectionRange = null; savedSelectionBlock = null;
-                return c;
-            } catch(err) {
-                console.warn('Highlight wrap failed:', err);
-                return null;
-            }
-        }
-
-        /* === EXPORT === */
-        document.getElementById('btn-export').addEventListener('click', () => {
-            const blocks=document.querySelectorAll('.document-block');
-            let txt="";
-            if(!blocks.length){txt="No transcript blocks found.";}
-            else{blocks.forEach((b,i)=>{txt+=generateExportTextForBlock(b);if(i<blocks.length-1)txt+="\n\n========================================\n\n";});}
-            txt = txt.trim();
-            exportContent.innerText=txt;
-            currentExportFullText = txt;
-            exportModal.style.display='flex';
-        });
-        document.getElementById('export-btn-close').addEventListener('click', () => exportModal.style.display='none');
-        document.getElementById('export-btn-copy').addEventListener('click', (e) => {
-            const textToCopy = currentExportFullText || exportContent.innerText;
-            const ta=document.createElement('textarea');ta.value=textToCopy;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');const b=e.target,o=b.innerText;b.innerText="Copied!";setTimeout(()=>b.innerText=o,2000);}catch(err){}document.body.removeChild(ta);
-        });
-
-        /* === DRAWING === */
-        const canvas=document.getElementById('drawing-layer'), ctx=canvas.getContext('2d');
-        let shapes=[],undoStack=[],isDrawing=false,currentTool='pen',currentColor='#f43f5e';
-        let startX=0,startY=0,lastX=0,lastY=0,drawingsVisible=true;
-        const colorBtns=document.querySelectorAll('.color-btn'),customColorInput=document.getElementById('custom-color');
-        function updateColor(c){currentColor=c;colorBtns.forEach(b=>b.classList.remove('active'));const m=Array.from(colorBtns).find(b=>b.getAttribute('data-color')===c);if(m)m.classList.add('active');}
-        colorBtns.forEach(b=>b.addEventListener('click',()=>{updateColor(b.getAttribute('data-color'));customColorInput.value=currentColor;if(appMode!=='draw')document.getElementById('toggle-draw').click();}));
-        customColorInput.addEventListener('input',(e)=>{updateColor(e.target.value);if(appMode!=='draw')document.getElementById('toggle-draw').click();});
-
-        function renderAllShapes(){ctx.clearRect(0,0,canvas.width,canvas.height);if(!drawingsVisible)return;shapes.forEach(s=>{ctx.globalCompositeOperation=s.type==='eraser'?'destination-out':'source-over';ctx.strokeStyle=s.color;ctx.lineWidth=s.width||3;ctx.lineCap='round';ctx.lineJoin='round';if(s.type==='pen'||s.type==='eraser'){if(!s.points.length)return;ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);ctx.stroke();}else if(s.type==='arrow'){const hl=16,a=Math.atan2(s.endY-s.startY,s.endX-s.startX);ctx.strokeStyle=s.color;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(s.startX,s.startY);ctx.lineTo(s.endX,s.endY);ctx.lineTo(s.endX-hl*Math.cos(a-Math.PI/6),s.endY-hl*Math.sin(a-Math.PI/6));ctx.moveTo(s.endX,s.endY);ctx.lineTo(s.endX-hl*Math.cos(a+Math.PI/6),s.endY-hl*Math.sin(a+Math.PI/6));ctx.stroke();}});}
-        function getCC(e){const r=zoomContainer.getBoundingClientRect();return{x:(e.clientX-r.left)/zoomLevel,y:(e.clientY-r.top)/zoomLevel};}
-        canvas.addEventListener('pointerdown',(e)=>{if(appMode!=='draw'||isSpacePanning)return;const co=getCC(e);startX=co.x;startY=co.y;lastX=startX;lastY=startY;isDrawing=true;let ns={type:currentTool,color:currentColor,width:currentTool==='eraser'?40:3};if(currentTool==='pen'||currentTool==='eraser')ns.points=[{x:startX,y:startY}];else{ns.startX=startX;ns.startY=startY;ns.endX=startX;ns.endY=startY;}shapes.push(ns);});
-        canvas.addEventListener('pointermove',(e)=>{if(!isDrawing||appMode!=='draw')return;e.preventDefault();const co=getCC(e);let cs=shapes[shapes.length-1];if(currentTool==='pen'||currentTool==='eraser'){cs.points.push({x:co.x,y:co.y});ctx.globalCompositeOperation=currentTool==='eraser'?'destination-out':'source-over';ctx.strokeStyle=currentTool==='eraser'?'rgba(0,0,0,1)':currentColor;ctx.lineWidth=cs.width;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(co.x,co.y);ctx.stroke();lastX=co.x;lastY=co.y;}else{cs.endX=co.x;cs.endY=co.y;renderAllShapes();}});
-        canvas.addEventListener('pointerup',()=>{if(isDrawing)saveDrawingState();isDrawing=false;});
-
-        const btnHideDrawings=document.getElementById('btn-hide-drawings');
-        btnHideDrawings.addEventListener('click',()=>{drawingsVisible=!drawingsVisible;btnHideDrawings.innerHTML=drawingsVisible?'Hide':'Show';if(!drawingsVisible)btnHideDrawings.classList.add('active');else btnHideDrawings.classList.remove('active');renderAllShapes();});
-
-        /* === PASTE IMAGES === */
-        const pasteToast=document.getElementById('paste-toast');
-        function spawnImageBlock(src,imgType,label){const cx=(window.scrollX+window.innerWidth/2)/zoomLevel,cy=(window.scrollY+window.innerHeight/2)/zoomLevel;const ib=document.createElement('div');ib.className='image-block';ib.style.left=`${cx-200}px`;ib.style.top=`${cy-150}px`;ib.style.width='400px';ib.style.height='320px';ib.innerHTML=`<div class="document-header"><span>&#x2807; ${label}</span><button class="delete-btn">&times;</button></div><div class="image-wrapper"><img src="${src}" alt="${label}" data-img-type="${imgType}"></div><div class="resize-handle"></div>`;blocksContainer.appendChild(ib);makeImageBlockInteractive(ib);}
-        document.addEventListener('paste',(e)=>{const items=e.clipboardData&&e.clipboardData.items;if(!items)return;for(let i=0;i<items.length;i++){if(items[i].type.startsWith('image/')){e.preventDefault();const file=items[i].getAsFile();const reader=new FileReader();reader.onload=(ev)=>{spawnImageBlock(ev.target.result,'base64','Pasted Image');pasteToast.classList.add('show');setTimeout(()=>pasteToast.classList.remove('show'),1500);};reader.readAsDataURL(file);return;}}});
-
-        /* === SAVE / LOAD === */
-
-        // Shared load function used by both file-import and auto-restore
-        function loadProjectData(pd) {
-            blocksContainer.innerHTML='';
-            if(pd.blocks) pd.blocks.forEach(bd=>{
-                const nb=document.createElement('div');nb.className='document-block';
-                nb.style.left=bd.left;nb.style.top=bd.top;nb.style.width=bd.width;
-                nb.innerHTML='<div class="document-header"><span>&#x2807; Drag to move</span><button class="delete-btn">&times;</button></div><div class="document-content" contenteditable="true" spellcheck="false"></div><button class="block-export-btn">Export Block</button><div class="resize-handle"></div>';
-
-                // Decode content
-                let html = bd.content;
-                if (bd.encoding === 'base64') {
-                    try { html = decodeURIComponent(escape(atob(bd.content))); } catch(e) { console.warn('Base64 decode failed:', e); }
-                }
-
-                const contentDiv = nb.querySelector('.document-content');
-                contentDiv.innerHTML = html;
-                blocksContainer.appendChild(nb); makeBlockInteractive(nb);
-
-                // Re-attach notes from separate data array (version 7+)
-                if (bd.notes && bd.notes.length > 0) {
-                    const highlights = contentDiv.querySelectorAll('.highlight-container');
-                    bd.notes.forEach(n => {
-                        const hl = highlights[n.index];
-                        if (!hl) return;
-                        // Build broll-card via DOM (not innerHTML) to avoid parser issues
-                        const card = document.createElement('div');
-                        card.className = 'broll-card';
-                        const header = document.createElement('div');
-                        header.className = 'broll-card-header';
-                        header.innerHTML = '<strong class="broll-title">B-Roll Note</strong>';
-                        const editBtn = document.createElement('button');
-                        editBtn.className = 'btn-edit-note';
-                        editBtn.title = 'Edit';
-                        editBtn.setAttribute('contenteditable', 'false');
-                        editBtn.textContent = '\u270F\uFE0F';
-                        header.appendChild(editBtn);
-                        card.appendChild(header);
-                        const noteText = document.createElement('div');
-                        noteText.className = 'broll-note-text';
-                        noteText.textContent = n.text;
-                        card.appendChild(noteText);
-                        hl.appendChild(card);
-                        hl.classList.add('has-note');
-                    });
-                }
-                // For old saves (version <7) that have broll-cards baked into HTML:
-                // They may have survived or not — just bind whatever is there
-                contentDiv.querySelectorAll('.highlight-container').forEach(c => {
-                    bindHoverEvents(c);
-                    if (c.querySelector('.broll-card')) c.classList.add('has-note');
-                });
-                // Remove any old segment-divider elements from previous versions
-                contentDiv.querySelectorAll('.segment-divider').forEach(d => d.remove());
-                // Add per-paragraph export buttons
-                refreshParaExportButtons(contentDiv);
-            });
-            if(pd.images) pd.images.forEach(id=>{
-                const ib=document.createElement('div');ib.className='image-block';
-                ib.style.left=id.left;ib.style.top=id.top;ib.style.width=id.width;ib.style.height=id.height;
-                ib.innerHTML=`<div class="document-header"><span>&#x2807; ${id.label||'Image'}</span><button class="delete-btn">&times;</button></div><div class="image-wrapper"><img src="${id.src}" alt="${id.label||'Image'}" data-img-type="${id.imgType||'url'}"></div><div class="resize-handle"></div>`;
-                blocksContainer.appendChild(ib);makeImageBlockInteractive(ib);
-            });
-            shapes=pd.shapes||[];undoStack=[];renderAllShapes();
-            if(pd.viewport){zoomLevel=pd.viewport.zoom||1;applyZoom();setTimeout(()=>window.scrollTo(pd.viewport.scrollX||0,pd.viewport.scrollY||0),50);}
-            if (pd.projectName) {
-                savedProjectName = pd.projectName;
-                projectNameInput.value = savedProjectName;
-                document.title = savedProjectName + ' — B-Roll Editor';
-                localStorage.setItem('broll-project-name', savedProjectName);
-            }
-        }
-
-        // Collect current state — notes are extracted as a separate array,
-        // broll-card divs are stripped from the HTML to prevent div-in-span nesting violation
-        function collectProjectData() {
-            const pd={version:7,projectName:savedProjectName,viewport:{zoom:zoomLevel,scrollX:window.scrollX,scrollY:window.scrollY},shapes,blocks:[],images:[]};
-            document.querySelectorAll('.document-block').forEach(b=>{
-                const contentEl = b.querySelector('.document-content');
-
-                // Extract notes BEFORE stripping cards
-                const notes = [];
-                const highlights = contentEl.querySelectorAll('.highlight-container');
-                highlights.forEach((hl, index) => {
-                    const noteEl = hl.querySelector('.broll-note-text');
-                    if (noteEl && noteEl.textContent.trim()) {
-                        notes.push({ index, text: noteEl.textContent.trim() });
-                    }
-                });
-
-                // Clone and strip all broll-card divs for clean HTML (only valid span nesting)
-                const clone = contentEl.cloneNode(true);
-                clone.querySelectorAll('.broll-card').forEach(card => card.remove());
-                // Also strip has-note class since notes are stored separately
-                clone.querySelectorAll('.highlight-container.has-note').forEach(hl => hl.classList.remove('has-note'));
-                // Strip per-paragraph export buttons (regenerated on load)
-                clone.querySelectorAll('.para-export-btn').forEach(b => b.remove());
-
-                let rawHTML = clone.innerHTML;
-                rawHTML = rawHTML.replace(/(<br\s*\/?\s*>)+$/i, '');
-
-                const encoded = btoa(unescape(encodeURIComponent(rawHTML)));
-                pd.blocks.push({ left:b.style.left, top:b.style.top, width:b.style.width, content:encoded, encoding:'base64', notes });
-            });
-            document.querySelectorAll('.image-block').forEach(ib=>{const img=ib.querySelector('.image-wrapper img'),hs=ib.querySelector('.document-header span');pd.images.push({left:ib.style.left,top:ib.style.top,width:ib.style.width,height:ib.style.height,src:img?img.src:'',imgType:img?img.dataset.imgType:'url',label:hs?hs.textContent.replace(/^. /,'').trim():'Image'});});
-            return pd;
-        }
-
-        // Manual save: download JSON file using project name as filename
-        document.getElementById('btn-save-project').addEventListener('click',()=>{
-            const pd=collectProjectData();
-            const filename = savedProjectName.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.json';
-            const a=document.createElement('a');a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(pd));a.download=filename;document.body.appendChild(a);a.click();a.remove();
-        });
-
-        // Manual load: file picker
-        const fileImport=document.getElementById('file-import');
-        document.getElementById('btn-load-project').addEventListener('click',()=>fileImport.click());
-        fileImport.addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(ev){try{const pd=JSON.parse(ev.target.result);loadProjectData(pd);}catch(err){alert("Invalid project file.");console.error(err);}};reader.readAsText(file);this.value='';});
-
-        // Auto-save to localStorage every 5 seconds
-        function autoSave() {
-            try {
-                const pd = collectProjectData();
-                localStorage.setItem('broll-autosave', JSON.stringify(pd));
-            } catch(err) {
-                console.warn('Auto-save failed:', err);
-            }
-        }
-        setInterval(autoSave, 5000);
-        // Also save immediately when leaving the page
-        window.addEventListener('beforeunload', autoSave);
-
-        /* === SPACEBAR PAN & SHORTCUTS === */
-        let isSpacePanning=false,hasPannedDuringSpace=false,spaceTarget=null,panStartX=0,panStartY=0,scrollStartX=0,scrollStartY=0;
-
-        document.addEventListener('keydown',(e)=>{
-            // Ctrl+Z: Undo
-            if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!e.shiftKey){
-                if(appMode==='draw'){e.preventDefault();drawingUndo();}
-                else{if(markUndoStack.length>0){e.preventDefault();popMarkUndo();}}
-            }
-            // Ctrl+Shift+Z or Ctrl+Y: Redo
-            if((e.ctrlKey||e.metaKey)&&((e.key.toLowerCase()==='z'&&e.shiftKey)||e.key.toLowerCase()==='y')){
-                if(appMode==='draw'&&drawRedoStack.length>0){e.preventDefault();drawingRedo();}
-                else if(markRedoStack.length>0){e.preventDefault();popMarkRedo();}
-                // If both stacks empty, don't preventDefault — let browser handle native text redo
-            }
-            if((e.ctrlKey||e.metaKey)&&e.key==='0'){e.preventDefault();zoomLevel=1;applyZoom();window.scrollTo((6000-window.innerWidth)/2,400);}
-            if(e.key==='Escape'){if(noteModal.style.display==='block'){noteModal.style.display='none';noteModalCallback=null;return;}}
-
-            // Spacebar: ALWAYS enter pan mode, remember target for space insertion on release
-            if(e.code==='Space'){
-                // Skip if inside the note modal textarea or other actual inputs
-                const tag=document.activeElement.tagName;
-                if(tag==='INPUT'||tag==='TEXTAREA') return;
-
-                // Remember the editable target so we can insert a space on release if no pan
-                spaceTarget = document.activeElement.isContentEditable ? document.activeElement : null;
-
-                if(!isSpacePanning){
-                    isSpacePanning=true; hasPannedDuringSpace=false;
-                    document.body.style.cursor='grab';
-                }
-                e.preventDefault();
-            }
-        });
-
-        document.addEventListener('keyup',(e)=>{
-            if(e.code==='Space'){
-                if(!isSpacePanning) return;
-                isSpacePanning=false;
-                document.body.style.cursor='default';
-
-                // If user just tapped space without panning, and was in a contenteditable, insert a space
-                if(!hasPannedDuringSpace && spaceTarget && document.body.contains(spaceTarget)){
-                    spaceTarget.focus();
-                    document.execCommand('insertText', false, ' ');
-                }
-                spaceTarget=null;
-            }
-        });
-
-        window.addEventListener('mousedown',(e)=>{if(isSpacePanning||e.button===1){if(e.button===1)e.preventDefault();document.body.style.cursor='grabbing';panStartX=e.clientX;panStartY=e.clientY;scrollStartX=window.scrollX;scrollStartY=window.scrollY;if(document.activeElement&&document.activeElement!==document.body)document.activeElement.blur();}});
-        window.addEventListener('mousemove',(e)=>{if((isSpacePanning&&e.buttons===1)||e.buttons===4){e.preventDefault();hasPannedDuringSpace=true;window.scrollTo(scrollStartX-(e.clientX-panStartX),scrollStartY-(e.clientY-panStartY));}});
-        window.addEventListener('mouseup',(e)=>{if(isSpacePanning||e.button===1)document.body.style.cursor=isSpacePanning?'grab':'default';});
-
-        /* === MODE SWITCHING === */
-        const btnToggleDraw=document.getElementById('toggle-draw'),drawToolsRow=document.getElementById('draw-tools'),toolBtns=document.querySelectorAll('.draw-tool');
-        function setAppMode(m){appMode=m;btnToggleDraw.className='tool-btn mode-btn';btnToggleDraw.innerHTML='Draw';canvas.style.pointerEvents='none';commentPopup.style.display='none';window.getSelection().removeAllRanges();drawToolsRow.style.display='none';renderAllShapes();if(m==='draw'){btnToggleDraw.classList.add('active-draw');btnToggleDraw.innerHTML='Draw: ON';drawToolsRow.style.display='flex';canvas.style.pointerEvents='auto';}}
-        btnToggleDraw.addEventListener('click',()=>setAppMode(appMode==='draw'?'view':'draw'));
-        toolBtns.forEach(b=>b.addEventListener('click',()=>{if(appMode!=='draw')setAppMode('draw');toolBtns.forEach(x=>x.classList.remove('active'));b.classList.add('active');currentTool=b.getAttribute('data-tool');}));
-        document.getElementById('tool-undo').addEventListener('click',drawingUndo);
-        document.getElementById('tool-clear').addEventListener('click',()=>{shapes=[];saveDrawingState();renderAllShapes();});
-        document.getElementById('btn-screenshot').addEventListener('click',(e)=>{const btn=e.target;const orig=btn.innerHTML;btn.innerHTML='Wait...';const bgc=document.body.classList.contains('dark')?'#0f1419':'#eef1f5';document.querySelector('.drawing-toolbar').style.display='none';setTimeout(()=>{html2canvas(document.body,{scale:2,useCORS:true,backgroundColor:bgc,x:window.scrollX,y:window.scrollY,width:window.innerWidth,height:window.innerHeight}).then(c=>{const l=document.createElement('a');l.download='BRoll_Screenshot.png';l.href=c.toDataURL('image/png');l.click();document.querySelector('.drawing-toolbar').style.display='flex';btn.innerHTML=orig;}).catch(()=>{document.querySelector('.drawing-toolbar').style.display='flex';btn.innerHTML='Error';setTimeout(()=>btn.innerHTML=orig,2000);});},100);});
-
-        /* === DARK MODE TOGGLE === */
-        const btnDarkMode = document.getElementById('btn-dark-mode');
-        function updateDarkModeBtn() {
-            const isDark = document.body.classList.contains('dark');
-            btnDarkMode.innerHTML = isDark ? '&#x2600;' : '&#x263D;';
-            btnDarkMode.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
-        }
-        updateDarkModeBtn();
-        btnDarkMode.addEventListener('click', () => {
-            document.body.classList.toggle('dark');
-            const isDark = document.body.classList.contains('dark');
-            localStorage.setItem('broll-dark-mode', isDark);
-            updateDarkModeBtn();
-        });
-
-        /* === CLEAR ALL === */
-        document.getElementById('btn-clear-all').addEventListener('click', () => {
-            if (!confirm('Clear everything? This will remove all text blocks, images, marks, notes, and drawings. This cannot be undone.')) return;
-
-            // Clear all blocks and images
-            blocksContainer.innerHTML = '';
-
-            // Clear drawings
-            shapes = []; undoStack = []; markUndoStack = []; markRedoStack = []; drawRedoStack = [];
-            renderAllShapes();
-
-            // Add back a fresh default block
-            const cx = (window.scrollX + window.innerWidth / 2) / zoomLevel;
-            const cy = (window.scrollY + window.innerHeight / 2) / zoomLevel;
-            const nb = document.createElement('div'); nb.className = 'document-block';
-            nb.style.left = `${cx - 350}px`; nb.style.top = `${cy - 100}px`; nb.style.width = '700px';
-            nb.innerHTML = '<div class="document-header"><span>&#x2807; Drag to move</span><button class="delete-btn">&times;</button></div><div class="document-content" contenteditable="true" spellcheck="false"><h2>Episode Title</h2><p><strong>Segment: Cold Open</strong></p><p>Paste your transcript here.</p></div><button class="block-export-btn">Export Block</button><div class="resize-handle"></div>';
-            blocksContainer.appendChild(nb);
-            makeBlockInteractive(nb);
-            refreshParaExportButtons(nb.querySelector('.document-content'));
-
-            // Clear auto-save
-            localStorage.removeItem('broll-autosave');
-        });
-
-        /* === GIST SYNC === */
-        const settingsDrawer = document.getElementById('settings-drawer');
-        const syncStatusMsg = document.getElementById('sync-status-msg');
-        const syncLastInfo = document.getElementById('sync-last-info');
-        const settingsPat = document.getElementById('settings-pat');
-        const settingsGistId = document.getElementById('settings-gist-id');
-
-        // Load saved settings
-        settingsPat.value = localStorage.getItem('broll-gist-pat') || '';
-        settingsGistId.value = localStorage.getItem('broll-gist-id') || '';
-        updateSyncInfo();
-
-        // Settings drawer open/close
-        document.getElementById('btn-settings').addEventListener('click', () => {
-            settingsDrawer.classList.add('open');
-        });
-        document.getElementById('settings-close').addEventListener('click', () => {
-            settingsDrawer.classList.remove('open');
-        });
-        // Close on Escape
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && settingsDrawer.classList.contains('open')) {
-                settingsDrawer.classList.remove('open');
-            }
-        });
-
-        // Save settings
-        document.getElementById('settings-save-sync').addEventListener('click', () => {
-            const pat = settingsPat.value.trim();
-            const gistId = settingsGistId.value.trim();
-            localStorage.setItem('broll-gist-pat', pat);
-            localStorage.setItem('broll-gist-id', gistId);
-            showSyncStatus('Settings saved.', 'success');
-        });
-
-        // Test connection
-        document.getElementById('settings-test-sync').addEventListener('click', async () => {
-            const pat = settingsPat.value.trim();
-            if (!pat) { showSyncStatus('Enter a Personal Access Token first.', 'error'); return; }
-
-            showSyncStatus('Testing connection...', 'info');
-            try {
-                const resp = await fetch('https://api.github.com/user', {
-                    headers: { 'Authorization': `token ${pat}` }
-                });
-                if (resp.ok) {
-                    const user = await resp.json();
-                    showSyncStatus(`Connected as ${user.login}`, 'success');
-                } else {
-                    showSyncStatus(`Auth failed (${resp.status}). Check your token.`, 'error');
-                }
-            } catch (err) {
-                showSyncStatus('Network error: ' + err.message, 'error');
-            }
-        });
-
-        // PUSH: local → cloud
-        document.getElementById('btn-sync-push').addEventListener('click', async () => {
-            const pat = localStorage.getItem('broll-gist-pat') || '';
-            let gistId = localStorage.getItem('broll-gist-id') || '';
-
-            if (!pat) { settingsDrawer.classList.add('open'); showSyncStatus('Add your GitHub token first.', 'error'); return; }
-
-            const btn = document.getElementById('btn-sync-push');
-            btn.classList.add('syncing'); btn.textContent = 'Pushing...';
-
-            try {
-                const localData = collectProjectData();
-                localData.syncTimestamp = Date.now();
-
-                if (!gistId) {
-                    gistId = await createGist(pat, localData);
-                    localStorage.setItem('broll-gist-id', gistId);
-                    settingsGistId.value = gistId;
-                } else {
-                    await writeGist(pat, gistId, localData);
-                }
-
-                localStorage.setItem('broll-last-sync', new Date().toISOString());
-                updateSyncInfo();
-                btn.textContent = 'Push \u2191'; btn.classList.remove('syncing');
-                showSyncStatus('Pushed to cloud.', 'success');
-            } catch (err) {
-                console.error('Push error:', err);
-                btn.textContent = 'Push \u2191'; btn.classList.remove('syncing');
-                showSyncStatus('Push failed: ' + err.message, 'error');
-            }
-        });
-
-        // PULL: cloud → local
-        document.getElementById('btn-sync-pull').addEventListener('click', async () => {
-            const pat = localStorage.getItem('broll-gist-pat') || '';
-            const gistId = localStorage.getItem('broll-gist-id') || '';
-
-            if (!pat) { settingsDrawer.classList.add('open'); showSyncStatus('Add your GitHub token first.', 'error'); return; }
-            if (!gistId) { settingsDrawer.classList.add('open'); showSyncStatus('Add a Gist ID first, or Push to create one.', 'error'); return; }
-
-            const btn = document.getElementById('btn-sync-pull');
-            btn.classList.add('syncing'); btn.textContent = 'Pulling...';
-
-            try {
-                const remote = await readGist(pat, gistId);
-
-                if (!remote) {
-                    btn.textContent = 'Pull \u2193'; btn.classList.remove('syncing');
-                    showSyncStatus('No workspace found in that Gist. Push first from your main device.', 'error');
-                    return;
-                }
-
-                if (!confirm('Pull will replace your current workspace with the cloud version. Continue?')) {
-                    btn.textContent = 'Pull \u2193'; btn.classList.remove('syncing');
-                    return;
-                }
-
-                loadProjectData(remote);
-                document.getElementById('blocks-container').style.opacity = '1';
-                localStorage.setItem('broll-last-sync', new Date().toISOString());
-                updateSyncInfo();
-                btn.textContent = 'Pull \u2193'; btn.classList.remove('syncing');
-                showSyncStatus('Pulled from cloud. Workspace updated.', 'success');
-            } catch (err) {
-                console.error('Pull error:', err);
-                btn.textContent = 'Pull \u2193'; btn.classList.remove('syncing');
-                showSyncStatus('Pull failed: ' + err.message, 'error');
-            }
-        });
-
-        async function createGist(pat, data) {
-            const resp = await fetch('https://api.github.com/gists', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `token ${pat}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    description: 'B-Roll Editor — ' + (data.projectName || 'Workspace'),
-                    public: false,
-                    files: {
-                        'broll-workspace.json': {
-                            content: JSON.stringify(data)
-                        }
-                    }
-                })
-            });
-            if (!resp.ok) throw new Error('Failed to create Gist (' + resp.status + ')');
-            const gist = await resp.json();
-            return gist.id;
-        }
-
-        async function readGist(pat, gistId) {
-            const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
-                headers: { 'Authorization': `token ${pat}` }
-            });
-            if (!resp.ok) {
-                if (resp.status === 404) throw new Error('Gist not found. Check the ID.');
-                throw new Error('Failed to read Gist (' + resp.status + ')');
-            }
-            const gist = await resp.json();
-            const file = gist.files['broll-workspace.json'];
-            if (!file) return null; // File doesn't exist yet — will be created on push
-            return JSON.parse(file.content);
-        }
-
-        async function writeGist(pat, gistId, data) {
-            // Read-then-merge: read the Gist first to preserve any other files
-            const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
-                headers: { 'Authorization': `token ${pat}` }
-            });
-            if (!resp.ok) throw new Error('Failed to read Gist for merge (' + resp.status + ')');
-            const gist = await resp.json();
-
-            // Only update our file, preserve everything else
-            const files = {};
-            for (const fname in gist.files) {
-                files[fname] = { content: gist.files[fname].content };
-            }
-            files['broll-workspace.json'] = { content: JSON.stringify(data) };
-
-            const writeResp = await fetch(`https://api.github.com/gists/${gistId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `token ${pat}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ files })
-            });
-            if (!writeResp.ok) throw new Error('Failed to write Gist (' + writeResp.status + ')');
-        }
-
-        function showSyncStatus(msg, type) {
-            syncStatusMsg.textContent = msg;
-            syncStatusMsg.className = 'sync-status ' + type;
-            syncStatusMsg.style.display = 'block';
-            if (type === 'success') {
-                setTimeout(() => { syncStatusMsg.style.display = 'none'; }, 4000);
-            }
-        }
-
-        function updateSyncInfo() {
-            const lastSync = localStorage.getItem('broll-last-sync');
-            const gistId = localStorage.getItem('broll-gist-id');
-            if (lastSync && gistId) {
-                const d = new Date(lastSync);
-                syncLastInfo.innerHTML = `Last synced: ${d.toLocaleString()}<br>Gist: <code style="font-size:11px;">${gistId.substring(0,12)}...</code>`;
-            } else {
-                syncLastInfo.textContent = 'No sync performed yet.';
-            }
-        }
-
-        /* === PICTURE-IN-PICTURE === */
-        let pipWindow=null;
-        document.getElementById('btn-pip').addEventListener('click',async()=>{
-            const block=document.querySelector('.document-block');if(!block){alert('No transcript block to pop out.');return;}
-            if(!('documentPictureInPicture' in window)){alert('Document PiP requires Chrome 116+.');return;}
-            try{
-                const contentEl=block.querySelector('.document-content'),contentHTML=contentEl.innerHTML;
-                pipWindow=await documentPictureInPicture.requestWindow({width:520,height:600});
-                const pd=pipWindow.document;
-                pd.head.innerHTML=`<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;}body{font-family:'Inter',sans-serif;line-height:1.8;color:#334155;font-size:16px;margin:0;padding:20px 24px 80px;background:#fff;overflow-y:auto;-webkit-font-smoothing:antialiased;}h2{margin-top:0;color:#0f172a;font-weight:700;font-size:20px;}.highlight-container{position:relative;display:inline;}.highlight-text{background-color:rgba(251,191,36,0.18);border-bottom:2px solid #fbbf24;cursor:pointer;padding:1px 2px;border-radius:2px;box-decoration-break:clone;-webkit-box-decoration-break:clone;}.highlight-container.has-note .highlight-text{background-color:rgba(251,191,36,0.25);border-bottom:2px dashed #f59e0b;}.highlight-container:hover .highlight-text{background-color:rgba(251,191,36,0.4);}.broll-card{display:none;}.pip-popup{display:none;position:fixed;z-index:800;background:rgba(255,255,255,0.95);backdrop-filter:blur(16px);padding:5px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.1);border:1px solid rgba(0,0,0,0.05);gap:4px;width:max-content;flex-direction:row;align-items:center;}.pip-btn{display:inline-flex;align-items:center;padding:7px 14px;border-radius:10px;font-size:13px;font-weight:600;color:#fff;border:none;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;}.pip-note-panel{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e7eb;padding:12px 16px;z-index:900;box-shadow:0 -4px 16px rgba(0,0,0,0.06);}.pip-note-panel textarea{width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #e5e7eb;border-radius:12px;font-family:'Inter',sans-serif;font-size:14px;resize:none;height:70px;margin-bottom:8px;color:#1e293b;background:#fafbfc;}.pip-note-panel textarea:focus{outline:none;border-color:#818cf8;background:#fff;box-shadow:0 0 0 3px rgba(129,140,248,0.1);}.pip-note-actions{display:flex;gap:8px;justify-content:flex-end;}.pip-note-actions button{padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;border:none;font-family:'Inter',sans-serif;}</style>`;
-                pd.body.innerHTML=`<div id="pip-content" contenteditable="true" spellcheck="false">${contentHTML}</div><div class="pip-popup" id="pip-popup"><button class="pip-btn" id="pip-mark" style="background:#f1f5f9;color:#1e293b;">Mark</button><button class="pip-btn" id="pip-add-note" style="background:#10b981;">+ Note</button><button class="pip-btn" id="pip-copy" style="background:#475569;">Copy</button></div><div class="pip-note-panel" id="pip-note-panel"><textarea id="pip-note-input" placeholder="Describe the B-roll or visual..."></textarea><div class="pip-note-actions"><button style="background:#f1f5f9;color:#475569;" id="pip-note-cancel">Cancel</button><button style="background:#4f46e5;color:#fff;" id="pip-note-save">Save</button></div></div>`;
-                const pipContent=pd.getElementById('pip-content'),pipPopup=pd.getElementById('pip-popup'),pipNotePanel=pd.getElementById('pip-note-panel'),pipNoteInput=pd.getElementById('pip-note-input');let pipRange=null,pipNoteCont=null;
-                pd.addEventListener('mouseup',(ev)=>{if(ev.target.closest('.pip-popup')||ev.target.closest('.pip-note-panel'))return;const sel=pipWindow.getSelection();if(!sel.isCollapsed&&sel.toString().trim().length>0){pipRange=sel.getRangeAt(0).cloneRange();pipPopup.style.display='flex';pipPopup.style.left=`${Math.min(ev.clientX,pipWindow.innerWidth-260)}px`;pipPopup.style.top=`${ev.clientY-45}px`;}else{pipPopup.style.display='none';}});
-                pd.getElementById('pip-mark').addEventListener('mousedown',(ev)=>{ev.preventDefault();if(!pipRange)return;pipPopup.style.display='none';pipWrap(pipRange,null);});
-                pd.getElementById('pip-add-note').addEventListener('mousedown',(ev)=>{ev.preventDefault();if(!pipRange)return;pipPopup.style.display='none';pipNoteCont=pipWrap(pipRange,null);if(pipNoteCont){pipNoteInput.value='';pipNotePanel.style.display='block';pipNoteInput.focus();}});
-                pd.getElementById('pip-copy').addEventListener('mousedown',(ev)=>{ev.preventDefault();if(!pipRange)return;navigator.clipboard.writeText(pipRange.toString());pipPopup.style.display='none';pipWindow.getSelection().removeAllRanges();});
-                pd.getElementById('pip-note-save').addEventListener('click',()=>{if(pipNoteCont&&pipNoteInput.value.trim()){pipNoteCont.classList.add('has-note');pipNoteCont.setAttribute('data-note',pipNoteInput.value.trim());}pipNotePanel.style.display='none';pipNoteCont=null;});
-                pipNoteInput.addEventListener('keydown',(ev)=>{if(ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();pd.getElementById('pip-note-save').click();}});
-                pd.getElementById('pip-note-cancel').addEventListener('click',()=>{pipNotePanel.style.display='none';pipNoteCont=null;});
-                pd.addEventListener('click',(ev)=>{const ht=ev.target.closest('.highlight-text');if(ht){const sel=pipWindow.getSelection();if(!sel.isCollapsed&&sel.toString().trim().length>0)return;const cont=ht.closest('.highlight-container');if(!cont)return;pipNoteCont=cont;pipNoteInput.value=cont.getAttribute('data-note')||'';pipNotePanel.style.display='block';pipNoteInput.focus();}});
-                function pipWrap(range){const c=pd.createElement('span');c.className='highlight-container';const ts=pd.createElement('span');ts.className='highlight-text';try{ts.appendChild(range.extractContents());c.appendChild(ts);range.insertNode(c);pipWindow.getSelection().removeAllRanges();pipRange=null;return c;}catch(err){return null;}}
-                pipWindow.addEventListener('pagehide',()=>{const pipHTML=pipContent.innerHTML;contentEl.innerHTML=pipHTML;contentEl.querySelectorAll('.highlight-container').forEach(cont=>{const nd=cont.getAttribute('data-note');if(nd){cont.classList.add('has-note');if(!cont.querySelector('.broll-card')){const card=document.createElement('div');card.className='broll-card';card.innerHTML=`<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${nd}</div>`;cont.appendChild(card);}cont.removeAttribute('data-note');}bindHoverEvents(cont);});pipWindow=null;});
-            }catch(err){console.error('PiP error:',err);alert('Could not open PiP. Use Chrome 116+ with page focused.');}
-        });
-    </script>
+  </div>
+
+  <div id="status"></div>
+  <p class="note"><em>Note:</em> the exported storyboard composites every frame at native resolution, so the PNG can be very large. Chat and upload tools often downscale big images — to share one frame at true full quality, double-click it in the grid and use the single-frame download instead. Single-click frames to select them, then use Download selected for a full-res ZIP of just those. In frame-by-frame mode, big extractions are automatically captured at a reduced resolution to stay light — the readout shows the exact output size before you extract. Pixel-difference detection catches hard cuts well; crossfades and heavy in-shot motion may over- or under-trigger — tune with the Sensitivity slider.</p>
+</section>
+
+<video id="vid" muted playsinline preload="auto" style="display:none"></video>
+
+<div id="gridWrap"><canvas id="grid" title="Click a frame to select it · double-click to open it at full resolution"></canvas></div>
+
+<div id="lightbox">
+  <button id="lbClose">Close (Esc)</button>
+  <canvas id="lbCanvas"></canvas>
+  <div id="lbBar">
+    <span id="lbInfo"></span>
+    <button id="lbDownload">Download this frame (PNG)</button>
+    <button id="lbSelect" class="ghost">Select for batch</button>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------------- state ---------------- */
+const S = {
+  fileName: null,
+  duration: 0, vw: 0, vh: 0,
+  mode: 'scene',        // 'scene' | 'frames'
+  diffs: [],            // [{t, d}] from the scan pass; first entry d = Infinity
+  scenes: [],           // the ACTIVE result set shown in the grid
+  sceneResults: [],     // scene-detect results
+  frameResults: [],     // frame-by-frame extraction results
+  cache: new Map(),     // t -> ImageBitmap (full resolution, scene mode)
+  cells: [],            // hit rects for the preview grid
+  selected: new Set(),  // frame indices picked for batch download
+  fb: { inT: 0, outT: 3, active: 'out' },
+  busy: false,
+  pending: null,        // queued re-run while busy
+};
+
+const $ = id => document.getElementById(id);
+const vid = $('vid');
+const SMALL_W = 160;
+const smallA = document.createElement('canvas');
+const smallB = document.createElement('canvas');
+
+const tc = t => {
+  const m = Math.floor(t / 60), dec = S.mode === 'frames' ? 2 : 1;
+  const s = (t - m * 60).toFixed(dec).padStart(dec + 3, '0');
+  return `${m}:${s}`;
+};
+const tcFile = t => tc(t).replace(':', 'm') + 's';
+const status = msg => { $('status').textContent = msg; };
+
+function seekTo(t) {
+  return new Promise(res => {
+    const target = Math.min(Math.max(t, 0), Math.max(S.duration - 0.001, 0));
+    if (Math.abs(vid.currentTime - target) < 1e-4 && vid.readyState >= 2) { res(); return; }
+    const done = () => { vid.removeEventListener('seeked', done); res(); };
+    vid.addEventListener('seeked', done);
+    vid.currentTime = target;
+  });
+}
+
+/* ---------------- load ---------------- */
+function loadFile(file) {
+  if (!file || !file.type.startsWith('video/')) { status('That file is not a video.'); return; }
+  S.fileName = file.name.replace(/\.[^.]+$/, '');
+  S.cache.forEach(b => b.close && b.close());
+  S.cache.clear(); S.diffs = []; S.scenes = []; S.sceneResults = [];
+  S.frameResults.forEach(f => f.bitmap && f.bitmap.close && f.bitmap.close());
+  S.frameResults = [];
+  vid.src && URL.revokeObjectURL(vid.src);
+  vid.src = URL.createObjectURL(file);
+  vid.onloadedmetadata = () => {
+    S.duration = vid.duration; S.vw = vid.videoWidth; S.vh = vid.videoHeight;
+    S.fb.inT = 0; S.fb.outT = Math.min(3, S.duration); S.fb.active = 'out';
+    $('videoMeta').textContent = `${file.name} · ${S.vw}×${S.vh} · ${S.duration.toFixed(1)}s`;
+    $('controls').style.display = 'block';
+    if (S.duration > 95) status(`Heads up: clip is ${S.duration.toFixed(0)}s — this tool targets under 90s, the scan will just take longer.`);
+    run({ rescan: true });
+  };
+}
+
+/* ---------------- detection (scene mode) ---------------- */
+async function run(opts = {}) {
+  if (S.busy) { S.pending = { rescan: opts.rescan || (S.pending && S.pending.rescan) }; return; }
+  S.busy = true;
+  try {
+    if (opts.rescan || S.diffs.length === 0) await scan();
+    computeScenes();
+    await captureMissing();
+    drawTimeline();
+    if (S.mode === 'scene') {
+      S.scenes = S.sceneResults;
+      renderGrid();
+      refreshCounts();
+      status(S.scenes.length > 60 ? `${S.scenes.length} scenes — that is a lot; the full-res export will be huge. Consider raising the threshold.` : '');
+    }
+  } catch (e) {
+    status('Something went wrong during detection: ' + e.message);
+  } finally {
+    S.busy = false;
+    if (S.pending) { const p = S.pending; S.pending = null; run(p); }
+    else if (S.mode === 'frames' && S.duration) { updateFbUI(); fbEstimate(); previewAt(S.fb.inT); }
+  }
+}
+
+function refreshCounts() {
+  const n = S.scenes.length;
+  $('sceneCount').innerHTML = (S.mode === 'scene' ? 'Scenes detected: ' : 'Frames extracted: ') + `<b>${n}</b>`;
+  $('exportBtn').disabled = $('zipBtn').disabled = n === 0;
+}
+
+async function scan() {
+  const interval = Math.max(0.05, parseFloat($('interval').value) || 0.2);
+  const sw = SMALL_W, sh = Math.max(2, Math.round(SMALL_W * S.vh / S.vw));
+  smallA.width = smallB.width = sw; smallA.height = smallB.height = sh;
+  const ctxA = smallA.getContext('2d', { willReadFrequently: true });
+  S.diffs = [];
+  let prev = null;
+  const total = Math.floor(S.duration / interval) + 1;
+  for (let i = 0; i * interval <= S.duration; i++) {
+    const t = i * interval;
+    await seekTo(t);
+    ctxA.drawImage(vid, 0, 0, sw, sh);
+    const px = ctxA.getImageData(0, 0, sw, sh).data;
+    const gray = new Float32Array(sw * sh);
+    for (let p = 0, g = 0; p < px.length; p += 4, g++)
+      gray[g] = 0.299 * px[p] + 0.587 * px[p + 1] + 0.114 * px[p + 2];
+    let d = Infinity;
+    if (prev) {
+      let sum = 0;
+      for (let g = 0; g < gray.length; g++) sum += Math.abs(gray[g] - prev[g]);
+      d = sum / gray.length;
+    }
+    S.diffs.push({ t, d });
+    prev = gray;
+    if (i % 10 === 0) { status(`Scanning… ${Math.round(100 * i / total)}%`); drawTimeline(); }
+  }
+  status('');
+}
+
+function computeScenes() {
+  const thr = parseFloat($('sensitivity').value);
+  const prevKey = S.sceneResults.map(s => s.t).join(',');
+  S.sceneResults = S.diffs
+    .filter((f, i) => i === 0 || f.d > thr)
+    .map(f => ({ t: f.t, bitmap: S.cache.get(f.t) || null }));
+  // frame numbers shift when the scene list changes, so a stale selection would point at the wrong frames
+  if (S.mode === 'scene' && S.sceneResults.map(s => s.t).join(',') !== prevKey) S.selected.clear();
+  updateSelectionUI();
+}
+
+async function captureMissing() {
+  const missing = S.sceneResults.filter(s => !s.bitmap);
+  for (let i = 0; i < missing.length; i++) {
+    status(`Capturing full-resolution frames… ${i + 1}/${missing.length}`);
+    await seekTo(missing[i].t);
+    const bmp = await createImageBitmap(vid);   // native videoWidth × videoHeight
+    S.cache.set(missing[i].t, bmp);
+    missing[i].bitmap = bmp;
+  }
+  status('');
+}
+
+/* ---------------- frame-by-frame mode ---------------- */
+const FB_HARD_CAP = 300;       // absolute max frames per extraction
+const FB_PIXEL_BUDGET = 100e6; // total stored pixels across the batch (~400MB RGBA)
+
+function setMode(m) {
+  if (S.busy) { status('Busy — wait for the current pass to finish before switching modes.'); return; }
+  S.mode = m;
+  $('modeScene').classList.toggle('active', m === 'scene');
+  $('modeFrames').classList.toggle('active', m === 'frames');
+  $('scenePanel').style.display = m === 'scene' ? 'block' : 'none';
+  $('framePanel').style.display = m === 'frames' ? 'block' : 'none';
+  S.selected.clear(); updateSelectionUI();
+  S.scenes = m === 'scene' ? S.sceneResults : S.frameResults;
+  refreshCounts();
+  renderGrid();
+  status('');
+  if (m === 'scene') drawTimeline();
+  else { updateFbUI(); fbEstimate(); previewAt((S.fb.inT + S.fb.outT) / 2); }
+}
+
+function fbParams() {
+  const fps = Math.min(120, Math.max(1, parseFloat($('fbFps').value) || 24));
+  const step = Math.min(60, Math.max(1, Math.round(parseFloat($('fbStep').value) || 1)));
+  const inT = Math.min(S.fb.inT, S.fb.outT), outT = Math.max(S.fb.inT, S.fb.outT);
+  return { fps, step, inT, outT };
+}
+
+function fbEstimate() {
+  const { fps, step, inT, outT } = fbParams();
+  let dt = step / fps;
+  let n = Math.max(1, Math.floor((outT - inT) / dt) + 1);
+  let capped = false;
+  if (n > FB_HARD_CAP) { n = FB_HARD_CAP; capped = true; }
+  const scale = Math.min(1, Math.sqrt(FB_PIXEL_BUDGET / (n * S.vw * S.vh)));
+  const cw = Math.round(S.vw * scale), ch = Math.round(S.vh * scale);
+  $('fbEstimate').textContent =
+    `≈ ${n} frames @ ${cw}×${ch}` +
+    (scale < 1 ? ` (${Math.round(scale * 100)}% of native, to stay light)` : ' (native)') +
+    (capped ? ` · capped at ${FB_HARD_CAP} — step will be raised` : '');
+  return { fps, step, inT, outT, n, scale, cw, ch };
+}
+
+async function extractFrames() {
+  if (S.busy) { status('Busy — wait for the current pass to finish.'); return; }
+  if (!S.duration) return;
+  let { fps, step, inT, outT } = fbParams();
+  let dt = step / fps;
+  let n = Math.max(1, Math.floor((outT - inT) / dt) + 1);
+  if (n > FB_HARD_CAP) {
+    step = Math.ceil((outT - inT) * fps / (FB_HARD_CAP - 1));
+    $('fbStep').value = step;
+    dt = step / fps;
+    n = Math.max(1, Math.floor((outT - inT) / dt) + 1);
+    status(`Range too dense — step raised to every ${step} frames to stay under ${FB_HARD_CAP}.`);
+  }
+  const scale = Math.min(1, Math.sqrt(FB_PIXEL_BUDGET / (n * S.vw * S.vh)));
+  const cw = Math.round(S.vw * scale), ch = Math.round(S.vh * scale);
+  S.busy = true;
+  $('fbExtractBtn').disabled = true;
+  try {
+    const out = [];
+    for (let k = 0; k < n; k++) {
+      const t = inT + k * dt;
+      if (t > S.duration) break;
+      status(`Extracting frames… ${k + 1}/${n}`);
+      await seekTo(t);
+      const bmp = scale < 1
+        ? await createImageBitmap(vid, { resizeWidth: cw, resizeHeight: ch, resizeQuality: 'high' })
+        : await createImageBitmap(vid);
+      out.push({ t, bitmap: bmp });
+    }
+    S.frameResults.forEach(f => f.bitmap && f.bitmap.close && f.bitmap.close());
+    S.frameResults = out;
+    S.scenes = out;
+    S.selected.clear(); updateSelectionUI();
+    renderGrid();
+    refreshCounts();
+    status(`Extracted ${out.length} frames at ${cw}×${ch}${scale < 1 ? ` (${Math.round(scale * 100)}% of native)` : ''}.`);
+  } catch (e) {
+    status('Extraction failed: ' + e.message);
+  } finally {
+    S.busy = false;
+    $('fbExtractBtn').disabled = false;
+  }
+}
+
+/* range track: drag handles, click track to place nearest handle */
+function updateFbUI() {
+  const d = S.duration || 1;
+  const pIn = (S.fb.inT / d) * 100, pOut = (S.fb.outT / d) * 100;
+  $('fbInHandle').style.left = pIn + '%';
+  $('fbOutHandle').style.left = pOut + '%';
+  const lo = Math.min(pIn, pOut), hi = Math.max(pIn, pOut);
+  $('fbRegion').style.left = lo + '%';
+  $('fbRegion').style.width = (hi - lo) + '%';
+  $('fbInHandle').classList.toggle('active', S.fb.active === 'in');
+  $('fbOutHandle').classList.toggle('active', S.fb.active === 'out');
+  const inT = Math.min(S.fb.inT, S.fb.outT), outT = Math.max(S.fb.inT, S.fb.outT);
+  $('fbInLabel').textContent = tc(inT);
+  $('fbOutLabel').textContent = tc(outT);
+  $('fbRangeLabel').textContent = (outT - inT).toFixed(2) + 's';
+}
+
+let previewTarget = null, previewBusy = false;
+async function previewAt(t) {
+  if (S.busy) return;   // never fight the scan/extraction for the seek head
+  previewTarget = t;
+  if (previewBusy) return;
+  previewBusy = true;
+  while (previewTarget !== null) {
+    const tt = previewTarget; previewTarget = null;
+    await seekTo(tt);
+    drawPreview();
+  }
+  previewBusy = false;
+}
+
+function drawPreview() {
+  const cv = $('fbPreview'), dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth || 640;
+  const h = Math.min(340, w * S.vh / S.vw);
+  cv.width = w * dpr; cv.height = h * dpr;
+  cv.style.height = h + 'px';
+  const c = cv.getContext('2d'); c.scale(dpr, dpr);
+  const s = Math.min(w / S.vw, h / S.vh);
+  const dw = S.vw * s, dh = S.vh * s;
+  c.fillStyle = '#000'; c.fillRect(0, 0, w, h);
+  c.drawImage(vid, (w - dw) / 2, (h - dh) / 2, dw, dh);
+}
+
+function trackTime(e) {
+  const r = $('fbTrack').getBoundingClientRect();
+  const f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+  return f * S.duration;
+}
+
+let fbDragging = null;
+function startDrag(which, e) {
+  fbDragging = which; S.fb.active = which;
+  e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId);
+  updateFbUI();
+  e.stopPropagation();
+}
+
+/* ---------------- diff timeline (signature) ---------------- */
+function drawTimeline() {
+  const cv = $('timeline'), dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = 64;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const c = cv.getContext('2d'); c.scale(dpr, dpr);
+  c.clearRect(0, 0, w, h);
+  if (!S.diffs.length) return;
+  const thr = parseFloat($('sensitivity').value);
+  const maxD = Math.max(thr * 1.4, ...S.diffs.slice(1).map(f => f.d));
+  const bw = Math.max(1, w / S.diffs.length - 1);
+  S.diffs.forEach((f, i) => {
+    const x = (i / S.diffs.length) * w;
+    const d = i === 0 ? maxD : f.d;
+    const bh = Math.min(h - 4, (d / maxD) * (h - 4));
+    const cut = i === 0 || f.d > thr;
+    c.fillStyle = cut ? '#2DD9C4' : '#27445A';
+    if (cut) { c.shadowColor = '#2DD9C4'; c.shadowBlur = 6; } else c.shadowBlur = 0;
+    c.fillRect(x, h - bh, bw, bh);
+  });
+  c.shadowBlur = 0;
+  const ty = h - (thr / maxD) * (h - 4);
+  c.strokeStyle = 'rgba(45,217,196,.8)'; c.setLineDash([4, 4]);
+  c.beginPath(); c.moveTo(0, ty); c.lineTo(w, ty); c.stroke(); c.setLineDash([]);
+}
+
+/* ---------------- grid layout (shared by preview + export) ---------------- */
+function layout(cellW, cellH, labelH) {
+  const n = S.scenes.length;
+  const colsInput = parseInt($('columns').value) || 0;
+  const cols = colsInput > 0 ? Math.min(colsInput, n) : Math.ceil(Math.sqrt(n));
+  const rows = Math.ceil(n / cols);
+  return { n, cols, rows, cellW, cellH, labelH };
+}
+
+function drawSheet(c, L, pad, font, showSelection) {
+  c.fillStyle = '#0D1924';
+  c.fillRect(0, 0, c.canvas.width / (c._dpr || 1), c.canvas.height / (c._dpr || 1));
+  S.cells = [];
+  S.scenes.forEach((s, i) => {
+    const col = i % L.cols, row = Math.floor(i / L.cols);
+    const x = pad + col * (L.cellW + pad);
+    const y = pad + row * (L.cellH + L.labelH + pad);
+    if (s.bitmap) c.drawImage(s.bitmap, x, y, L.cellW, L.cellH);
+    c.strokeStyle = '#1C3242'; c.lineWidth = 1;
+    c.strokeRect(x + .5, y + .5, L.cellW, L.cellH);
+    // number badge
+    const badge = Math.max(18, L.labelH * 0.62);
+    c.fillStyle = 'rgba(10,20,29,.85)';
+    c.fillRect(x, y, badge * 1.6, badge);
+    c.fillStyle = '#2DD9C4';
+    c.font = `500 ${badge * 0.62}px ${font}`;
+    c.textBaseline = 'middle'; c.textAlign = 'center';
+    c.fillText(String(i + 1), x + badge * 0.8, y + badge / 2 + 1);
+    // selection marker (preview only — never drawn on exports)
+    if (showSelection && S.selected.has(i)) {
+      c.strokeStyle = '#2DD9C4'; c.lineWidth = 2.5;
+      c.strokeRect(x + 1.25, y + 1.25, L.cellW - 2.5, L.cellH - 2.5);
+      c.fillStyle = '#2DD9C4';
+      c.fillRect(x + L.cellW - badge, y, badge, badge);
+      c.fillStyle = '#06241F';
+      c.font = `600 ${badge * 0.66}px ${font}`;
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('\u2713', x + L.cellW - badge / 2, y + badge / 2 + 1);
+    }
+    // timecode label under the frame
+    c.fillStyle = '#7C93A0';
+    c.font = `400 ${L.labelH * 0.5}px ${font}`;
+    c.textAlign = 'left'; c.textBaseline = 'middle';
+    c.fillText(tc(s.t), x + 2, y + L.cellH + L.labelH * 0.55);
+    S.cells.push({ x, y, w: L.cellW, h: L.cellH + L.labelH, i });
+  });
+}
+
+function renderGrid() {
+  const cv = $('grid');
+  if (!S.scenes.length) { cv.width = cv.clientWidth; cv.height = 80; return; }
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = cv.clientWidth || cv.parentElement.clientWidth;
+  const pad = 10;
+  const colsInput = parseInt($('columns').value) || 0;
+  const cols = colsInput > 0 ? Math.min(colsInput, S.scenes.length) : Math.ceil(Math.sqrt(S.scenes.length));
+  const cellW = (cssW - pad * (cols + 1)) / cols;
+  const cellH = cellW * S.vh / S.vw;
+  const labelH = 22;
+  const rows = Math.ceil(S.scenes.length / cols);
+  const cssH = pad + rows * (cellH + labelH + pad);
+  cv.width = cssW * dpr; cv.height = cssH * dpr;
+  cv.style.height = cssH + 'px';
+  const c = cv.getContext('2d'); c._dpr = dpr; c.scale(dpr, dpr);
+  drawSheet(c, { cols, rows, cellW, cellH, labelH }, pad, "'IBM Plex Mono',monospace", true);
+}
+
+/* ---------------- lightbox ---------------- */
+function openLightbox(i) {
+  const s = S.scenes[i];
+  if (!s || !s.bitmap) return;
+  const cv = $('lbCanvas');
+  cv.width = s.bitmap.width; cv.height = s.bitmap.height;   // capture resolution, no upscaling
+  cv.getContext('2d').drawImage(s.bitmap, 0, 0);
+  $('lbInfo').innerHTML = `Frame <b>${i + 1}</b> · ${tc(s.t)} · ${s.bitmap.width}×${s.bitmap.height}`;
+  $('lbDownload').onclick = () => {
+    cv.toBlob(b => save(b, `${S.fileName}_frame_${String(i + 1).padStart(2, '0')}_${tcFile(s.t)}.png`), 'image/png');
+  };
+  const syncLbSelect = () => {
+    $('lbSelect').textContent = S.selected.has(i) ? 'Selected \u2713 (click to remove)' : 'Select for batch';
+  };
+  syncLbSelect();
+  $('lbSelect').onclick = () => { toggleSelect(i); syncLbSelect(); };
+  $('lightbox').classList.add('open');
+}
+
+/* ---------------- selection ---------------- */
+function toggleSelect(i) {
+  S.selected.has(i) ? S.selected.delete(i) : S.selected.add(i);
+  updateSelectionUI();
+  renderGrid();
+}
+
+function updateSelectionUI() {
+  const n = S.selected.size;
+  $('zipSelBtn').textContent = `Download selected (${n})`;
+  $('zipSelBtn').disabled = $('clearSelBtn').disabled = n === 0;
+}
+
+/* ---------------- exports (only on click) ---------------- */
+const MAX_DIM = 16000;
+
+function exportStoryboard() {
+  if (!S.scenes.length) return;
+  status('Compositing full-resolution storyboard…');
+  setTimeout(() => {
+    const capW = S.scenes[0].bitmap.width, capH = S.scenes[0].bitmap.height;
+    const pad = Math.round(capW * 0.02);
+    const labelH = Math.max(48, Math.round(capH * 0.06));
+    const colsInput = parseInt($('columns').value) || 0;
+    const cols = colsInput > 0 ? Math.min(colsInput, S.scenes.length) : Math.ceil(Math.sqrt(S.scenes.length));
+    const rows = Math.ceil(S.scenes.length / cols);
+    let W = pad + cols * (capW + pad);
+    let H = pad + rows * (capH + labelH + pad);
+    let scale = 1;
+    if (W > MAX_DIM || H > MAX_DIM) {
+      scale = Math.min(MAX_DIM / W, MAX_DIM / H);
+      status(`Storyboard exceeds the browser canvas limit — exported at ${Math.round(scale * 100)}% scale. Use the ZIP for guaranteed full-res frames.`);
+    }
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(W * scale); cv.height = Math.round(H * scale);
+    const c = cv.getContext('2d');
+    c.scale(scale, scale);
+    drawSheet(c, { cols, rows, cellW: capW, cellH: capH, labelH }, pad, "'IBM Plex Mono',monospace");
+    cv.toBlob(b => {
+      save(b, `${S.fileName}_storyboard_${S.scenes.length}scenes.png`);
+      if (scale === 1) status('Storyboard exported at full resolution.');
+      renderGrid(); // drawSheet overwrote S.cells with export coords — restore preview hit rects
+    }, 'image/png');
+  }, 30);
+}
+
+async function exportZip(indices, suffix) {
+  if (!indices.length) return;
+  const zip = new JSZip();
+  const cv = document.createElement('canvas');
+  const c = cv.getContext('2d');
+  for (let k = 0; k < indices.length; k++) {
+    const i = indices[k];
+    status(`Zipping frames… ${k + 1}/${indices.length}`);
+    const bmp = S.scenes[i].bitmap;
+    cv.width = bmp.width; cv.height = bmp.height;
+    c.drawImage(bmp, 0, 0);
+    const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+    zip.file(`frame_${String(i + 1).padStart(2, '0')}_${tcFile(S.scenes[i].t)}.png`, blob);
+  }
+  status('Building ZIP…');
+  const out = await zip.generateAsync({ type: 'blob' });
+  save(out, `${S.fileName}_frames_${suffix}.zip`);
+  status('ZIP downloaded.');
+}
+
+function save(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+/* ---------------- wiring ---------------- */
+$('uploadBtn').onclick = e => { e.stopPropagation(); $('fileInput').click(); };
+$('dropzone').onclick = () => $('fileInput').click();
+$('dropzone').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') $('fileInput').click(); };
+$('fileInput').onchange = e => loadFile(e.target.files[0]);
+
+['dragover', 'dragenter'].forEach(ev => document.addEventListener(ev, e => {
+  e.preventDefault(); $('dropzone').classList.add('dragover');
+}));
+['dragleave', 'drop'].forEach(ev => document.addEventListener(ev, e => {
+  e.preventDefault(); $('dropzone').classList.remove('dragover');
+}));
+document.addEventListener('drop', e => loadFile(e.dataTransfer.files[0]));
+
+let sensTimer;
+$('sensitivity').oninput = e => {
+  $('sensitivityVal').textContent = e.target.value;
+  drawTimeline();
+  clearTimeout(sensTimer);
+  sensTimer = setTimeout(() => run({ rescan: false }), 250);   // cheap: reuses cached diffs
+};
+$('interval').onchange = () => run({ rescan: true });          // needs a fresh scan
+$('columns').onchange = () => { renderGrid(); };
+
+const gridHit = e => {
+  const r = $('grid').getBoundingClientRect();
+  const x = e.clientX - r.left, y = e.clientY - r.top;
+  return S.cells.find(c => x >= c.x && x <= c.x + c.w && y >= c.y && y <= c.y + c.h);
+};
+
+// single click toggles selection; a double-click fires two clicks first (toggle on→off,
+// net unchanged) and then opens the lightbox — the two gestures coexist cleanly
+$('grid').addEventListener('click', e => {
+  const hit = gridHit(e);
+  if (hit) toggleSelect(hit.i);
+});
+$('grid').addEventListener('dblclick', e => {
+  const hit = gridHit(e);
+  if (hit) openLightbox(hit.i);
+});
+
+$('exportBtn').onclick = exportStoryboard;
+$('zipBtn').onclick = () => exportZip(S.scenes.map((s, i) => i), S.mode === 'frames' ? 'extracted' : 'fullres');
+$('zipSelBtn').onclick = () => exportZip([...S.selected].sort((a, b) => a - b), 'selected');
+$('clearSelBtn').onclick = () => { S.selected.clear(); updateSelectionUI(); renderGrid(); };
+$('lbClose').onclick = () => $('lightbox').classList.remove('open');
+$('lightbox').onclick = e => { if (e.target === $('lightbox')) $('lightbox').classList.remove('open'); };
+
+/* ---- frame-by-frame wiring ---- */
+$('modeScene').onclick = () => setMode('scene');
+$('modeFrames').onclick = () => setMode('frames');
+
+$('fbInHandle').addEventListener('pointerdown', e => startDrag('in', e));
+$('fbOutHandle').addEventListener('pointerdown', e => startDrag('out', e));
+$('fbTrack').addEventListener('pointerdown', e => {
+  if (e.target.classList.contains('fb-handle')) return;
+  const t = trackTime(e);
+  // move whichever handle is nearer to the click, then keep dragging it
+  const which = Math.abs(t - S.fb.inT) <= Math.abs(t - S.fb.outT) ? 'in' : 'out';
+  S.fb[which + 'T'] = t;
+  startDrag(which, e);
+  updateFbUI(); fbEstimate(); previewAt(t);
+});
+document.addEventListener('pointermove', e => {
+  if (!fbDragging) return;
+  const t = trackTime(e);
+  S.fb[fbDragging + 'T'] = t;
+  updateFbUI(); fbEstimate(); previewAt(t);
+});
+document.addEventListener('pointerup', () => { fbDragging = null; });
+
+$('fbFps').onchange = () => fbEstimate();
+$('fbStep').onchange = () => fbEstimate();
+$('fbExtractBtn').onclick = extractFrames;
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { $('lightbox').classList.remove('open'); return; }
+  if (S.mode !== 'frames' || !S.duration) return;
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === ',' || e.key === '.' || e.key === 'e' || e.key === 'E') {
+    const { fps } = fbParams();
+    const dir = (e.key === ',' || (e.key.toLowerCase() === 'e' && e.shiftKey)) ? -1 : 1;   // E forward, Shift+E back — VLC-style
+    const k = S.fb.active + 'T';
+    S.fb[k] = Math.min(S.duration, Math.max(0, S.fb[k] + dir / fps));
+    updateFbUI(); fbEstimate(); previewAt(S.fb[k]);
+    e.preventDefault();
+  }
+});
+
+window.addEventListener('resize', () => {
+  renderGrid();
+  if (S.mode === 'scene') drawTimeline();
+  else { updateFbUI(); if (S.duration) drawPreview(); }
+});
+
+})();
+</script>
 </body>
 </html>
