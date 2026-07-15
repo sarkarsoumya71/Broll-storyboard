@@ -1672,6 +1672,7 @@
         // Test connection
         document.getElementById('settings-test-sync').addEventListener('click', async () => {
             const pat = settingsPat.value.trim();
+            const gistId = settingsGistId.value.trim();
             if (!pat) { showSyncStatus('Enter a Personal Access Token first.', 'error'); return; }
 
             showSyncStatus('Testing connection...', 'info');
@@ -1679,11 +1680,41 @@
                 const resp = await fetch('https://api.github.com/user', {
                     headers: { 'Authorization': `token ${pat}` }
                 });
-                if (resp.ok) {
-                    const user = await resp.json();
-                    showSyncStatus(`Connected as ${user.login}`, 'success');
-                } else {
+                if (!resp.ok) {
                     showSyncStatus(`Auth failed (${resp.status}). Check your token.`, 'error');
+                    return;
+                }
+                const user = await resp.json();
+
+                // Check token type + scopes via the X-OAuth-Scopes header
+                const scopes = resp.headers.get('x-oauth-scopes');
+                if (scopes === null) {
+                    showSyncStatus(`Connected as ${user.login}, but this looks like a FINE-GRAINED token — those cannot write Gists. Create a CLASSIC token instead (github.com/settings/tokens → Tokens (classic)) with the gist scope.`, 'error');
+                    return;
+                }
+                if (!scopes.split(',').map(s => s.trim()).includes('gist')) {
+                    showSyncStatus(`Connected as ${user.login}, but the token is MISSING the "gist" scope — pushes will fail. Create a new classic token and tick the gist checkbox.`, 'error');
+                    return;
+                }
+
+                // Check gist ownership if a Gist ID is entered
+                if (gistId) {
+                    const gResp = await fetch(`https://api.github.com/gists/${gistId}`, {
+                        headers: { 'Authorization': `token ${pat}` }
+                    });
+                    if (!gResp.ok) {
+                        showSyncStatus(`Connected as ${user.login} with gist scope, but the Gist ID returned ${gResp.status}. Check the ID.`, 'error');
+                        return;
+                    }
+                    const g = await gResp.json();
+                    const owner = g.owner ? g.owner.login : '(unknown)';
+                    if (owner !== user.login) {
+                        showSyncStatus(`Token belongs to ${user.login} but the Gist belongs to ${owner} — you can read it but NOT write to it. Use a token from ${owner}'s account, or create a new Gist under ${user.login}.`, 'error');
+                        return;
+                    }
+                    showSyncStatus(`All good: ${user.login}, gist scope OK, Gist owned by you. Push will work.`, 'success');
+                } else {
+                    showSyncStatus(`Connected as ${user.login} with gist scope. Add a Gist ID (or Push to auto-create).`, 'success');
                 }
             } catch (err) {
                 showSyncStatus('Network error: ' + err.message, 'error');
@@ -1820,7 +1851,10 @@
                 },
                 body: JSON.stringify({ files })
             });
-            if (!writeResp.ok) throw new Error('Failed to write Gist (' + writeResp.status + ')');
+            if (!writeResp.ok) {
+                if (writeResp.status === 404) throw new Error('Write denied (404): the token cannot write this Gist. Run Test Connection in settings for the exact cause (missing gist scope, fine-grained token, or Gist owned by a different account).');
+                throw new Error('Failed to write Gist (' + writeResp.status + ')');
+            }
         }
 
         function showSyncStatus(msg, type) {
