@@ -212,10 +212,13 @@
     .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
     .btn:active { transform: translateY(0); }
 
+    /* Viewport-sized canvas. Shapes are stored in WORLD coordinates and drawn
+       through a world->screen transform, so the workspace can grow without
+       ever hitting the browser's maximum canvas dimensions. */
     #drawing-layer {
-        position: absolute; top: 0; left: 0; 
-        width: 6000px; height: 6000px; 
-        z-index: 150; pointer-events: none; touch-action: none; 
+        position: fixed; top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        z-index: 150; pointer-events: none; touch-action: none;
     }
 
     /* ---- GLASS TOOLBAR ---- */
@@ -572,6 +575,66 @@
     body.dark .project-save-name { background: #1e293b; border-color: #334155; color: #94a3b8; }
     body.dark .project-save-name:hover { background: #6366f1; color: #fff; border-color: #6366f1; }
 
+    /* ---- Block navigator ---- */
+    .block-nav {
+        position: fixed; top: 68px; left: 16px; z-index: 998;
+        width: 264px; max-height: calc(100vh - 190px);
+        background: rgba(255,255,255,0.92);
+        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        border-radius: 14px; border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.04);
+        display: none; flex-direction: column; overflow: hidden;
+        font-family: 'Inter', sans-serif;
+    }
+    .block-nav.open { display: flex; }
+    .block-nav-header {
+        padding: 12px 14px 8px; display: flex; justify-content: space-between; align-items: center;
+        font-size: 10px; font-weight: 700; color: #94a3b8;
+        text-transform: uppercase; letter-spacing: 1px;
+    }
+    .block-nav-close {
+        background: transparent; border: none; cursor: pointer; color: #cbd5e1;
+        font-size: 16px; line-height: 1; padding: 2px 5px; border-radius: 6px;
+    }
+    .block-nav-close:hover { color: #475569; background: rgba(0,0,0,0.05); }
+    .block-nav-list { overflow-y: auto; padding: 0 8px 10px; }
+    .block-nav-item {
+        display: flex; gap: 9px; align-items: flex-start;
+        padding: 9px 10px; border-radius: 9px; cursor: pointer;
+        font-size: 13px; color: #334155; line-height: 1.45;
+        transition: background 0.12s;
+    }
+    .block-nav-item:hover { background: rgba(99,102,241,0.09); }
+    .block-nav-num {
+        font-size: 10px; font-weight: 700; color: #94a3b8;
+        min-width: 15px; padding-top: 2px; flex-shrink: 0;
+    }
+    .block-nav-title {
+        flex-grow: 1; overflow: hidden;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+    .block-nav-empty { padding: 4px 14px 16px; font-size: 12px; color: #94a3b8; line-height: 1.5; }
+
+    body.dark .block-nav {
+        background: rgba(26,31,46,0.94);
+        border-color: rgba(255,255,255,0.06);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    body.dark .block-nav-header { color: #64748b; }
+    body.dark .block-nav-close { color: #475569; }
+    body.dark .block-nav-close:hover { color: #94a3b8; background: rgba(255,255,255,0.06); }
+    body.dark .block-nav-item { color: #cbd5e1; }
+    body.dark .block-nav-item:hover { background: rgba(99,102,241,0.18); }
+    body.dark .block-nav-num, body.dark .block-nav-empty { color: #64748b; }
+
+    /* Brief flash when jumping to a block */
+    .block-flash { animation: blockFlash 1.1s ease; }
+    @keyframes blockFlash {
+        0%   { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+        25%  { box-shadow: 0 0 0 5px rgba(99,102,241,0.45); }
+        100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+    }
+
     /* ---- Settings drawer ---- */
     .settings-drawer {
         position: fixed; top: 0; right: -420px; width: 400px; height: 100vh;
@@ -673,6 +736,15 @@
         <button class="project-save-name" id="project-save-name">Save</button>
     </div>
 
+    <!-- Block Navigator -->
+    <div class="block-nav" id="block-nav">
+        <div class="block-nav-header">
+            <span>Blocks</span>
+            <button class="block-nav-close" id="block-nav-close">&times;</button>
+        </div>
+        <div class="block-nav-list" id="block-nav-list"></div>
+    </div>
+
     <input type="file" id="file-import" accept=".json" style="display: none;">
     <div id="paste-toast" class="paste-toast">Image pasted onto canvas</div>
 
@@ -745,8 +817,8 @@
     </div>
 
     <!-- Canvas -->
+    <canvas id="drawing-layer"></canvas>
     <div id="zoom-container">
-        <canvas id="drawing-layer" width="6000" height="6000"></canvas>
         <div id="blocks-container" style="opacity:0;">
             <div class="document-block" style="left: 2550px; top: 600px; width: 900px;">
                 <div class="document-header">
@@ -783,6 +855,9 @@
             <div class="divider"></div>
             <button id="toggle-draw" class="tool-btn mode-btn">Draw</button>
             <button id="btn-hide-drawings" class="tool-btn">Hide</button>
+            <div class="divider"></div>
+            <button id="btn-blocks" class="tool-btn" title="Jump to a transcript block">Blocks</button>
+            <button id="btn-fit" class="tool-btn" title="Fit everything on screen (Ctrl+0)">Fit</button>
             <div class="divider"></div>
             <button id="btn-transcript" class="tool-btn">+ Transcript</button>
             <button id="btn-pip" class="tool-btn" title="Pop out transcript into picture-in-picture">Pop Out</button>
@@ -873,6 +948,8 @@
 
         window.onload = () => {
             const bc = document.getElementById('blocks-container');
+            setWorldSize(WORLD_W, WORLD_H);
+            resizeDrawingCanvas();
             try {
                 const saved = localStorage.getItem('broll-autosave');
                 if (saved) {
@@ -888,7 +965,9 @@
             bc.style.opacity = '1';
             document.querySelectorAll('.document-block').forEach(makeBlockInteractive);
             refreshAllParaExportButtons();
-            window.scrollTo((6000 - window.innerWidth)/2, 400);
+            refreshBlockNav();
+            window.scrollTo((WORLD_W - window.innerWidth)/2, 400);
+            ensureRoom();
         };
 
         const exportContent = document.createElement('div'); // legacy no-op placeholder (export now copies directly)
@@ -993,21 +1072,109 @@
             if (btn) flashCopied(btn, 'Export Block');
         }
 
-        /* === ZOOM === */
+        /* === INFINITE WORLD ===
+         * The workspace has no fixed size. It grows on demand in every
+         * direction. Growing right/down is a simple resize. Growing left/up
+         * would need negative coordinates (impossible with absolute
+         * positioning), so instead we shift ALL content by +delta and scroll
+         * by the same amount — visually seamless, and coordinates stay >= 0.
+         */
         const zoomContainer = document.getElementById('zoom-container');
         const zoomLevelText = document.getElementById('zoom-level');
         let zoomLevel = 1;
-        function applyZoom() { zoomContainer.style.transform = `scale(${zoomLevel})`; zoomLevelText.innerText = `${Math.round(zoomLevel*100)}%`; }
+        let shapes = [], undoStack = [];   // drawing state (used by world sizing below)
+        let drawingsVisible = true, canvasReady = false;
+        let WORLD_W = 6000, WORLD_H = 6000;
+        const GROW = 3000;   // how much to add each time
+        const MARGIN = 1200; // start growing this far from the edge
+
+        function setWorldSize(w, h) {
+            WORLD_W = Math.round(w); WORLD_H = Math.round(h);
+            zoomContainer.style.width = WORLD_W + 'px';
+            zoomContainer.style.height = WORLD_H + 'px';
+        }
+
+        function contentBounds() {
+            let maxX = 0, maxY = 0;
+            document.querySelectorAll('.document-block, .image-block').forEach(el => {
+                maxX = Math.max(maxX, (parseFloat(el.style.left) || 0) + el.offsetWidth);
+                maxY = Math.max(maxY, (parseFloat(el.style.top) || 0) + el.offsetHeight);
+            });
+            shapes.forEach(s => {
+                if (s.points) s.points.forEach(p => { maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); });
+                else { maxX = Math.max(maxX, s.startX, s.endX); maxY = Math.max(maxY, s.startY, s.endY); }
+            });
+            return { maxX, maxY };
+        }
+
+        // Grow right/bottom so there is always empty room past the content
+        // and past wherever the user has scrolled to.
+        function ensureRoom() {
+            const { maxX, maxY } = contentBounds();
+            const viewRight = (window.scrollX + window.innerWidth) / zoomLevel;
+            const viewBottom = (window.scrollY + window.innerHeight) / zoomLevel;
+            let w = WORLD_W, h = WORLD_H;
+            while (Math.max(maxX, viewRight) + MARGIN > w) w += GROW;
+            while (Math.max(maxY, viewBottom) + MARGIN > h) h += GROW;
+            if (w !== WORLD_W || h !== WORLD_H) { setWorldSize(w, h); return true; }
+            return false;
+        }
+
+        // Shift the whole world by (dx, dy) and compensate scroll so nothing
+        // appears to move. Used to create space on the left/top.
+        function shiftWorld(dx, dy) {
+            if (!dx && !dy) return;
+            document.querySelectorAll('.document-block, .image-block').forEach(el => {
+                el.style.left = ((parseFloat(el.style.left) || 0) + dx) + 'px';
+                el.style.top = ((parseFloat(el.style.top) || 0) + dy) + 'px';
+            });
+            shapes.forEach(s => {
+                if (s.points) s.points.forEach(p => { p.x += dx; p.y += dy; });
+                else { s.startX += dx; s.startY += dy; s.endX += dx; s.endY += dy; }
+            });
+            undoStack.forEach(snap => snap.forEach(s => {
+                if (s.points) s.points.forEach(p => { p.x += dx; p.y += dy; });
+                else { s.startX += dx; s.startY += dy; s.endX += dx; s.endY += dy; }
+            }));
+            setWorldSize(WORLD_W + dx, WORLD_H + dy);
+            window.scrollBy(dx * zoomLevel, dy * zoomLevel);
+            renderAllShapes();
+        }
+
+        // If the user has panned/dragged near the left or top edge, prepend space.
+        function ensureRoomBefore() {
+            if (navLock) return false;
+            let dx = 0, dy = 0;
+            if (window.scrollX / zoomLevel < MARGIN) dx = GROW;
+            if (window.scrollY / zoomLevel < MARGIN) dy = GROW;
+            if (dx || dy) { shiftWorld(dx, dy); return true; }
+            return false;
+        }
+
+        function applyZoom() {
+            zoomContainer.style.transform = `scale(${zoomLevel})`;
+            zoomLevelText.innerText = `${Math.round(zoomLevel*100)}%`;
+            ensureRoom();
+            renderAllShapes();
+        }
         document.addEventListener('wheel', (e) => {
             if (e.ctrlKey || e.metaKey) {
                 e.preventDefault(); const oz = zoomLevel;
-                zoomLevel = Math.max(0.3, Math.min(4, zoomLevel + (e.deltaY > 0 ? -0.1 : 0.1)));
+                zoomLevel = Math.max(0.05, Math.min(4, zoomLevel + (e.deltaY > 0 ? -0.1 : 0.1) * (zoomLevel < 0.5 ? 0.4 : 1)));
                 const mx=e.clientX, my=e.clientY, ux=(window.scrollX+mx)/oz, uy=(window.scrollY+my)/oz;
                 applyZoom(); window.scrollTo(ux*zoomLevel-mx, uy*zoomLevel-my);
             }
         }, { passive: false });
         document.getElementById('zoom-in').addEventListener('click', () => { zoomLevel = Math.min(4, zoomLevel+0.2); applyZoom(); });
-        document.getElementById('zoom-out').addEventListener('click', () => { zoomLevel = Math.max(0.3, zoomLevel-0.2); applyZoom(); });
+        document.getElementById('zoom-out').addEventListener('click', () => { zoomLevel = Math.max(0.05, zoomLevel-0.2); applyZoom(); });
+
+        // Panning to an edge extends the workspace in that direction.
+        let edgeTimer = null, navLock = false;   // navLock: suppress edge growth during programmatic jumps
+        window.addEventListener('scroll', () => {
+            if (canvasReady) renderAllShapes();
+            clearTimeout(edgeTimer);
+            edgeTimer = setTimeout(() => { ensureRoom(); ensureRoomBefore(); }, 60);
+        }, { passive: true });
 
         /* === BLOCK DRAG & RESIZE === */
         let isDraggingBlock=false, isResizingBlock=false, activeBlock=null;
@@ -1015,23 +1182,34 @@
 
         function makeBlockInteractive(block) {
             const h=block.querySelector('.document-header'), r=block.querySelector('.resize-handle'), d=block.querySelector('.delete-btn'), ex=block.querySelector('.block-export-btn');
-            d.addEventListener('click', () => block.remove());
+            d.addEventListener('click', () => { block.remove(); refreshBlockNav(); });
             if (ex) ex.addEventListener('click', () => { openBlockExport(block, ex); });
             h.addEventListener('mousedown', (e) => { if (e.target===d||appMode==='draw') return; isDraggingBlock=true; activeBlock=block; blockStartX=parseFloat(block.style.left)||0; blockStartY=parseFloat(block.style.top)||0; mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation(); });
             r.addEventListener('mousedown', (e) => { if (appMode==='draw') return; isResizingBlock=true; activeBlock=block; blockStartW=block.offsetWidth; blockStartH=block.offsetHeight; mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation(); });
         }
         function makeImageBlockInteractive(block) {
             const h=block.querySelector('.document-header'), r=block.querySelector('.resize-handle'), d=block.querySelector('.delete-btn');
-            d.addEventListener('click', () => block.remove());
+            d.addEventListener('click', () => { block.remove(); refreshBlockNav(); });
             h.addEventListener('mousedown', (e) => { if (e.target===d||appMode==='draw') return; isDraggingBlock=true; activeBlock=block; blockStartX=parseFloat(block.style.left)||0; blockStartY=parseFloat(block.style.top)||0; mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation(); });
             r.addEventListener('mousedown', (e) => { if (appMode==='draw') return; isResizingBlock=true; activeBlock=block; blockStartW=block.offsetWidth; blockStartH=block.offsetHeight; mouseStartX=e.clientX; mouseStartY=e.clientY; e.stopPropagation(); });
         }
         document.querySelectorAll('.document-block').forEach(makeBlockInteractive);
         document.addEventListener('mousemove', (e) => {
-            if (isDraggingBlock&&activeBlock) { activeBlock.style.left=`${blockStartX+(e.clientX-mouseStartX)/zoomLevel}px`; activeBlock.style.top=`${blockStartY+(e.clientY-mouseStartY)/zoomLevel}px`; }
-            else if (isResizingBlock&&activeBlock) { activeBlock.style.width=`${Math.max(150,blockStartW+(e.clientX-mouseStartX)/zoomLevel)}px`; if(activeBlock.classList.contains('image-block')) activeBlock.style.height=`${Math.max(100,blockStartH+(e.clientY-mouseStartY)/zoomLevel)}px`; }
+            if (isDraggingBlock&&activeBlock) {
+                let nx = blockStartX+(e.clientX-mouseStartX)/zoomLevel;
+                let ny = blockStartY+(e.clientY-mouseStartY)/zoomLevel;
+                // Dragging past the left/top edge prepends space instead of clamping
+                if (nx < MARGIN || ny < MARGIN) {
+                    const dx = nx < MARGIN ? GROW : 0, dy = ny < MARGIN ? GROW : 0;
+                    shiftWorld(dx, dy);
+                    blockStartX += dx; blockStartY += dy; nx += dx; ny += dy;
+                }
+                activeBlock.style.left=`${nx}px`; activeBlock.style.top=`${ny}px`;
+                ensureRoom();
+            }
+            else if (isResizingBlock&&activeBlock) { activeBlock.style.width=`${Math.max(150,blockStartW+(e.clientX-mouseStartX)/zoomLevel)}px`; if(activeBlock.classList.contains('image-block')) activeBlock.style.height=`${Math.max(100,blockStartH+(e.clientY-mouseStartY)/zoomLevel)}px`; ensureRoom(); }
         });
-        document.addEventListener('mouseup', () => { isDraggingBlock=false; isResizingBlock=false; activeBlock=null; });
+        document.addEventListener('mouseup', () => { if(isDraggingBlock||isResizingBlock) ensureRoom(); isDraggingBlock=false; isResizingBlock=false; activeBlock=null; });
 
         /* === TRANSCRIPT CREATION === */
         const transcriptModal = document.getElementById('transcript-modal-overlay');
@@ -1060,6 +1238,7 @@
             if (!contentEl) return;
             clearTimeout(paraBtnTimer);
             paraBtnTimer = setTimeout(() => refreshParaExportButtons(contentEl), 400);
+            scheduleBlockNavRefresh();
         });
 
         document.getElementById('btn-transcript').addEventListener('click', () => { transcriptInput.value=''; transcriptTitleInput.value=''; transcriptModal.style.display='flex'; transcriptTitleInput.focus(); });
@@ -1076,6 +1255,8 @@
                 nb.innerHTML=`<div class="document-header"><span>&#x2807; Drag to move</span><button class="delete-btn">&times;</button></div><div class="document-content" contenteditable="true" spellcheck="false"><p><strong>${title}</strong></p>${paras}</div><button class="block-export-btn">Export Block</button><div class="resize-handle"></div>`;
                 blocksContainer.appendChild(nb); makeBlockInteractive(nb);
                 refreshParaExportButtons(nb.querySelector('.document-content'));
+                ensureRoom();
+                refreshBlockNav();
             }
             transcriptModal.style.display='none';
         });
@@ -1374,25 +1555,40 @@
 
         /* === DRAWING === */
         const canvas=document.getElementById('drawing-layer'), ctx=canvas.getContext('2d');
-        let shapes=[],undoStack=[],isDrawing=false,currentTool='pen',currentColor='#f43f5e';
-        let startX=0,startY=0,lastX=0,lastY=0,drawingsVisible=true;
+        let isDrawing=false,currentTool='pen',currentColor='#f43f5e';
+        let startX=0,startY=0,lastX=0,lastY=0;
         const colorBtns=document.querySelectorAll('.color-btn'),customColorInput=document.getElementById('custom-color');
         function updateColor(c){currentColor=c;colorBtns.forEach(b=>b.classList.remove('active'));const m=Array.from(colorBtns).find(b=>b.getAttribute('data-color')===c);if(m)m.classList.add('active');}
         colorBtns.forEach(b=>b.addEventListener('click',()=>{updateColor(b.getAttribute('data-color'));customColorInput.value=currentColor;if(appMode!=='draw')document.getElementById('toggle-draw').click();}));
         customColorInput.addEventListener('input',(e)=>{updateColor(e.target.value);if(appMode!=='draw')document.getElementById('toggle-draw').click();});
 
-        function renderAllShapes(){ctx.clearRect(0,0,canvas.width,canvas.height);if(!drawingsVisible)return;shapes.forEach(s=>{ctx.globalCompositeOperation=s.type==='eraser'?'destination-out':'source-over';ctx.strokeStyle=s.color;ctx.lineWidth=s.width||3;ctx.lineCap='round';ctx.lineJoin='round';if(s.type==='pen'||s.type==='eraser'){if(!s.points.length)return;ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);ctx.stroke();}else if(s.type==='arrow'){const hl=16,a=Math.atan2(s.endY-s.startY,s.endX-s.startX);ctx.strokeStyle=s.color;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(s.startX,s.startY);ctx.lineTo(s.endX,s.endY);ctx.lineTo(s.endX-hl*Math.cos(a-Math.PI/6),s.endY-hl*Math.sin(a-Math.PI/6));ctx.moveTo(s.endX,s.endY);ctx.lineTo(s.endX-hl*Math.cos(a+Math.PI/6),s.endY-hl*Math.sin(a+Math.PI/6));ctx.stroke();}});}
+        // Size the canvas to the viewport (device-pixel accurate).
+        function resizeDrawingCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const w = Math.floor(window.innerWidth * dpr), h = Math.floor(window.innerHeight * dpr);
+            if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+            canvasReady = true;
+            renderAllShapes();
+        }
+        // Map world coordinates -> screen pixels (accounts for zoom + scroll).
+        function applyWorldTransform() {
+            const dpr = window.devicePixelRatio || 1, k = dpr * zoomLevel;
+            ctx.setTransform(k, 0, 0, k, -window.scrollX * dpr, -window.scrollY * dpr);
+        }
+        window.addEventListener('resize', resizeDrawingCanvas);
+
+        function renderAllShapes(){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);if(!drawingsVisible)return;applyWorldTransform();shapes.forEach(s=>{ctx.globalCompositeOperation=s.type==='eraser'?'destination-out':'source-over';ctx.strokeStyle=s.color;ctx.lineWidth=s.width||3;ctx.lineCap='round';ctx.lineJoin='round';if(s.type==='pen'||s.type==='eraser'){if(!s.points.length)return;ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);ctx.stroke();}else if(s.type==='arrow'){const hl=16,a=Math.atan2(s.endY-s.startY,s.endX-s.startX);ctx.strokeStyle=s.color;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(s.startX,s.startY);ctx.lineTo(s.endX,s.endY);ctx.lineTo(s.endX-hl*Math.cos(a-Math.PI/6),s.endY-hl*Math.sin(a-Math.PI/6));ctx.moveTo(s.endX,s.endY);ctx.lineTo(s.endX-hl*Math.cos(a+Math.PI/6),s.endY-hl*Math.sin(a+Math.PI/6));ctx.stroke();}});}
         function getCC(e){const r=zoomContainer.getBoundingClientRect();return{x:(e.clientX-r.left)/zoomLevel,y:(e.clientY-r.top)/zoomLevel};}
         canvas.addEventListener('pointerdown',(e)=>{if(appMode!=='draw'||isSpacePanning)return;const co=getCC(e);startX=co.x;startY=co.y;lastX=startX;lastY=startY;isDrawing=true;let ns={type:currentTool,color:currentColor,width:currentTool==='eraser'?40:3};if(currentTool==='pen'||currentTool==='eraser')ns.points=[{x:startX,y:startY}];else{ns.startX=startX;ns.startY=startY;ns.endX=startX;ns.endY=startY;}shapes.push(ns);});
-        canvas.addEventListener('pointermove',(e)=>{if(!isDrawing||appMode!=='draw')return;e.preventDefault();const co=getCC(e);let cs=shapes[shapes.length-1];if(currentTool==='pen'||currentTool==='eraser'){cs.points.push({x:co.x,y:co.y});ctx.globalCompositeOperation=currentTool==='eraser'?'destination-out':'source-over';ctx.strokeStyle=currentTool==='eraser'?'rgba(0,0,0,1)':currentColor;ctx.lineWidth=cs.width;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(co.x,co.y);ctx.stroke();lastX=co.x;lastY=co.y;}else{cs.endX=co.x;cs.endY=co.y;renderAllShapes();}});
-        canvas.addEventListener('pointerup',()=>{if(isDrawing)saveDrawingState();isDrawing=false;});
+        canvas.addEventListener('pointermove',(e)=>{if(!isDrawing||appMode!=='draw')return;e.preventDefault();const co=getCC(e);let cs=shapes[shapes.length-1];if(currentTool==='pen'||currentTool==='eraser'){cs.points.push({x:co.x,y:co.y});applyWorldTransform();ctx.globalCompositeOperation=currentTool==='eraser'?'destination-out':'source-over';ctx.strokeStyle=currentTool==='eraser'?'rgba(0,0,0,1)':currentColor;ctx.lineWidth=cs.width;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(co.x,co.y);ctx.stroke();lastX=co.x;lastY=co.y;}else{cs.endX=co.x;cs.endY=co.y;renderAllShapes();}});
+        canvas.addEventListener('pointerup',()=>{if(isDrawing){saveDrawingState();ensureRoom();}isDrawing=false;});
 
         const btnHideDrawings=document.getElementById('btn-hide-drawings');
         btnHideDrawings.addEventListener('click',()=>{drawingsVisible=!drawingsVisible;btnHideDrawings.innerHTML=drawingsVisible?'Hide':'Show';if(!drawingsVisible)btnHideDrawings.classList.add('active');else btnHideDrawings.classList.remove('active');renderAllShapes();});
 
         /* === PASTE IMAGES === */
         const pasteToast=document.getElementById('paste-toast');
-        function spawnImageBlock(src,imgType,label){const cx=(window.scrollX+window.innerWidth/2)/zoomLevel,cy=(window.scrollY+window.innerHeight/2)/zoomLevel;const ib=document.createElement('div');ib.className='image-block';ib.style.left=`${cx-200}px`;ib.style.top=`${cy-150}px`;ib.style.width='400px';ib.style.height='320px';ib.innerHTML=`<div class="document-header"><span>&#x2807; ${label}</span><button class="delete-btn">&times;</button></div><div class="image-wrapper"><img src="${src}" alt="${label}" data-img-type="${imgType}"></div><div class="resize-handle"></div>`;blocksContainer.appendChild(ib);makeImageBlockInteractive(ib);}
+        function spawnImageBlock(src,imgType,label){const cx=(window.scrollX+window.innerWidth/2)/zoomLevel,cy=(window.scrollY+window.innerHeight/2)/zoomLevel;const ib=document.createElement('div');ib.className='image-block';ib.style.left=`${cx-200}px`;ib.style.top=`${cy-150}px`;ib.style.width='400px';ib.style.height='320px';ib.innerHTML=`<div class="document-header"><span>&#x2807; ${label}</span><button class="delete-btn">&times;</button></div><div class="image-wrapper"><img src="${src}" alt="${label}" data-img-type="${imgType}"></div><div class="resize-handle"></div>`;blocksContainer.appendChild(ib);makeImageBlockInteractive(ib);ensureRoom();}
         document.addEventListener('paste',(e)=>{const items=e.clipboardData&&e.clipboardData.items;if(!items)return;for(let i=0;i<items.length;i++){if(items[i].type.startsWith('image/')){e.preventDefault();const file=items[i].getAsFile();const reader=new FileReader();reader.onload=(ev)=>{spawnImageBlock(ev.target.result,'base64','Pasted Image');pasteToast.classList.add('show');setTimeout(()=>pasteToast.classList.remove('show'),1500);};reader.readAsDataURL(file);return;}}});
 
         /* === SAVE / LOAD === */
@@ -1459,7 +1655,11 @@
                 ib.innerHTML=`<div class="document-header"><span>&#x2807; ${id.label||'Image'}</span><button class="delete-btn">&times;</button></div><div class="image-wrapper"><img src="${id.src}" alt="${id.label||'Image'}" data-img-type="${id.imgType||'url'}"></div><div class="resize-handle"></div>`;
                 blocksContainer.appendChild(ib);makeImageBlockInteractive(ib);
             });
-            shapes=pd.shapes||[];undoStack=[];renderAllShapes();
+            shapes=pd.shapes||[];undoStack=[];refreshBlockNav();
+            // Restore the saved workspace size, then grow to fit whatever is in it
+            if (pd.world && pd.world.w && pd.world.h) setWorldSize(pd.world.w, pd.world.h);
+            ensureRoom();
+            renderAllShapes();
             if(pd.viewport){zoomLevel=pd.viewport.zoom||1;applyZoom();setTimeout(()=>window.scrollTo(pd.viewport.scrollX||0,pd.viewport.scrollY||0),50);}
             if (pd.projectName) {
                 savedProjectName = pd.projectName;
@@ -1472,7 +1672,7 @@
         // Collect current state — notes are extracted as a separate array,
         // broll-card divs are stripped from the HTML to prevent div-in-span nesting violation
         function collectProjectData() {
-            const pd={version:7,projectName:savedProjectName,viewport:{zoom:zoomLevel,scrollX:window.scrollX,scrollY:window.scrollY},shapes,blocks:[],images:[]};
+            const pd={version:7,projectName:savedProjectName,world:{w:WORLD_W,h:WORLD_H},viewport:{zoom:zoomLevel,scrollX:window.scrollX,scrollY:window.scrollY},shapes,blocks:[],images:[]};
             document.querySelectorAll('.document-block').forEach(b=>{
                 const contentEl = b.querySelector('.document-content');
 
@@ -1546,7 +1746,7 @@
                 else if(markRedoStack.length>0){e.preventDefault();popMarkRedo();}
                 // If both stacks empty, don't preventDefault — let browser handle native text redo
             }
-            if((e.ctrlKey||e.metaKey)&&e.key==='0'){e.preventDefault();zoomLevel=1;applyZoom();window.scrollTo((6000-window.innerWidth)/2,400);}
+            if((e.ctrlKey||e.metaKey)&&e.key==='0'){e.preventDefault();fitAll();}
             if(e.key==='Escape'){if(noteModal.style.display==='block'){noteModal.style.display='none';noteModalCallback=null;return;}}
 
             // Spacebar: ALWAYS enter pan mode, remember target for space insertion on release
@@ -1592,7 +1792,7 @@
         toolBtns.forEach(b=>b.addEventListener('click',()=>{if(appMode!=='draw')setAppMode('draw');toolBtns.forEach(x=>x.classList.remove('active'));b.classList.add('active');currentTool=b.getAttribute('data-tool');}));
         document.getElementById('tool-undo').addEventListener('click',drawingUndo);
         document.getElementById('tool-clear').addEventListener('click',()=>{shapes=[];saveDrawingState();renderAllShapes();});
-        document.getElementById('btn-screenshot').addEventListener('click',(e)=>{const btn=e.target;const orig=btn.innerHTML;btn.innerHTML='Wait...';const bgc=document.body.classList.contains('dark')?'#0f1419':'#eef1f5';document.querySelector('.drawing-toolbar').style.display='none';setTimeout(()=>{html2canvas(document.body,{scale:2,useCORS:true,backgroundColor:bgc,x:window.scrollX,y:window.scrollY,width:window.innerWidth,height:window.innerHeight}).then(c=>{const l=document.createElement('a');l.download='BRoll_Screenshot.png';l.href=c.toDataURL('image/png');l.click();document.querySelector('.drawing-toolbar').style.display='flex';btn.innerHTML=orig;}).catch(()=>{document.querySelector('.drawing-toolbar').style.display='flex';btn.innerHTML='Error';setTimeout(()=>btn.innerHTML=orig,2000);});},100);});
+        document.getElementById('btn-screenshot').addEventListener('click',(e)=>{const btn=e.target;const orig=btn.innerHTML;btn.innerHTML='Wait...';const bgc=document.body.classList.contains('dark')?'#0f1419':'#eef1f5';document.querySelector('.drawing-toolbar').style.display='none';const cs=canvas.style,prevPos=cs.position,prevTop=cs.top,prevLeft=cs.left;cs.position='absolute';cs.top=window.scrollY+'px';cs.left=window.scrollX+'px';const restore=()=>{cs.position=prevPos||'';cs.top=prevTop||'';cs.left=prevLeft||'';document.querySelector('.drawing-toolbar').style.display='flex';};setTimeout(()=>{html2canvas(document.body,{scale:2,useCORS:true,backgroundColor:bgc,x:window.scrollX,y:window.scrollY,width:window.innerWidth,height:window.innerHeight}).then(c=>{const l=document.createElement('a');l.download='BRoll_Screenshot.png';l.href=c.toDataURL('image/png');l.click();restore();btn.innerHTML=orig;}).catch(()=>{restore();btn.innerHTML='Error';setTimeout(()=>btn.innerHTML=orig,2000);});},100);});
 
         /* === DARK MODE TOGGLE === */
         const btnDarkMode = document.getElementById('btn-dark-mode');
@@ -1618,6 +1818,7 @@
 
             // Clear drawings
             shapes = []; undoStack = []; markUndoStack = []; markRedoStack = []; drawRedoStack = [];
+            setWorldSize(6000, 6000);
             renderAllShapes();
 
             // Add back a fresh default block
@@ -1630,6 +1831,7 @@
             makeBlockInteractive(nb);
             refreshParaExportButtons(nb.querySelector('.document-content'));
 
+            refreshBlockNav();
             // Clear auto-save
             localStorage.removeItem('broll-autosave');
         });
@@ -1876,6 +2078,152 @@
                 syncLastInfo.textContent = 'No sync performed yet.';
             }
         }
+
+        /* === BLOCK NAVIGATOR === */
+        const blockNav = document.getElementById('block-nav');
+        const blockNavList = document.getElementById('block-nav-list');
+
+        // Best available label for a block: heading, then bold lead-in, then first words.
+        function blockTitle(block) {
+            const c = block.querySelector('.document-content');
+            if (!c) return 'Untitled block';
+            const h = c.querySelector('h1,h2,h3,h4,h5,h6');
+            if (h && h.textContent.trim()) return h.textContent.trim();
+            const s = c.querySelector('strong,b');
+            if (s && s.textContent.trim()) return s.textContent.trim();
+            const t = c.textContent.replace(/\s+/g, ' ').trim();
+            return t ? (t.length > 72 ? t.slice(0, 72) + '\u2026' : t) : 'Empty block';
+        }
+
+        function refreshBlockNav() {
+            const blocks = Array.from(document.querySelectorAll('.document-block'));
+            blockNavList.innerHTML = '';
+            if (!blocks.length) {
+                const e = document.createElement('div');
+                e.className = 'block-nav-empty';
+                e.textContent = 'No transcript blocks yet. Use "+ Transcript" to add one.';
+                blockNavList.appendChild(e);
+                return;
+            }
+            blocks.forEach((b, i) => {
+                const item = document.createElement('div');
+                item.className = 'block-nav-item';
+                const num = document.createElement('span');
+                num.className = 'block-nav-num';
+                num.textContent = (i + 1);
+                const title = document.createElement('span');
+                title.className = 'block-nav-title';
+                title.textContent = blockTitle(b);
+                item.appendChild(num); item.appendChild(title);
+                item.addEventListener('click', () => goToBlock(b));
+                blockNavList.appendChild(item);
+            });
+        }
+
+        let blockNavTimer = null;
+        function scheduleBlockNavRefresh() {
+            clearTimeout(blockNavTimer);
+            blockNavTimer = setTimeout(refreshBlockNav, 400);
+        }
+
+        // Make sure the workspace extends far enough to reach a world point.
+        function ensureWorldCovers(wx, wy) {
+            let w = WORLD_W, h = WORLD_H;
+            while (wx + MARGIN > w) w += GROW;
+            while (wy + MARGIN > h) h += GROW;
+            if (w !== WORLD_W || h !== WORLD_H) setWorldSize(w, h);
+        }
+
+        // Scroll to a document-pixel position reliably. Changing the zoom
+        // transform resizes the scrollable area, but the browser only
+        // recomputes it on the next layout — scrolling before that gets
+        // clamped to the OLD bounds and lands somewhere arbitrary. So we
+        // force a layout read, then scroll again on the next two frames.
+        function scrollToPoint(tx, ty) {
+            tx = Math.max(0, tx); ty = Math.max(0, ty);
+            navLock = true;
+            void document.documentElement.scrollWidth;   // flush layout
+            window.scrollTo(tx, ty);
+            requestAnimationFrame(() => {
+                window.scrollTo(tx, ty);
+                requestAnimationFrame(() => {
+                    window.scrollTo(tx, ty);
+                    setTimeout(() => { navLock = false; }, 250);
+                });
+            });
+        }
+
+        // Zoom to a comfortable level for this block and bring it on screen.
+        function goToBlock(block) {
+            const w = block.offsetWidth, h = block.offsetHeight;
+            const left = parseFloat(block.style.left) || 0;
+            const top = parseFloat(block.style.top) || 0;
+
+            let z = Math.min((window.innerWidth - 140) / w, (window.innerHeight - 180) / h);
+            z = Math.max(0.25, Math.min(1.25, z));   // never absurdly small or huge
+            zoomLevel = z;
+            zoomContainer.style.transform = `scale(${z})`;
+            zoomLevelText.innerText = `${Math.round(z*100)}%`;
+
+            const tx = (left + w / 2) * z - window.innerWidth / 2;
+            // Tall blocks that can't fit: align near their top instead of centring
+            const fitsVertically = h * z <= window.innerHeight - 180;
+            const ty = fitsVertically
+                ? (top + h / 2) * z - window.innerHeight / 2
+                : top * z - 90;
+
+            // Grow the workspace first, or the scroll target may be unreachable
+            ensureWorldCovers((Math.max(0, tx) + window.innerWidth) / z, (Math.max(0, ty) + window.innerHeight) / z);
+            scrollToPoint(tx, ty);
+            renderAllShapes();
+
+            block.classList.remove('block-flash');
+            void block.offsetWidth;                   // restart the animation
+            block.classList.add('block-flash');
+            setTimeout(() => block.classList.remove('block-flash'), 1200);
+        }
+
+        // Fit every block and image on screen at once.
+        function fitAll() {
+            const els = Array.from(document.querySelectorAll('.document-block, .image-block'));
+            if (!els.length) {
+                zoomLevel = 1;
+                zoomContainer.style.transform = 'scale(1)';
+                zoomLevelText.innerText = '100%';
+                scrollToPoint((WORLD_W - window.innerWidth) / 2, 400);
+                renderAllShapes();
+                return;
+            }
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            els.forEach(el => {
+                const l = parseFloat(el.style.left) || 0, t = parseFloat(el.style.top) || 0;
+                minX = Math.min(minX, l); minY = Math.min(minY, t);
+                maxX = Math.max(maxX, l + el.offsetWidth); maxY = Math.max(maxY, t + el.offsetHeight);
+            });
+            const w = Math.max(1, maxX - minX), h = Math.max(1, maxY - minY);
+            let z = Math.min((window.innerWidth - 160) / w, (window.innerHeight - 200) / h);
+            z = Math.max(0.05, Math.min(1, z));
+            zoomLevel = z;
+            zoomContainer.style.transform = `scale(${z})`;
+            zoomLevelText.innerText = `${Math.round(z*100)}%`;
+
+            const tx = (minX + w / 2) * z - window.innerWidth / 2;
+            const ty = (minY + h / 2) * z - window.innerHeight / 2;
+            ensureWorldCovers((Math.max(0, tx) + window.innerWidth) / z, (Math.max(0, ty) + window.innerHeight) / z);
+            scrollToPoint(tx, ty);
+            renderAllShapes();
+        }
+
+        document.getElementById('btn-blocks').addEventListener('click', () => {
+            const open = blockNav.classList.toggle('open');
+            document.getElementById('btn-blocks').classList.toggle('active', open);
+            if (open) refreshBlockNav();
+        });
+        document.getElementById('block-nav-close').addEventListener('click', () => {
+            blockNav.classList.remove('open');
+            document.getElementById('btn-blocks').classList.remove('active');
+        });
+        document.getElementById('btn-fit').addEventListener('click', fitAll);
 
         /* === PICTURE-IN-PICTURE === */
         let pipWindow=null;
