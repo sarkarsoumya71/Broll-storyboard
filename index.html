@@ -11,23 +11,26 @@
 <style>
     *, *::before, *::after { box-sizing: border-box; }
 
+    html, body { height: 100%; }
     body { 
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
         line-height: 1.75; color: #1e293b; font-size: 16px;
         background-color: #eef1f5; 
+        /* Infinite dot grid — offset/scaled with the viewport in applyView() */
         background-image: radial-gradient(#d0d7e2 1px, transparent 1px);
         background-size: 20px 20px;
-        margin: 0; padding: 0; overflow: auto; 
+        margin: 0; padding: 0;
+        overflow: hidden;                 /* pan is transform-based, not scroll-based */
         overscroll-behavior: none;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
     }
     
+    /* Zero-sized anchor at the world origin. Blocks are absolutely positioned
+       inside it and the whole thing is moved with translate()+scale(), so the
+       workspace is genuinely unbounded — no scrollbars, no size limit. */
     #zoom-container {
-        position: relative; width: 6000px; height: 6000px;
-        background-color: #eef1f5; 
-        background-image: radial-gradient(#d0d7e2 1px, transparent 1px);
-        background-size: 20px 20px; 
+        position: absolute; top: 0; left: 0; width: 0; height: 0;
         transform-origin: 0 0;
     }
 
@@ -270,7 +273,7 @@
 
     /* ---- SELECTION POPUP (glass) ---- */
     #comment-popup {
-        display: none; position: absolute; z-index: 800; 
+        display: none; position: fixed; z-index: 800; 
         background: rgba(255,255,255,0.92);
         backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
         padding: 5px; border-radius: 14px;
@@ -948,7 +951,6 @@
 
         window.onload = () => {
             const bc = document.getElementById('blocks-container');
-            setWorldSize(WORLD_W, WORLD_H);
             resizeDrawingCanvas();
             try {
                 const saved = localStorage.getItem('broll-autosave');
@@ -966,8 +968,7 @@
             document.querySelectorAll('.document-block').forEach(makeBlockInteractive);
             refreshAllParaExportButtons();
             refreshBlockNav();
-            window.scrollTo((WORLD_W - window.innerWidth)/2, 400);
-            ensureRoom();
+            fitAll();
         };
 
         const exportContent = document.createElement('div'); // legacy no-op placeholder (export now copies directly)
@@ -1084,97 +1085,77 @@
         let zoomLevel = 1;
         let shapes = [], undoStack = [];   // drawing state (used by world sizing below)
         let drawingsVisible = true, canvasReady = false;
-        let WORLD_W = 6000, WORLD_H = 6000;
-        const GROW = 3000;   // how much to add each time
-        const MARGIN = 1200; // start growing this far from the edge
+        /* === VIEWPORT (pan + zoom, Excalidraw/Miro style) ===
+         * The workspace is unbounded. Instead of scrolling the document we
+         * move a single transform: translate(panX,panY) scale(zoom).
+         * screen = world * zoom + pan   |   world = (screen - pan) / zoom
+         * No scrollbars, no clamping, no maximum size.
+         */
+        let panX = 0, panY = 0;
+        const MIN_ZOOM = 0.02, MAX_ZOOM = 8;
 
-        function setWorldSize(w, h) {
-            WORLD_W = Math.round(w); WORLD_H = Math.round(h);
-            zoomContainer.style.width = WORLD_W + 'px';
-            zoomContainer.style.height = WORLD_H + 'px';
+        function screenToWorld(sx, sy) {
+            return { x: (sx - panX) / zoomLevel, y: (sy - panY) / zoomLevel };
+        }
+        function viewCenterWorld() {
+            return screenToWorld(window.innerWidth / 2, window.innerHeight / 2);
         }
 
-        function contentBounds() {
-            let maxX = 0, maxY = 0;
-            document.querySelectorAll('.document-block, .image-block').forEach(el => {
-                maxX = Math.max(maxX, (parseFloat(el.style.left) || 0) + el.offsetWidth);
-                maxY = Math.max(maxY, (parseFloat(el.style.top) || 0) + el.offsetHeight);
-            });
-            shapes.forEach(s => {
-                if (s.points) s.points.forEach(p => { maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); });
-                else { maxX = Math.max(maxX, s.startX, s.endX); maxY = Math.max(maxY, s.startY, s.endY); }
-            });
-            return { maxX, maxY };
-        }
-
-        // Grow right/bottom so there is always empty room past the content
-        // and past wherever the user has scrolled to.
-        function ensureRoom() {
-            const { maxX, maxY } = contentBounds();
-            const viewRight = (window.scrollX + window.innerWidth) / zoomLevel;
-            const viewBottom = (window.scrollY + window.innerHeight) / zoomLevel;
-            let w = WORLD_W, h = WORLD_H;
-            while (Math.max(maxX, viewRight) + MARGIN > w) w += GROW;
-            while (Math.max(maxY, viewBottom) + MARGIN > h) h += GROW;
-            if (w !== WORLD_W || h !== WORLD_H) { setWorldSize(w, h); return true; }
-            return false;
-        }
-
-        // Shift the whole world by (dx, dy) and compensate scroll so nothing
-        // appears to move. Used to create space on the left/top.
-        function shiftWorld(dx, dy) {
-            if (!dx && !dy) return;
-            document.querySelectorAll('.document-block, .image-block').forEach(el => {
-                el.style.left = ((parseFloat(el.style.left) || 0) + dx) + 'px';
-                el.style.top = ((parseFloat(el.style.top) || 0) + dy) + 'px';
-            });
-            shapes.forEach(s => {
-                if (s.points) s.points.forEach(p => { p.x += dx; p.y += dy; });
-                else { s.startX += dx; s.startY += dy; s.endX += dx; s.endY += dy; }
-            });
-            undoStack.forEach(snap => snap.forEach(s => {
-                if (s.points) s.points.forEach(p => { p.x += dx; p.y += dy; });
-                else { s.startX += dx; s.startY += dy; s.endX += dx; s.endY += dy; }
-            }));
-            setWorldSize(WORLD_W + dx, WORLD_H + dy);
-            window.scrollBy(dx * zoomLevel, dy * zoomLevel);
-            renderAllShapes();
-        }
-
-        // If the user has panned/dragged near the left or top edge, prepend space.
-        function ensureRoomBefore() {
-            if (navLock) return false;
-            let dx = 0, dy = 0;
-            if (window.scrollX / zoomLevel < MARGIN) dx = GROW;
-            if (window.scrollY / zoomLevel < MARGIN) dy = GROW;
-            if (dx || dy) { shiftWorld(dx, dy); return true; }
-            return false;
-        }
-
-        function applyZoom() {
-            zoomContainer.style.transform = `scale(${zoomLevel})`;
-            zoomLevelText.innerText = `${Math.round(zoomLevel*100)}%`;
-            ensureRoom();
-            renderAllShapes();
-        }
-        document.addEventListener('wheel', (e) => {
-            if (e.ctrlKey || e.metaKey) {
-                e.preventDefault(); const oz = zoomLevel;
-                zoomLevel = Math.max(0.05, Math.min(4, zoomLevel + (e.deltaY > 0 ? -0.1 : 0.1) * (zoomLevel < 0.5 ? 0.4 : 1)));
-                const mx=e.clientX, my=e.clientY, ux=(window.scrollX+mx)/oz, uy=(window.scrollY+my)/oz;
-                applyZoom(); window.scrollTo(ux*zoomLevel-mx, uy*zoomLevel-my);
-            }
-        }, { passive: false });
-        document.getElementById('zoom-in').addEventListener('click', () => { zoomLevel = Math.min(4, zoomLevel+0.2); applyZoom(); });
-        document.getElementById('zoom-out').addEventListener('click', () => { zoomLevel = Math.max(0.05, zoomLevel-0.2); applyZoom(); });
-
-        // Panning to an edge extends the workspace in that direction.
-        let edgeTimer = null, navLock = false;   // navLock: suppress edge growth during programmatic jumps
-        window.addEventListener('scroll', () => {
+        function applyView() {
+            zoomContainer.style.transform =
+                `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
+            zoomLevelText.innerText = `${Math.round(zoomLevel * 100)}%`;
+            // Dot grid follows the viewport so it reads as infinite
+            const g = 20 * zoomLevel;
+            document.body.style.backgroundSize = `${g}px ${g}px`;
+            document.body.style.backgroundPosition = `${panX}px ${panY}px`;
             if (canvasReady) renderAllShapes();
-            clearTimeout(edgeTimer);
-            edgeTimer = setTimeout(() => { ensureRoom(); ensureRoomBefore(); }, 60);
-        }, { passive: true });
+        }
+        // Kept as an alias so existing call sites keep working
+        function applyZoom() { applyView(); }
+
+        // Zoom while keeping the world point under (sx, sy) pinned to the cursor.
+        function zoomAt(sx, sy, newZoom) {
+            newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
+            const w = screenToWorld(sx, sy);
+            zoomLevel = newZoom;
+            panX = sx - w.x * zoomLevel;
+            panY = sy - w.y * zoomLevel;
+            applyView();
+        }
+        function zoomToCenter(newZoom) {
+            zoomAt(window.innerWidth / 2, window.innerHeight / 2, newZoom);
+        }
+
+        // Panels/modals must keep their own native scrolling.
+        const UI_SCROLLABLE = '.settings-drawer, .block-nav, .floating-modal, .modal-overlay, .custom-modal, textarea, input';
+
+        document.addEventListener('wheel', (e) => {
+            if (e.target.closest && e.target.closest(UI_SCROLLABLE)) return;  // let the UI scroll
+            // Ctrl/Cmd + wheel, and trackpad pinch, zoom about the cursor.
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                // Multiplicative: each step is proportional, so it feels the same
+                // at 5% as it does at 400%.
+                const factor = Math.exp(-e.deltaY * 0.0015);
+                zoomAt(e.clientX, e.clientY, zoomLevel * factor);
+                return;
+            }
+            // Plain wheel / two-finger scroll pans the canvas.
+            e.preventDefault();
+            if (e.shiftKey) { panX -= e.deltaY + e.deltaX; }
+            else { panX -= e.deltaX; panY -= e.deltaY; }
+            applyView();
+        }, { passive: false });
+
+        document.getElementById('zoom-in').addEventListener('click', () => zoomToCenter(zoomLevel * 1.25));
+        document.getElementById('zoom-out').addEventListener('click', () => zoomToCenter(zoomLevel / 1.25));
+
+        // The workspace no longer has a size, so these are no-ops kept for
+        // compatibility with existing call sites.
+        function ensureRoom() {}
+        function ensureRoomBefore() {}
+        function ensureWorldCovers() {}
 
         /* === BLOCK DRAG & RESIZE === */
         let isDraggingBlock=false, isResizingBlock=false, activeBlock=null;
@@ -1196,16 +1177,10 @@
         document.querySelectorAll('.document-block').forEach(makeBlockInteractive);
         document.addEventListener('mousemove', (e) => {
             if (isDraggingBlock&&activeBlock) {
-                let nx = blockStartX+(e.clientX-mouseStartX)/zoomLevel;
-                let ny = blockStartY+(e.clientY-mouseStartY)/zoomLevel;
-                // Dragging past the left/top edge prepends space instead of clamping
-                if (nx < MARGIN || ny < MARGIN) {
-                    const dx = nx < MARGIN ? GROW : 0, dy = ny < MARGIN ? GROW : 0;
-                    shiftWorld(dx, dy);
-                    blockStartX += dx; blockStartY += dy; nx += dx; ny += dy;
-                }
+                // Unbounded: coordinates may go anywhere, including negative
+                const nx = blockStartX+(e.clientX-mouseStartX)/zoomLevel;
+                const ny = blockStartY+(e.clientY-mouseStartY)/zoomLevel;
                 activeBlock.style.left=`${nx}px`; activeBlock.style.top=`${ny}px`;
-                ensureRoom();
             }
             else if (isResizingBlock&&activeBlock) { activeBlock.style.width=`${Math.max(150,blockStartW+(e.clientX-mouseStartX)/zoomLevel)}px`; if(activeBlock.classList.contains('image-block')) activeBlock.style.height=`${Math.max(100,blockStartH+(e.clientY-mouseStartY)/zoomLevel)}px`; ensureRoom(); }
         });
@@ -1249,7 +1224,7 @@
             const title = transcriptTitleInput.value.trim()||'New Segment', text = transcriptInput.value.trim();
             if (text) {
                 const paras = text.split(/\n\n+/).map(p=>`<p>${p}</p>`).join('');
-                const cx=(window.scrollX+window.innerWidth/2)/zoomLevel, cy=(window.scrollY+window.innerHeight/2)/zoomLevel;
+                const _c=viewCenterWorld(), cx=_c.x, cy=_c.y;
                 const nb = document.createElement('div'); nb.className='document-block';
                 nb.style.left=`${cx-350}px`; nb.style.top=`${cy-100}px`; nb.style.width='700px';
                 nb.innerHTML=`<div class="document-header"><span>&#x2807; Drag to move</span><button class="delete-btn">&times;</button></div><div class="document-content" contenteditable="true" spellcheck="false"><p><strong>${title}</strong></p>${paras}</div><button class="block-export-btn">Export Block</button><div class="resize-handle"></div>`;
@@ -1463,7 +1438,7 @@
             if(appMode==='draw') return;
             if(e.target.closest('#comment-popup')||e.target.closest('.modal-overlay')||e.target.closest('.floating-modal')) return;
             const sel=window.getSelection();
-            if(!sel.isCollapsed&&sel.toString().trim().length>0) { const anc=sel.anchorNode; const contentEl=anc?anc.parentElement.closest('.document-content'):null; if(!contentEl){commentPopup.style.display='none';return;} savedSelectionRange=sel.getRangeAt(0).cloneRange(); savedSelectionBlock=contentEl; commentPopup.style.display='flex'; commentPopup.style.left=`${e.pageX}px`; commentPopup.style.top=`${e.pageY-25}px`; }
+            if(!sel.isCollapsed&&sel.toString().trim().length>0) { const anc=sel.anchorNode; const contentEl=anc?anc.parentElement.closest('.document-content'):null; if(!contentEl){commentPopup.style.display='none';return;} savedSelectionRange=sel.getRangeAt(0).cloneRange(); savedSelectionBlock=contentEl; commentPopup.style.display='flex'; commentPopup.style.left=`${e.clientX}px`; commentPopup.style.top=`${e.clientY-25}px`; }
             else { commentPopup.style.display='none'; }
         });
 
@@ -1573,12 +1548,12 @@
         // Map world coordinates -> screen pixels (accounts for zoom + scroll).
         function applyWorldTransform() {
             const dpr = window.devicePixelRatio || 1, k = dpr * zoomLevel;
-            ctx.setTransform(k, 0, 0, k, -window.scrollX * dpr, -window.scrollY * dpr);
+            ctx.setTransform(k, 0, 0, k, panX * dpr, panY * dpr);
         }
         window.addEventListener('resize', resizeDrawingCanvas);
 
         function renderAllShapes(){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);if(!drawingsVisible)return;applyWorldTransform();shapes.forEach(s=>{ctx.globalCompositeOperation=s.type==='eraser'?'destination-out':'source-over';ctx.strokeStyle=s.color;ctx.lineWidth=s.width||3;ctx.lineCap='round';ctx.lineJoin='round';if(s.type==='pen'||s.type==='eraser'){if(!s.points.length)return;ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);ctx.stroke();}else if(s.type==='arrow'){const hl=16,a=Math.atan2(s.endY-s.startY,s.endX-s.startX);ctx.strokeStyle=s.color;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(s.startX,s.startY);ctx.lineTo(s.endX,s.endY);ctx.lineTo(s.endX-hl*Math.cos(a-Math.PI/6),s.endY-hl*Math.sin(a-Math.PI/6));ctx.moveTo(s.endX,s.endY);ctx.lineTo(s.endX-hl*Math.cos(a+Math.PI/6),s.endY-hl*Math.sin(a+Math.PI/6));ctx.stroke();}});}
-        function getCC(e){const r=zoomContainer.getBoundingClientRect();return{x:(e.clientX-r.left)/zoomLevel,y:(e.clientY-r.top)/zoomLevel};}
+        function getCC(e){return screenToWorld(e.clientX, e.clientY);}
         canvas.addEventListener('pointerdown',(e)=>{if(appMode!=='draw'||isSpacePanning)return;const co=getCC(e);startX=co.x;startY=co.y;lastX=startX;lastY=startY;isDrawing=true;let ns={type:currentTool,color:currentColor,width:currentTool==='eraser'?40:3};if(currentTool==='pen'||currentTool==='eraser')ns.points=[{x:startX,y:startY}];else{ns.startX=startX;ns.startY=startY;ns.endX=startX;ns.endY=startY;}shapes.push(ns);});
         canvas.addEventListener('pointermove',(e)=>{if(!isDrawing||appMode!=='draw')return;e.preventDefault();const co=getCC(e);let cs=shapes[shapes.length-1];if(currentTool==='pen'||currentTool==='eraser'){cs.points.push({x:co.x,y:co.y});applyWorldTransform();ctx.globalCompositeOperation=currentTool==='eraser'?'destination-out':'source-over';ctx.strokeStyle=currentTool==='eraser'?'rgba(0,0,0,1)':currentColor;ctx.lineWidth=cs.width;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(co.x,co.y);ctx.stroke();lastX=co.x;lastY=co.y;}else{cs.endX=co.x;cs.endY=co.y;renderAllShapes();}});
         canvas.addEventListener('pointerup',()=>{if(isDrawing){saveDrawingState();ensureRoom();}isDrawing=false;});
@@ -1588,7 +1563,7 @@
 
         /* === PASTE IMAGES === */
         const pasteToast=document.getElementById('paste-toast');
-        function spawnImageBlock(src,imgType,label){const cx=(window.scrollX+window.innerWidth/2)/zoomLevel,cy=(window.scrollY+window.innerHeight/2)/zoomLevel;const ib=document.createElement('div');ib.className='image-block';ib.style.left=`${cx-200}px`;ib.style.top=`${cy-150}px`;ib.style.width='400px';ib.style.height='320px';ib.innerHTML=`<div class="document-header"><span>&#x2807; ${label}</span><button class="delete-btn">&times;</button></div><div class="image-wrapper"><img src="${src}" alt="${label}" data-img-type="${imgType}"></div><div class="resize-handle"></div>`;blocksContainer.appendChild(ib);makeImageBlockInteractive(ib);ensureRoom();}
+        function spawnImageBlock(src,imgType,label){const _c=viewCenterWorld(),cx=_c.x,cy=_c.y;const ib=document.createElement('div');ib.className='image-block';ib.style.left=`${cx-200}px`;ib.style.top=`${cy-150}px`;ib.style.width='400px';ib.style.height='320px';ib.innerHTML=`<div class="document-header"><span>&#x2807; ${label}</span><button class="delete-btn">&times;</button></div><div class="image-wrapper"><img src="${src}" alt="${label}" data-img-type="${imgType}"></div><div class="resize-handle"></div>`;blocksContainer.appendChild(ib);makeImageBlockInteractive(ib);ensureRoom();}
         document.addEventListener('paste',(e)=>{const items=e.clipboardData&&e.clipboardData.items;if(!items)return;for(let i=0;i<items.length;i++){if(items[i].type.startsWith('image/')){e.preventDefault();const file=items[i].getAsFile();const reader=new FileReader();reader.onload=(ev)=>{spawnImageBlock(ev.target.result,'base64','Pasted Image');pasteToast.classList.add('show');setTimeout(()=>pasteToast.classList.remove('show'),1500);};reader.readAsDataURL(file);return;}}});
 
         /* === SAVE / LOAD === */
@@ -1656,11 +1631,14 @@
                 blocksContainer.appendChild(ib);makeImageBlockInteractive(ib);
             });
             shapes=pd.shapes||[];undoStack=[];refreshBlockNav();
-            // Restore the saved workspace size, then grow to fit whatever is in it
-            if (pd.world && pd.world.w && pd.world.h) setWorldSize(pd.world.w, pd.world.h);
-            ensureRoom();
             renderAllShapes();
-            if(pd.viewport){zoomLevel=pd.viewport.zoom||1;applyZoom();setTimeout(()=>window.scrollTo(pd.viewport.scrollX||0,pd.viewport.scrollY||0),50);}
+            if(pd.viewport){
+                zoomLevel=pd.viewport.zoom||1;
+                if(typeof pd.viewport.panX==='number'){panX=pd.viewport.panX;panY=pd.viewport.panY;}
+                else {/* migrate old scroll-based saves: pan = -scroll */
+                     panX=-(pd.viewport.scrollX||0);panY=-(pd.viewport.scrollY||0);}
+                applyView();
+            } else { fitAll(); }
             if (pd.projectName) {
                 savedProjectName = pd.projectName;
                 projectNameInput.value = savedProjectName;
@@ -1672,7 +1650,7 @@
         // Collect current state — notes are extracted as a separate array,
         // broll-card divs are stripped from the HTML to prevent div-in-span nesting violation
         function collectProjectData() {
-            const pd={version:7,projectName:savedProjectName,world:{w:WORLD_W,h:WORLD_H},viewport:{zoom:zoomLevel,scrollX:window.scrollX,scrollY:window.scrollY},shapes,blocks:[],images:[]};
+            const pd={version:8,projectName:savedProjectName,viewport:{zoom:zoomLevel,panX,panY},shapes,blocks:[],images:[]};
             document.querySelectorAll('.document-block').forEach(b=>{
                 const contentEl = b.querySelector('.document-content');
 
@@ -1781,8 +1759,8 @@
             }
         });
 
-        window.addEventListener('mousedown',(e)=>{if(isSpacePanning||e.button===1){if(e.button===1)e.preventDefault();document.body.style.cursor='grabbing';panStartX=e.clientX;panStartY=e.clientY;scrollStartX=window.scrollX;scrollStartY=window.scrollY;if(document.activeElement&&document.activeElement!==document.body)document.activeElement.blur();}});
-        window.addEventListener('mousemove',(e)=>{if((isSpacePanning&&e.buttons===1)||e.buttons===4){e.preventDefault();hasPannedDuringSpace=true;window.scrollTo(scrollStartX-(e.clientX-panStartX),scrollStartY-(e.clientY-panStartY));}});
+        window.addEventListener('mousedown',(e)=>{if(isSpacePanning||e.button===1){if(e.button===1)e.preventDefault();document.body.style.cursor='grabbing';panStartX=e.clientX;panStartY=e.clientY;scrollStartX=panX;scrollStartY=panY;if(document.activeElement&&document.activeElement!==document.body)document.activeElement.blur();}});
+        window.addEventListener('mousemove',(e)=>{if((isSpacePanning&&e.buttons===1)||e.buttons===4){e.preventDefault();hasPannedDuringSpace=true;panX=scrollStartX+(e.clientX-panStartX);panY=scrollStartY+(e.clientY-panStartY);applyView();}});
         window.addEventListener('mouseup',(e)=>{if(isSpacePanning||e.button===1)document.body.style.cursor=isSpacePanning?'grab':'default';});
 
         /* === MODE SWITCHING === */
@@ -1792,7 +1770,7 @@
         toolBtns.forEach(b=>b.addEventListener('click',()=>{if(appMode!=='draw')setAppMode('draw');toolBtns.forEach(x=>x.classList.remove('active'));b.classList.add('active');currentTool=b.getAttribute('data-tool');}));
         document.getElementById('tool-undo').addEventListener('click',drawingUndo);
         document.getElementById('tool-clear').addEventListener('click',()=>{shapes=[];saveDrawingState();renderAllShapes();});
-        document.getElementById('btn-screenshot').addEventListener('click',(e)=>{const btn=e.target;const orig=btn.innerHTML;btn.innerHTML='Wait...';const bgc=document.body.classList.contains('dark')?'#0f1419':'#eef1f5';document.querySelector('.drawing-toolbar').style.display='none';const cs=canvas.style,prevPos=cs.position,prevTop=cs.top,prevLeft=cs.left;cs.position='absolute';cs.top=window.scrollY+'px';cs.left=window.scrollX+'px';const restore=()=>{cs.position=prevPos||'';cs.top=prevTop||'';cs.left=prevLeft||'';document.querySelector('.drawing-toolbar').style.display='flex';};setTimeout(()=>{html2canvas(document.body,{scale:2,useCORS:true,backgroundColor:bgc,x:window.scrollX,y:window.scrollY,width:window.innerWidth,height:window.innerHeight}).then(c=>{const l=document.createElement('a');l.download='BRoll_Screenshot.png';l.href=c.toDataURL('image/png');l.click();restore();btn.innerHTML=orig;}).catch(()=>{restore();btn.innerHTML='Error';setTimeout(()=>btn.innerHTML=orig,2000);});},100);});
+        document.getElementById('btn-screenshot').addEventListener('click',(e)=>{const btn=e.target;const orig=btn.innerHTML;btn.innerHTML='Wait...';const bgc=document.body.classList.contains('dark')?'#0f1419':'#eef1f5';document.querySelector('.drawing-toolbar').style.display='none';const restore=()=>{document.querySelector('.drawing-toolbar').style.display='flex';};setTimeout(()=>{html2canvas(document.body,{scale:2,useCORS:true,backgroundColor:bgc,x:0,y:0,width:window.innerWidth,height:window.innerHeight}).then(c=>{const l=document.createElement('a');l.download='BRoll_Screenshot.png';l.href=c.toDataURL('image/png');l.click();restore();btn.innerHTML=orig;}).catch(()=>{restore();btn.innerHTML='Error';setTimeout(()=>btn.innerHTML=orig,2000);});},100);});
 
         /* === DARK MODE TOGGLE === */
         const btnDarkMode = document.getElementById('btn-dark-mode');
@@ -1818,12 +1796,11 @@
 
             // Clear drawings
             shapes = []; undoStack = []; markUndoStack = []; markRedoStack = []; drawRedoStack = [];
-            setWorldSize(6000, 6000);
             renderAllShapes();
 
             // Add back a fresh default block
-            const cx = (window.scrollX + window.innerWidth / 2) / zoomLevel;
-            const cy = (window.scrollY + window.innerHeight / 2) / zoomLevel;
+            const _c = viewCenterWorld();
+            const cx = _c.x, cy = _c.y;
             const nb = document.createElement('div'); nb.className = 'document-block';
             nb.style.left = `${cx - 350}px`; nb.style.top = `${cy - 100}px`; nb.style.width = '700px';
             nb.innerHTML = '<div class="document-header"><span>&#x2807; Drag to move</span><button class="delete-btn">&times;</button></div><div class="document-content" contenteditable="true" spellcheck="false"><h2>Episode Title</h2><p><strong>Segment: Cold Open</strong></p><p>Paste your transcript here.</p></div><button class="block-export-btn">Export Block</button><div class="resize-handle"></div>';
@@ -2126,56 +2103,24 @@
             blockNavTimer = setTimeout(refreshBlockNav, 400);
         }
 
-        // Make sure the workspace extends far enough to reach a world point.
-        function ensureWorldCovers(wx, wy) {
-            let w = WORLD_W, h = WORLD_H;
-            while (wx + MARGIN > w) w += GROW;
-            while (wy + MARGIN > h) h += GROW;
-            if (w !== WORLD_W || h !== WORLD_H) setWorldSize(w, h);
-        }
-
-        // Scroll to a document-pixel position reliably. Changing the zoom
-        // transform resizes the scrollable area, but the browser only
-        // recomputes it on the next layout — scrolling before that gets
-        // clamped to the OLD bounds and lands somewhere arbitrary. So we
-        // force a layout read, then scroll again on the next two frames.
-        function scrollToPoint(tx, ty) {
-            tx = Math.max(0, tx); ty = Math.max(0, ty);
-            navLock = true;
-            void document.documentElement.scrollWidth;   // flush layout
-            window.scrollTo(tx, ty);
-            requestAnimationFrame(() => {
-                window.scrollTo(tx, ty);
-                requestAnimationFrame(() => {
-                    window.scrollTo(tx, ty);
-                    setTimeout(() => { navLock = false; }, 250);
-                });
-            });
-        }
-
-        // Zoom to a comfortable level for this block and bring it on screen.
+        // Bring a block into view. With transform-based panning this is exact
+        // arithmetic — nothing can clamp it.
         function goToBlock(block) {
             const w = block.offsetWidth, h = block.offsetHeight;
             const left = parseFloat(block.style.left) || 0;
             const top = parseFloat(block.style.top) || 0;
 
             let z = Math.min((window.innerWidth - 140) / w, (window.innerHeight - 180) / h);
-            z = Math.max(0.25, Math.min(1.25, z));   // never absurdly small or huge
+            z = Math.max(0.25, Math.min(1.25, z));
             zoomLevel = z;
-            zoomContainer.style.transform = `scale(${z})`;
-            zoomLevelText.innerText = `${Math.round(z*100)}%`;
 
-            const tx = (left + w / 2) * z - window.innerWidth / 2;
+            panX = window.innerWidth / 2 - (left + w / 2) * z;
             // Tall blocks that can't fit: align near their top instead of centring
             const fitsVertically = h * z <= window.innerHeight - 180;
-            const ty = fitsVertically
-                ? (top + h / 2) * z - window.innerHeight / 2
-                : top * z - 90;
-
-            // Grow the workspace first, or the scroll target may be unreachable
-            ensureWorldCovers((Math.max(0, tx) + window.innerWidth) / z, (Math.max(0, ty) + window.innerHeight) / z);
-            scrollToPoint(tx, ty);
-            renderAllShapes();
+            panY = fitsVertically
+                ? window.innerHeight / 2 - (top + h / 2) * z
+                : 90 - top * z;
+            applyView();
 
             block.classList.remove('block-flash');
             void block.offsetWidth;                   // restart the animation
@@ -2188,10 +2133,9 @@
             const els = Array.from(document.querySelectorAll('.document-block, .image-block'));
             if (!els.length) {
                 zoomLevel = 1;
-                zoomContainer.style.transform = 'scale(1)';
-                zoomLevelText.innerText = '100%';
-                scrollToPoint((WORLD_W - window.innerWidth) / 2, 400);
-                renderAllShapes();
+                panX = window.innerWidth / 2 - 3000;
+                panY = 120;
+                applyView();
                 return;
             }
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -2201,17 +2145,12 @@
                 maxX = Math.max(maxX, l + el.offsetWidth); maxY = Math.max(maxY, t + el.offsetHeight);
             });
             const w = Math.max(1, maxX - minX), h = Math.max(1, maxY - minY);
-            let z = Math.min((window.innerWidth - 160) / w, (window.innerHeight - 200) / h);
-            z = Math.max(0.05, Math.min(1, z));
+            let z = Math.min((window.innerWidth - 160) / w, (window.innerHeight - 220) / h);
+            z = Math.max(MIN_ZOOM, Math.min(1, z));
             zoomLevel = z;
-            zoomContainer.style.transform = `scale(${z})`;
-            zoomLevelText.innerText = `${Math.round(z*100)}%`;
-
-            const tx = (minX + w / 2) * z - window.innerWidth / 2;
-            const ty = (minY + h / 2) * z - window.innerHeight / 2;
-            ensureWorldCovers((Math.max(0, tx) + window.innerWidth) / z, (Math.max(0, ty) + window.innerHeight) / z);
-            scrollToPoint(tx, ty);
-            renderAllShapes();
+            panX = window.innerWidth / 2 - (minX + w / 2) * z;
+            panY = window.innerHeight / 2 - (minY + h / 2) * z;
+            applyView();
         }
 
         document.getElementById('btn-blocks').addEventListener('click', () => {
