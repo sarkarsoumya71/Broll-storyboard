@@ -872,6 +872,7 @@
             <div class="divider"></div>
             <button id="btn-export" class="tool-btn" style="background:rgba(16,185,129,0.85); color:#fff; border-color:rgba(16,185,129,0.4);">Export</button>
             <button id="btn-screenshot" class="tool-btn capture">Capture</button>
+            <button id="btn-clear-drawings" class="tool-btn danger" title="Erase all pen/arrow drawings, keep transcripts">Erase Drawings</button>
             <button id="btn-clear-all" class="tool-btn danger" title="Clear everything: blocks, marks, notes, drawings">Clear All</button>
             <div class="divider"></div>
             <button id="btn-dark-mode" class="tool-btn dark-toggle" title="Toggle dark mode">&#x263D;</button>
@@ -1697,7 +1698,9 @@
         fileImport.addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(ev){try{const pd=JSON.parse(ev.target.result);loadProjectData(pd);}catch(err){alert("Invalid project file.");console.error(err);}};reader.readAsText(file);this.value='';});
 
         // Auto-save to localStorage every 5 seconds
+        let suppressAutoSave = false;
         function autoSave() {
+            if (suppressAutoSave) return;
             try {
                 const pd = collectProjectData();
                 localStorage.setItem('broll-autosave', JSON.stringify(pd));
@@ -1770,6 +1773,24 @@
         toolBtns.forEach(b=>b.addEventListener('click',()=>{if(appMode!=='draw')setAppMode('draw');toolBtns.forEach(x=>x.classList.remove('active'));b.classList.add('active');currentTool=b.getAttribute('data-tool');}));
         document.getElementById('tool-undo').addEventListener('click',drawingUndo);
         document.getElementById('tool-clear').addEventListener('click',()=>{shapes=[];saveDrawingState();renderAllShapes();});
+
+        // Erase only the drawings (keeps transcripts, marks and notes).
+        document.getElementById('btn-clear-drawings').addEventListener('click', () => {
+            if (!shapes.length) { alert('There are no drawings to erase.'); return; }
+            if (!confirm('Erase all drawings? Transcripts, marks and notes are kept.')) return;
+            shapes = []; undoStack = []; drawRedoStack = [];
+            renderAllShapes();
+            autoSave();
+            const pat = localStorage.getItem('broll-gist-pat') || '';
+            const gid = localStorage.getItem('broll-gist-id') || '';
+            if (pat && gid) {
+                const pdNow = collectProjectData();
+                pdNow.syncTimestamp = Date.now();
+                writeGist(pat, gid, pdNow)
+                    .then(() => showSyncStatus('Drawings erased (local + cloud).', 'success'))
+                    .catch(() => {});
+            }
+        });
         document.getElementById('btn-screenshot').addEventListener('click',(e)=>{const btn=e.target;const orig=btn.innerHTML;btn.innerHTML='Wait...';const bgc=document.body.classList.contains('dark')?'#0f1419':'#eef1f5';document.querySelector('.drawing-toolbar').style.display='none';const restore=()=>{document.querySelector('.drawing-toolbar').style.display='flex';};setTimeout(()=>{html2canvas(document.body,{scale:2,useCORS:true,backgroundColor:bgc,x:0,y:0,width:window.innerWidth,height:window.innerHeight}).then(c=>{const l=document.createElement('a');l.download='BRoll_Screenshot.png';l.href=c.toDataURL('image/png');l.click();restore();btn.innerHTML=orig;}).catch(()=>{restore();btn.innerHTML='Error';setTimeout(()=>btn.innerHTML=orig,2000);});},100);});
 
         /* === DARK MODE TOGGLE === */
@@ -1809,8 +1830,24 @@
             refreshParaExportButtons(nb.querySelector('.document-content'));
 
             refreshBlockNav();
-            // Clear auto-save
+
+            // Clear auto-save. suppressAutoSave stops the 5s timer from
+            // immediately writing the cleared state back out.
+            suppressAutoSave = true;
             localStorage.removeItem('broll-autosave');
+            setTimeout(() => { suppressAutoSave = false; }, 1000);
+
+            // The cloud copy is separate: without this, the next Pull restores
+            // everything that was just cleared.
+            const pat = localStorage.getItem('broll-gist-pat') || '';
+            const gid = localStorage.getItem('broll-gist-id') || '';
+            if (pat && gid && confirm('Also clear the cloud copy?\n\nOK = wipe the Gist too (recommended, otherwise Pull will bring it all back).\nCancel = leave the cloud copy untouched.')) {
+                const empty = collectProjectData();
+                empty.syncTimestamp = Date.now();
+                writeGist(pat, gid, empty)
+                    .then(() => showSyncStatus('Cloud copy cleared.', 'success'))
+                    .catch(err => showSyncStatus('Could not clear cloud: ' + err.message, 'error'));
+            }
         });
 
         /* === GIST SYNC === */
