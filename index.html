@@ -99,6 +99,7 @@
         z-index: 30;
     }
     .document-block:hover .para-export-btn { opacity: 0.5; pointer-events: auto; }
+    .para-export-btn.copied { opacity: 1 !important; background: #10b981; color: #fff; border-color: #10b981; }
     .para-export-btn:hover { opacity: 1 !important; background: #10b981; color: #fff; border-color: #10b981; }
     body.dark .para-export-btn { background: #1a1f2e; color: #34d399; border-color: #065f46; }
     body.dark .para-export-btn:hover { background: #10b981; color: #fff; border-color: #10b981; }
@@ -144,6 +145,70 @@
     .phrase-copy-btn:hover { background: #4f46e5; color: #fff; border-color: #4f46e5; }
     body.dark .phrase-copy-btn { background: #1e293b; border-color: #334155; color: #94a3b8; }
     body.dark .phrase-copy-btn:hover { background: #6366f1; color: #fff; border-color: #6366f1; }
+
+    /* ---- Claude Ignore button (note modal) ---- */
+    .note-label-row .note-label-actions { display: flex; gap: 6px; }
+    .claude-ignore-btn.on { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+    .claude-ignore-btn.on:hover { background: #d97706; border-color: #d97706; }
+    body.dark .claude-ignore-btn.on { background: #f59e0b; color: #1e293b; border-color: #f59e0b; }
+
+    /* ---- Per-line checkboxes (left of each line) ---- */
+    .para-check {
+        position: absolute; top: 7px; left: -30px; width: 17px; height: 17px;
+        border: 1.5px solid #cbd5e1; border-radius: 5px; background: #fff; cursor: pointer;
+        opacity: 0; transition: opacity 0.12s, background 0.12s, border-color 0.12s, transform 0.1s;
+        z-index: 30; user-select: none; display: block;
+    }
+    .document-content > h1 > .para-check, .document-content > h2 > .para-check { top: 9px; }
+    .document-block:hover .para-check { opacity: 0.55; }
+    .para-check:hover { opacity: 1 !important; border-color: #6366f1; transform: scale(1.1); }
+    .para-check.checked { opacity: 1 !important; background: #4f46e5; border-color: #4f46e5; }
+    .para-check.checked::after {
+        content: ''; position: absolute; left: 5px; top: 1.5px; width: 4px; height: 8px;
+        border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+    }
+    .document-content > .para-checked {
+        background: rgba(99,102,241,0.08); border-radius: 6px;
+        box-shadow: -8px 0 0 rgba(99,102,241,0.08), 8px 0 0 rgba(99,102,241,0.08);
+    }
+    body.dark .para-check { background: #1e293b; border-color: #475569; }
+    body.dark .para-check.checked { background: #6366f1; border-color: #6366f1; }
+    body.dark .document-content > .para-checked {
+        background: rgba(99,102,241,0.16);
+        box-shadow: -8px 0 0 rgba(99,102,241,0.16), 8px 0 0 rgba(99,102,241,0.16);
+    }
+
+    /* Floating "N lines selected" pill above the toolbar */
+    .select-pill {
+        position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%) translateY(8px);
+        background: rgba(79,70,229,0.94); color: #fff;
+        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        padding: 7px 7px 7px 16px; border-radius: 14px;
+        display: flex; align-items: center; gap: 10px;
+        font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+        box-shadow: 0 10px 30px rgba(79,70,229,0.35), inset 0 1px 0 rgba(255,255,255,0.15); z-index: 1001;
+        opacity: 0; pointer-events: none; transition: opacity 0.15s, transform 0.15s;
+        white-space: nowrap;
+    }
+    .select-pill.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+    .select-pill button {
+        border: none; cursor: pointer; border-radius: 9px; padding: 6px 12px;
+        font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; transition: background 0.12s;
+    }
+    .select-pill .pill-copy { background: #fff; color: #4f46e5; }
+    .select-pill .pill-copy:hover { background: #eef2ff; }
+    .select-pill .pill-clear { background: rgba(255,255,255,0.15); color: #fff; }
+    .select-pill .pill-clear:hover { background: rgba(255,255,255,0.28); }
+
+    /* ---- Icons: drawn via CSS mask so they survive label swaps ("Copied", "Pushing...") ---- */
+    [data-icon]::before {
+        content: ''; display: inline-block; width: 14px; height: 14px; flex-shrink: 0;
+        background-color: currentColor;
+        -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat;
+        margin-right: 5px; vertical-align: -2px;
+    }
+    .icon-only[data-icon]::before { margin-right: 0; }
+    .icon-only { padding-left: 8px; padding-right: 8px; }
 
     h2 { margin-top: 0; color: #0f172a; font-weight: 700; font-size: 22px; letter-spacing: -0.3px; }
 
@@ -233,15 +298,16 @@
         padding: 10px 18px; border-radius: 18px;
         display: flex; flex-direction: column; gap: 8px; align-items: center;
         box-shadow: 0 8px 40px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06);
-        z-index: 1000; 
+        z-index: 1000;
         border: 1px solid rgba(255,255,255,0.07);
-        width: max-content; 
+        width: max-content; max-width: calc(100vw - 32px);
     }
-    .toolbar-row { display: flex; gap: 4px; align-items: center; justify-content: center; width: 100%; }
+    .toolbar-row { display: flex; gap: 3px; align-items: center; justify-content: center; width: 100%; flex-wrap: wrap; row-gap: 6px; }
+    .tool-group { display: inline-flex; align-items: center; gap: 2px; }
 
     .tool-btn {
         background: transparent; border: 1.5px solid transparent; color: rgba(255,255,255,0.6);
-        padding: 6px 14px; border-radius: 10px; cursor: pointer; font-size: 13px;
+        padding: 6px 10px; border-radius: 10px; cursor: pointer; font-size: 12.5px;
         font-weight: 600; transition: all 0.12s; display: inline-flex; align-items: center; justify-content: center;
         white-space: nowrap; letter-spacing: 0.2px; font-family: 'Inter', sans-serif;
     }
@@ -253,12 +319,47 @@
     .tool-btn.capture:hover { background: rgba(250,204,21,0.9); }
     .tool-btn.io-btn { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); }
     .tool-btn.io-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .tool-btn.sync-push { background: rgba(99,102,241,0.8); color: #fff; border-color: rgba(99,102,241,0.4); }
+    .tool-btn.sync-push:hover { background: rgba(99,102,241,0.95); }
+    .tool-btn.sync-pull { background: rgba(16,185,129,0.8); color: #fff; border-color: rgba(16,185,129,0.4); }
+    .tool-btn.sync-pull:hover { background: rgba(16,185,129,0.95); }
+    .tool-btn.export-btn { background: rgba(16,185,129,0.85); color: #fff; border-color: rgba(16,185,129,0.4); }
+    .tool-btn.export-btn:hover { background: rgba(16,185,129,1); }
+
+    /* ---- Shape tool: split button + dropdown ---- */
+    .shape-split { position: relative; display: inline-flex; align-items: stretch; }
+    .shape-split > .tool-btn { border-top-right-radius: 0; border-bottom-right-radius: 0; padding-right: 10px; }
+    .shape-caret {
+        background: transparent; border: 1.5px solid transparent; border-left: 1px solid rgba(255,255,255,0.1);
+        color: rgba(255,255,255,0.6); padding: 0 8px 0 6px; border-radius: 0 10px 10px 0;
+        cursor: pointer; font-size: 9px; display: inline-flex; align-items: center; transition: all 0.12s;
+    }
+    .shape-caret:hover, .shape-split.open .shape-caret { background: rgba(255,255,255,0.08); color: #fff; }
+    .shape-split.active > .tool-btn, .shape-split.active .shape-caret { background: rgba(99,102,241,0.8); color: #fff; }
+    .shape-split.active .shape-caret { border-left-color: rgba(255,255,255,0.25); }
+    .shape-menu {
+        position: absolute; bottom: calc(100% + 10px); left: 0; min-width: 190px;
+        background: rgba(15,23,42,0.94); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 6px;
+        box-shadow: 0 12px 32px rgba(0,0,0,0.35); display: none; flex-direction: column; gap: 2px; z-index: 1002;
+    }
+    .shape-split.open .shape-menu { display: flex; }
+    .shape-menu-item {
+        display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px;
+        color: rgba(255,255,255,0.8); font-size: 12.5px; font-weight: 600; cursor: pointer;
+        background: transparent; border: none; text-align: left; font-family: 'Inter', sans-serif; width: 100%;
+    }
+    .shape-menu-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .shape-menu-item.selected { color: #a5b4fc; }
+    .shape-menu-item.selected::after { content: '\2713'; margin-left: auto; font-size: 11px; }
+    .shape-menu-hint { font-size: 10.5px; color: rgba(255,255,255,0.4); padding: 6px 10px 4px; font-weight: 500; border-top: 1px solid rgba(255,255,255,0.06); margin-top: 2px; }
+    .shape-menu-hint kbd { font-family: inherit; background: rgba(255,255,255,0.1); border-radius: 4px; padding: 0 4px; color: rgba(255,255,255,0.7); }
 
     .zoom-group { display: flex; align-items: center; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 2px; }
     .zoom-btn { padding: 5px 10px; font-size: 14px; }
     #zoom-level { color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 700; min-width: 44px; text-align: center; user-select: none; font-family: 'Inter', sans-serif; }
 
-    .divider { width: 1px; height: 18px; background: rgba(255,255,255,0.08); margin: 0 2px; }
+    .divider { width: 1px; height: 18px; background: rgba(255,255,255,0.08); margin: 0 1px; }
 
     .mode-btn { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7); border: 1.5px solid rgba(255,255,255,0.08); }
     .mode-btn.active-draw { background: rgba(239,68,68,0.8); border-color: rgba(239,68,68,0.4); color: #fff; box-shadow: 0 0 16px rgba(239,68,68,0.2); }
@@ -776,7 +877,10 @@
         <div class="modal-body">
             <div class="note-label-row">
                 <label class="input-label" style="margin-bottom:0;">Note</label>
-                <button id="note-copy-phrase" class="phrase-copy-btn">Copy phrase</button>
+                <div class="note-label-actions">
+                    <button id="note-claude-ignore" class="phrase-copy-btn claude-ignore-btn" title="Add 'Claude Ignore' to this note so Claude skips it">Claude Ignore</button>
+                    <button id="note-copy-phrase" class="phrase-copy-btn" title="Copy the highlighted phrase as a single line">Copy phrase</button>
+                </div>
             </div>
             <textarea id="note-modal-input" placeholder="Describe the B-roll visual..."></textarea>
             <div class="modal-actions">
@@ -831,8 +935,8 @@
                 <div class="document-content" contenteditable="true" spellcheck="false">
                     <h2>Episode Title</h2>
                     <p><strong>Segment: Cold Open</strong></p>
-                    <p>Paste your transcript here. Select any phrase and click "Mark" to flag it for B-roll, or "+ Note" to mark and write a production note in one step. Click any existing highlight to edit its note.</p>
-                    <p style="color:#94a3b8; font-size:14px; margin-top:24px;"><em>Select text &rarr; Mark or + Note &rarr; Ctrl+Z to undo. Ctrl+V pastes screenshots onto the canvas.</em></p>
+                    <p>Paste your transcript here. Select any phrase and click "Mark" to flag it for B-roll, or "Note" to mark and write a production note in one step. Click any existing highlight to edit its note.</p>
+                    <p style="color:#94a3b8; font-size:14px; margin-top:24px;"><em>Select text &rarr; Mark or Note &rarr; Ctrl+Z to undo. Ctrl+V pastes screenshots onto the canvas.</em></p>
                 </div>
                 <button class="block-export-btn">Export Block</button>
                 <div class="resize-handle"></div>
@@ -842,9 +946,16 @@
 
     <!-- Selection Popup -->
     <div id="comment-popup">
-        <button id="btn-mark" class="btn" style="background:#f1f5f9; color:#1e293b;">Mark</button>
-        <button id="btn-add-note" class="btn" style="background:#10b981;">+ Note</button>
-        <button id="btn-copy-text" class="btn" style="background:#475569;">Copy</button>
+        <button id="btn-mark" class="btn" data-icon="highlight" style="background:#f1f5f9; color:#1e293b;">Mark</button>
+        <button id="btn-add-note" class="btn" data-icon="note" style="background:#10b981;">Note</button>
+        <button id="btn-copy-text" class="btn" data-icon="copy" style="background:#475569;" title="Copy selection as a single line">Copy</button>
+    </div>
+
+    <!-- Selected-lines pill -->
+    <div id="select-pill" class="select-pill">
+        <span id="select-pill-count">0 lines selected</span>
+        <button class="pill-copy" id="select-pill-copy" title="Copy the checked lines with their B-roll notes">Copy</button>
+        <button class="pill-clear" id="select-pill-clear" title="Uncheck all lines">Clear</button>
     </div>
 
     <!-- Glass Toolbar -->
@@ -856,24 +967,38 @@
                 <button id="zoom-in" class="tool-btn zoom-btn">+</button>
             </div>
             <div class="divider"></div>
-            <button id="toggle-draw" class="tool-btn mode-btn">Draw</button>
-            <button id="btn-hide-drawings" class="tool-btn">Hide</button>
+            <div class="tool-group">
+                <button id="toggle-draw" class="tool-btn mode-btn" data-icon="pen" title="Toggle drawing mode">Draw</button>
+                <button id="btn-hide-drawings" class="tool-btn" data-icon="eye-off" title="Hide or show all drawings">Hide</button>
+            </div>
             <div class="divider"></div>
-            <button id="btn-blocks" class="tool-btn" title="Jump to a transcript block">Blocks</button>
-            <button id="btn-fit" class="tool-btn" title="Fit everything on screen (Ctrl+0)">Fit</button>
+            <div class="tool-group">
+                <button id="btn-blocks" class="tool-btn" data-icon="list" title="Jump to a transcript block">Blocks</button>
+                <button id="btn-fit" class="tool-btn" data-icon="fit" title="Fit everything on screen (Ctrl+0)">Fit</button>
+            </div>
             <div class="divider"></div>
-            <button id="btn-transcript" class="tool-btn">+ Transcript</button>
-            <button id="btn-pip" class="tool-btn" title="Pop out transcript into picture-in-picture">Pop Out</button>
-            <button id="btn-save-project" class="tool-btn io-btn">Save</button>
-            <button id="btn-load-project" class="tool-btn io-btn">Load</button>
-            <button id="btn-sync-push" class="tool-btn" style="background:rgba(99,102,241,0.8); color:#fff; border-color:rgba(99,102,241,0.4);" title="Push workspace to cloud">Push &#x2191;</button>
-            <button id="btn-sync-pull" class="tool-btn" style="background:rgba(16,185,129,0.8); color:#fff; border-color:rgba(16,185,129,0.4);" title="Pull workspace from cloud">Pull &#x2193;</button>
-            <button id="btn-settings" class="tool-btn" title="Sync settings">&#x2699;</button>
+            <div class="tool-group">
+                <button id="btn-transcript" class="tool-btn" data-icon="plus" title="Add a transcript block">Transcript</button>
+                <button id="btn-pip" class="tool-btn" data-icon="pip" title="Pop out transcript into picture-in-picture">Pop Out</button>
+            </div>
             <div class="divider"></div>
-            <button id="btn-export" class="tool-btn" style="background:rgba(16,185,129,0.85); color:#fff; border-color:rgba(16,185,129,0.4);">Export</button>
-            <button id="btn-screenshot" class="tool-btn capture">Capture</button>
-            <button id="btn-clear-drawings" class="tool-btn danger" title="Erase all pen/arrow drawings, keep transcripts">Erase Drawings</button>
-            <button id="btn-clear-all" class="tool-btn danger" title="Clear everything: blocks, marks, notes, drawings">Clear All</button>
+            <div class="tool-group">
+                <button id="btn-save-project" class="tool-btn io-btn" data-icon="download" title="Download workspace as a JSON file">Save</button>
+                <button id="btn-load-project" class="tool-btn io-btn" data-icon="upload" title="Load a workspace JSON file">Load</button>
+                <button id="btn-sync-push" class="tool-btn sync-push" data-icon="cloud-up" title="Push workspace to cloud">Push</button>
+                <button id="btn-sync-pull" class="tool-btn sync-pull" data-icon="cloud-down" title="Pull workspace from cloud">Pull</button>
+                <button id="btn-settings" class="tool-btn icon-only" data-icon="sliders" title="Sync settings"></button>
+            </div>
+            <div class="divider"></div>
+            <div class="tool-group">
+                <button id="btn-export" class="tool-btn export-btn" data-icon="copy" title="Copy every block with its B-roll notes">Export</button>
+                <button id="btn-screenshot" class="tool-btn capture" data-icon="camera" title="Save a screenshot of the canvas">Capture</button>
+            </div>
+            <div class="divider"></div>
+            <div class="tool-group">
+                <button id="btn-clear-drawings" class="tool-btn danger" data-icon="eraser" title="Erase all pen/arrow/shape drawings, keep transcripts">Erase Drawings</button>
+                <button id="btn-clear-all" class="tool-btn danger" data-icon="trash" title="Clear everything: blocks, marks, notes, drawings">Clear All</button>
+            </div>
             <div class="divider"></div>
             <button id="btn-dark-mode" class="tool-btn dark-toggle" title="Toggle dark mode">&#x263D;</button>
         </div>
@@ -886,18 +1011,80 @@
                 <input type="color" id="custom-color" class="custom-color-input" value="#f43f5e" title="Custom">
             </div>
             <div class="divider"></div>
-            <button id="tool-pen" class="tool-btn active draw-tool" data-tool="pen">Pen</button>
-            <button id="tool-arrow" class="tool-btn draw-tool" data-tool="arrow">Arrow</button>
-            <button id="tool-eraser" class="tool-btn draw-tool" data-tool="eraser">Eraser</button>
+            <button id="tool-pen" class="tool-btn active draw-tool" data-tool="pen" data-icon="pen">Pen</button>
+            <button id="tool-arrow" class="tool-btn draw-tool" data-tool="arrow" data-icon="arrow" title="Hold Shift to snap to 45&deg;">Arrow</button>
+            <div class="shape-split" id="shape-split">
+                <button id="tool-shape" class="tool-btn draw-tool" data-tool="rect" data-icon="rect" title="Draw a rectangle (hold Shift for a square)">Rectangle</button>
+                <button class="shape-caret" id="shape-caret" title="Choose shape">&#9660;</button>
+                <div class="shape-menu" id="shape-menu">
+                    <button class="shape-menu-item selected" data-shape="rect" data-icon="rect">Rectangle</button>
+                    <button class="shape-menu-item" data-shape="ellipse" data-icon="ellipse">Circle</button>
+                    <div class="shape-menu-hint">Hold <kbd>Shift</kbd> while dragging for a perfect square / circle</div>
+                </div>
+            </div>
+            <button id="tool-eraser" class="tool-btn draw-tool" data-tool="eraser" data-icon="eraser">Eraser</button>
             <div class="divider"></div>
-            <button id="tool-undo" class="tool-btn">Undo</button>
-            <button id="tool-clear" class="tool-btn danger">Clear</button>
+            <button id="tool-undo" class="tool-btn" data-icon="undo" title="Undo last drawing (Ctrl+Z)">Undo</button>
+            <button id="tool-clear" class="tool-btn danger" data-icon="trash" title="Clear all drawings">Clear</button>
         </div>
     </div>
 
     <script>
         // Dark mode: restore from localStorage
         if (localStorage.getItem('broll-dark-mode') === 'true') document.body.classList.add('dark');
+
+        /* === ICONS (CSS mask, injected once) === */
+        (function installIcons() {
+            const P = {
+                pen: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',
+                highlight: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',
+                'eye-off': 'M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22',
+                list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+                fit: 'M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3',
+                plus: 'M12 5v14M5 12h14',
+                pip: 'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3',
+                download: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',
+                upload: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12',
+                'cloud-up': 'M16 16l-4-4-4 4M12 12v9M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3',
+                'cloud-down': 'M8 17l4 4 4-4M12 12v9M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29',
+                sliders: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
+                copy: 'M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2zM5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1',
+                camera: 'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+                eraser: 'M20 20H7.5l-4.2-4.2a2 2 0 0 1 0-2.8L13.5 2.8a2 2 0 0 1 2.8 0l5.4 5.4a2 2 0 0 1 0 2.8L13 19.7M6 13.5l5.5 5.5',
+                trash: 'M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6',
+                note: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M12 18v-6M9 15h6',
+                arrow: 'M5 12h14M13 6l6 6-6 6',
+                rect: 'M4 4h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z',
+                ellipse: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z',
+                undo: 'M3 7v6h6M21 17a9 9 0 0 0-15-6.7L3 13'
+            };
+            let css = '';
+            for (const k in P) {
+                const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='${P[k]}'/></svg>`;
+                css += `[data-icon="${k}"]{--icon:url("data:image/svg+xml,${encodeURIComponent(svg)}")}\n`;
+            }
+            const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+        })();
+
+        /* === TEXT HELPERS === */
+        // Collapse every run of whitespace (including newlines that hide inside
+        // pasted transcript text) into one space, so a copied line is one line.
+        function oneLine(s) { return (s || '').replace(/\s+/g, ' ').trim(); }
+        function escapeHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+        // Plain text of a DOM subtree with the editor's own UI (copy buttons, checkboxes,
+        // hidden note cards) removed, one line per paragraph.
+        function plainTextOf(root) {
+            const d = document.createElement('div');
+            d.appendChild(root.cloneNode(true));
+            d.querySelectorAll('.hl-copy-btn, .para-export-btn, .para-check, .broll-card').forEach(x => x.remove());
+            // Newlines hiding inside text nodes are just spaces on screen; treat them that way.
+            const walker = document.createTreeWalker(d, NodeFilter.SHOW_TEXT);
+            for (let t = walker.nextNode(); t; t = walker.nextNode()) t.nodeValue = t.nodeValue.replace(/\s+/g, ' ');
+            d.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, blockquote').forEach(b => b.appendChild(document.createTextNode('\n')));
+            d.querySelectorAll('br').forEach(b => b.replaceWith('\n'));
+            return d.textContent.split('\n').map(oneLine).filter(Boolean).join('\n');
+        }
+        function rangePlainText(range) { return plainTextOf(range.cloneContents()); }
 
         // Project name: restore and set up handlers
         const projectNameInput = document.getElementById('project-name');
@@ -984,7 +1171,10 @@
             const cc = document.createElement('div');
             nodes.forEach(n => {
                 const clone = n.cloneNode(true);
-                if (clone.nodeType === 1) clone.querySelectorAll && clone.querySelectorAll('.para-export-btn').forEach(b => b.remove());
+                if (clone.nodeType === 1 && clone.querySelectorAll) {
+                    clone.querySelectorAll('.para-export-btn, .para-check').forEach(b => b.remove());
+                    if (clone.classList) clone.classList.remove('para-checked');
+                }
                 cc.appendChild(clone);
             });
             // Collect notes before stripping cards
@@ -992,7 +1182,7 @@
             cc.querySelectorAll('.highlight-container').forEach(c => {
                 const p = c.querySelector('.highlight-text'), n = c.querySelector('.broll-note-text');
                 if (p) {
-                    const phrase = p.textContent.trim(), note = n ? n.textContent.trim() : '';
+                    const phrase = oneLine(p.textContent), note = n ? n.textContent.trim() : '';
                     if (phrase) notes += note ? `"${phrase}"\n- ${note}\n\n` : `"${phrase}"\n- (marked, no note)\n\n`;
                 }
             });
@@ -1026,7 +1216,7 @@
         // Export a single paragraph element — copies directly to clipboard
         function exportSingleParagraph(paraEl, btn) {
             const clone = paraEl.cloneNode(true);
-            clone.querySelectorAll('.para-export-btn').forEach(b => b.remove());
+            clone.querySelectorAll('.para-export-btn, .para-check').forEach(b => b.remove());
             const text = generateExportTextForNodes([clone]);
             copyTextToClipboard(text);
             if (btn) flashCopied(btn, 'Export');
@@ -1048,18 +1238,64 @@
             para.appendChild(btn);
         }
 
-        // Refresh export buttons across all paragraphs in a content element
+        // Left-side checkbox: tick as many lines as you like, then copy them all at once
+        function addParaCheck(para) {
+            if (!PARA_TAGS.includes(para.tagName)) return;
+            if (para.querySelector(':scope > .para-check')) return;
+            if (!para.textContent.trim()) return;
+            const c = document.createElement('span');
+            c.className = 'para-check' + (para.classList.contains('para-checked') ? ' checked' : '');
+            c.setAttribute('contenteditable', 'false');
+            c.title = 'Select this line (Shift+click selects a range)';
+            para.appendChild(c);
+        }
+
+        // Refresh export buttons + checkboxes across all paragraphs in a content element
         function refreshParaExportButtons(contentEl) {
-            // Remove buttons from now-empty paragraphs
-            contentEl.querySelectorAll('.para-export-btn').forEach(btn => {
+            // Remove controls from now-empty paragraphs
+            contentEl.querySelectorAll('.para-export-btn, .para-check').forEach(btn => {
                 const para = btn.parentElement;
                 if (!para || !para.textContent.replace(btn.textContent, '').trim()) {
                     btn.remove();
+                    if (para && para.classList) para.classList.remove('para-checked');
                 }
             });
-            // Add buttons to paragraphs that need them
-            Array.from(contentEl.children).forEach(child => addParaExportButton(child));
+            // Add controls to paragraphs that need them
+            Array.from(contentEl.children).forEach(child => { addParaExportButton(child); addParaCheck(child); });
+            updateSelectPill();
         }
+
+        /* === MULTI-LINE SELECTION (checkboxes) === */
+        const selectPill = document.getElementById('select-pill');
+        const selectPillCount = document.getElementById('select-pill-count');
+        let lastCheckedPara = null;
+        function setParaChecked(para, on) {
+            para.classList.toggle('para-checked', on);
+            const c = para.querySelector(':scope > .para-check');
+            if (c) c.classList.toggle('checked', on);
+        }
+        function checkedParas() { return Array.from(document.querySelectorAll('.document-content > .para-checked')); }
+        function updateSelectPill() {
+            const n = checkedParas().length;
+            selectPillCount.textContent = n === 1 ? '1 line selected' : `${n} lines selected`;
+            const tb = document.querySelector('.drawing-toolbar');
+            selectPill.style.bottom = ((tb ? tb.offsetHeight : 50) + 30) + 'px';
+            selectPill.classList.toggle('show', n > 0);
+        }
+        function clearParaChecks() { checkedParas().forEach(p => setParaChecked(p, false)); lastCheckedPara = null; updateSelectPill(); }
+        function copyCheckedParas(btn) {
+            const paras = checkedParas(); if (!paras.length) return;
+            const clones = paras.map(p => {
+                const c = p.cloneNode(true);
+                c.querySelectorAll('.para-export-btn, .para-check').forEach(b => b.remove());
+                c.classList.remove('para-checked');
+                return c;
+            });
+            copyTextToClipboard(generateExportTextForNodes(clones));
+            if (btn) flashCopied(btn, 'Copy');
+        }
+        document.getElementById('select-pill-copy').addEventListener('click', (e) => copyCheckedParas(e.currentTarget));
+        document.getElementById('select-pill-clear').addEventListener('click', clearParaChecks);
 
         // Refresh buttons for every block on the canvas
         function refreshAllParaExportButtons() {
@@ -1196,12 +1432,34 @@
 
         /* === PER-PARAGRAPH EXPORT BUTTONS === */
         // Click a paragraph's Export button → copy just that paragraph
+        // Keep the caret where it is when clicking a line's controls
+        blocksContainer.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.para-export-btn, .para-check')) e.preventDefault();
+        });
         blocksContainer.addEventListener('click', (e) => {
             const btn = e.target.closest('.para-export-btn');
             if (btn) {
                 e.preventDefault();
                 const para = btn.parentElement;
                 if (para) exportSingleParagraph(para, btn);
+                return;
+            }
+            const chk = e.target.closest('.para-check');
+            if (chk) {
+                e.preventDefault();
+                const para = chk.parentElement; if (!para) return;
+                const on = !para.classList.contains('para-checked');
+                if (e.shiftKey && lastCheckedPara && lastCheckedPara !== para && lastCheckedPara.parentElement === para.parentElement) {
+                    // Shift+click: select the whole run between the last click and this one
+                    const kids = Array.from(para.parentElement.children);
+                    let a = kids.indexOf(lastCheckedPara), b = kids.indexOf(para);
+                    if (a > b) { const t = a; a = b; b = t; }
+                    kids.slice(a, b + 1).forEach(k => { if (k.querySelector(':scope > .para-check')) setParaChecked(k, true); });
+                } else {
+                    setParaChecked(para, on);
+                }
+                lastCheckedPara = para;
+                updateSelectPill();
                 return;
             }
         });
@@ -1224,7 +1482,9 @@
         transcriptBtnSave.addEventListener('click', () => {
             const title = transcriptTitleInput.value.trim()||'New Segment', text = transcriptInput.value.trim();
             if (text) {
-                const paras = text.split(/\n\n+/).map(p=>`<p>${p}</p>`).join('');
+                // Single line breaks inside a paragraph are joined into one line, so a copied
+                // line never carries a hidden newline. Blank lines still start a new paragraph.
+                const paras = text.split(/\n\s*\n+/).map(p=>oneLine(p)).filter(Boolean).map(p=>`<p>${escapeHtml(p)}</p>`).join('');
                 const _c=viewCenterWorld(), cx=_c.x, cy=_c.y;
                 const nb = document.createElement('div'); nb.className='document-block';
                 nb.style.left=`${cx-350}px`; nb.style.top=`${cy-100}px`; nb.style.width='700px';
@@ -1265,22 +1525,39 @@
 
             resetNoteModalPos();
             noteModal.style.display = 'block';
+            refreshClaudeIgnoreBtn();
             noteInput.focus();
             noteModalCallback = cb;
         }
 
-        // Copy phrase button in note modal
+        // Copy phrase button in note modal — always a single line
         document.getElementById('note-copy-phrase').addEventListener('click', (e) => {
             if (!noteModalPhrase) return;
-            navigator.clipboard.writeText(noteModalPhrase).catch(() => {
-                const ta = document.createElement('textarea'); ta.value = noteModalPhrase;
-                ta.style.position = 'fixed'; ta.style.opacity = '0';
-                document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-            });
-            const btn = e.target; const o = btn.textContent;
+            copyTextToClipboard(oneLine(noteModalPhrase));
+            const btn = e.currentTarget; const o = btn.textContent;
             btn.textContent = 'Copied!';
             setTimeout(() => btn.textContent = o, 1200);
         });
+
+        // "Claude Ignore" button — stamps the note with a phrase that tells Claude to skip it.
+        // Click again to remove it.
+        const CLAUDE_IGNORE = 'Claude Ignore';
+        const claudeIgnoreBtn = document.getElementById('note-claude-ignore');
+        function noteHasClaudeIgnore() { return /\bclaude ignore\b/i.test(noteInput.value); }
+        function refreshClaudeIgnoreBtn() { claudeIgnoreBtn.classList.toggle('on', noteHasClaudeIgnore()); }
+        claudeIgnoreBtn.addEventListener('click', () => {
+            const v = noteInput.value;
+            if (noteHasClaudeIgnore()) {
+                noteInput.value = v.replace(/[ \t]*\bclaude ignore\b[ \t]*\n?/ig, '').replace(/\n{3,}/g, '\n\n').trim();
+            } else {
+                const body = v.trim();
+                noteInput.value = body ? CLAUDE_IGNORE + '\n' + body : CLAUDE_IGNORE;
+            }
+            refreshClaudeIgnoreBtn();
+            noteInput.focus();
+            noteInput.setSelectionRange(noteInput.value.length, noteInput.value.length);
+        });
+        noteInput.addEventListener('input', refreshClaudeIgnoreBtn);
 
         document.getElementById('note-modal-cancel').addEventListener('click', () => { noteModal.style.display='none'; noteModalCallback=null; });
         document.getElementById('note-modal-save').addEventListener('click', saveAndCloseNoteModal);
@@ -1402,7 +1679,7 @@
                 e.preventDefault();
                 e.stopPropagation();
                 const container = hlCopy.closest('.highlight-container');
-                const phrase = container ? container.querySelector('.highlight-text').textContent.trim() : '';
+                const phrase = container ? oneLine(container.querySelector('.highlight-text').textContent) : '';
                 if (phrase) { copyTextToClipboard(phrase); flashCopied(hlCopy, 'Copy'); }
                 return;
             }
@@ -1411,7 +1688,7 @@
             if(editBtn) {
                 const card=editBtn.closest('.broll-card'), t=card.querySelector('.broll-note-text');
                 const container=card.closest('.highlight-container');
-                const phrase = container ? container.querySelector('.highlight-text').textContent.trim() : '';
+                const phrase = container ? oneLine(container.querySelector('.highlight-text').textContent) : '';
                 openNoteModal("Edit Production Note", t.innerText, phrase, (nt)=>{ t.innerText=nt; });
                 return;
             }
@@ -1423,7 +1700,7 @@
                 const existingNote=container.querySelector('.broll-note-text');
                 const defaultText=existingNote?existingNote.textContent:'';
                 const headerText=existingNote?"Edit Production Note":"Add Production Note";
-                const phrase=ht.textContent.trim();
+                const phrase=oneLine(ht.textContent);
                 openNoteModal(headerText, defaultText, phrase, (note)=>{
                     const old=container.querySelector('.broll-card'); if(old)old.remove();
                     const card=document.createElement('div');card.className='broll-card';
@@ -1444,8 +1721,10 @@
         });
 
         document.getElementById('btn-mark').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; commentPopup.style.display='none'; const c=wrapAsHighlight(savedSelectionRange); if(c) pushMarkUndo(c); });
-        document.getElementById('btn-add-note').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; commentPopup.style.display='none'; const phrase=savedSelectionRange.toString().trim(); const c=wrapAsHighlight(savedSelectionRange); if(c){pushMarkUndo(c);openNoteModal("Add Production Note","",phrase,(note)=>{const card=document.createElement('div');card.className='broll-card';card.innerHTML=`<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${note}</div>`;c.appendChild(card);c.classList.add('has-note');bindHoverEvents(c);});} });
-        document.getElementById('btn-copy-text').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; const text=savedSelectionRange.toString(); if(text){navigator.clipboard.writeText(text).catch(()=>{const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}); const btn=document.getElementById('btn-copy-text');const o=btn.innerHTML;btn.innerHTML='Copied!';setTimeout(()=>btn.innerHTML=o,1000);} commentPopup.style.display='none'; window.getSelection().removeAllRanges(); });
+        document.getElementById('btn-add-note').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; commentPopup.style.display='none'; const phrase=oneLine(savedSelectionRange.toString()); const c=wrapAsHighlight(savedSelectionRange); if(c){pushMarkUndo(c);openNoteModal("Add Production Note","",phrase,(note)=>{const card=document.createElement('div');card.className='broll-card';card.innerHTML=`<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${note}</div>`;c.appendChild(card);c.classList.add('has-note');bindHoverEvents(c);});} });
+        // Copy the selection as clean text: one line per paragraph, never a stray line break
+        // mid-sentence, and none of the editor's own button labels or hidden note text.
+        document.getElementById('btn-copy-text').addEventListener('mousedown', (e) => { e.preventDefault(); if(!savedSelectionRange) return; const text=rangePlainText(savedSelectionRange); if(text){copyTextToClipboard(text);} commentPopup.style.display='none'; window.getSelection().removeAllRanges(); });
 
         function wrapAsHighlight(range) {
             // Trim range: adjust start past leading whitespace/newlines, end before trailing
@@ -1500,6 +1779,9 @@
                     }
                 }
 
+                // Line controls must never end up inside a highlight
+                ts.querySelectorAll('.para-export-btn, .para-check, .hl-copy-btn').forEach(b => b.remove());
+
                 // If nothing left after cleanup, bail
                 if (!ts.textContent.trim()) return null;
 
@@ -1508,6 +1790,8 @@
                 bindHoverEvents(c);
                 window.getSelection().removeAllRanges();
                 savedSelectionRange = null; savedSelectionBlock = null;
+                const host = c.closest('.document-content');
+                if (host) refreshParaExportButtons(host);
                 return c;
             } catch(err) {
                 console.warn('Highlight wrap failed:', err);
@@ -1553,11 +1837,18 @@
         }
         window.addEventListener('resize', resizeDrawingCanvas);
 
-        function renderAllShapes(){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);if(!drawingsVisible)return;applyWorldTransform();shapes.forEach(s=>{ctx.globalCompositeOperation=s.type==='eraser'?'destination-out':'source-over';ctx.strokeStyle=s.color;ctx.lineWidth=s.width||3;ctx.lineCap='round';ctx.lineJoin='round';if(s.type==='pen'||s.type==='eraser'){if(!s.points.length)return;ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);ctx.stroke();}else if(s.type==='arrow'){const hl=16,a=Math.atan2(s.endY-s.startY,s.endX-s.startX);ctx.strokeStyle=s.color;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(s.startX,s.startY);ctx.lineTo(s.endX,s.endY);ctx.lineTo(s.endX-hl*Math.cos(a-Math.PI/6),s.endY-hl*Math.sin(a-Math.PI/6));ctx.moveTo(s.endX,s.endY);ctx.lineTo(s.endX-hl*Math.cos(a+Math.PI/6),s.endY-hl*Math.sin(a+Math.PI/6));ctx.stroke();}});}
+        function renderAllShapes(){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);if(!drawingsVisible)return;applyWorldTransform();shapes.forEach(s=>{ctx.globalCompositeOperation=s.type==='eraser'?'destination-out':'source-over';ctx.strokeStyle=s.color;ctx.lineWidth=s.width||3;ctx.lineCap='round';ctx.lineJoin='round';if(s.type==='pen'||s.type==='eraser'){if(!s.points.length)return;ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);ctx.stroke();}else if(s.type==='arrow'){const hl=16,a=Math.atan2(s.endY-s.startY,s.endX-s.startX);ctx.strokeStyle=s.color;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(s.startX,s.startY);ctx.lineTo(s.endX,s.endY);ctx.lineTo(s.endX-hl*Math.cos(a-Math.PI/6),s.endY-hl*Math.sin(a-Math.PI/6));ctx.moveTo(s.endX,s.endY);ctx.lineTo(s.endX-hl*Math.cos(a+Math.PI/6),s.endY-hl*Math.sin(a+Math.PI/6));ctx.stroke();}
+        else if(s.type==='rect'){const x=Math.min(s.startX,s.endX),y=Math.min(s.startY,s.endY),w=Math.abs(s.endX-s.startX),h=Math.abs(s.endY-s.startY);if(!w&&!h)return;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,Math.min(4,w/2,h/2));else ctx.rect(x,y,w,h);ctx.stroke();}
+        else if(s.type==='ellipse'){const rx=Math.abs(s.endX-s.startX)/2,ry=Math.abs(s.endY-s.startY)/2;if(!rx&&!ry)return;ctx.beginPath();ctx.ellipse((s.startX+s.endX)/2,(s.startY+s.endY)/2,rx,ry,0,0,Math.PI*2);ctx.stroke();}});}
+        // Shift constrains a rectangle to a square, an ellipse to a circle, an arrow to 45-degree steps.
+        let lastDrawPt=null;
+        function setShapeEnd(cs,co,shift){let ex=co.x,ey=co.y;const dx=ex-startX,dy=ey-startY;if(shift){if(cs.type==='rect'||cs.type==='ellipse'){const s=Math.max(Math.abs(dx),Math.abs(dy));ex=startX+(dx<0?-s:s);ey=startY+(dy<0?-s:s);}else if(cs.type==='arrow'){const len=Math.hypot(dx,dy),a=Math.round(Math.atan2(dy,dx)/(Math.PI/4))*(Math.PI/4);ex=startX+len*Math.cos(a);ey=startY+len*Math.sin(a);}}cs.endX=ex;cs.endY=ey;}
+        document.addEventListener('keydown',(e)=>{if(e.key==='Shift'&&isDrawing&&lastDrawPt){const cs=shapes[shapes.length-1];if(cs&&cs.type!=='pen'&&cs.type!=='eraser'){setShapeEnd(cs,lastDrawPt,true);renderAllShapes();}}});
+        document.addEventListener('keyup',(e)=>{if(e.key==='Shift'&&isDrawing&&lastDrawPt){const cs=shapes[shapes.length-1];if(cs&&cs.type!=='pen'&&cs.type!=='eraser'){setShapeEnd(cs,lastDrawPt,false);renderAllShapes();}}});
         function getCC(e){return screenToWorld(e.clientX, e.clientY);}
         canvas.addEventListener('pointerdown',(e)=>{if(appMode!=='draw'||isSpacePanning)return;const co=getCC(e);startX=co.x;startY=co.y;lastX=startX;lastY=startY;isDrawing=true;let ns={type:currentTool,color:currentColor,width:currentTool==='eraser'?40:3};if(currentTool==='pen'||currentTool==='eraser')ns.points=[{x:startX,y:startY}];else{ns.startX=startX;ns.startY=startY;ns.endX=startX;ns.endY=startY;}shapes.push(ns);});
-        canvas.addEventListener('pointermove',(e)=>{if(!isDrawing||appMode!=='draw')return;e.preventDefault();const co=getCC(e);let cs=shapes[shapes.length-1];if(currentTool==='pen'||currentTool==='eraser'){cs.points.push({x:co.x,y:co.y});applyWorldTransform();ctx.globalCompositeOperation=currentTool==='eraser'?'destination-out':'source-over';ctx.strokeStyle=currentTool==='eraser'?'rgba(0,0,0,1)':currentColor;ctx.lineWidth=cs.width;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(co.x,co.y);ctx.stroke();lastX=co.x;lastY=co.y;}else{cs.endX=co.x;cs.endY=co.y;renderAllShapes();}});
-        canvas.addEventListener('pointerup',()=>{if(isDrawing){saveDrawingState();ensureRoom();}isDrawing=false;});
+        canvas.addEventListener('pointermove',(e)=>{if(!isDrawing||appMode!=='draw')return;e.preventDefault();const co=getCC(e);let cs=shapes[shapes.length-1];if(currentTool==='pen'||currentTool==='eraser'){cs.points.push({x:co.x,y:co.y});applyWorldTransform();ctx.globalCompositeOperation=currentTool==='eraser'?'destination-out':'source-over';ctx.strokeStyle=currentTool==='eraser'?'rgba(0,0,0,1)':currentColor;ctx.lineWidth=cs.width;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(co.x,co.y);ctx.stroke();lastX=co.x;lastY=co.y;}else{lastDrawPt=co;setShapeEnd(cs,co,e.shiftKey);renderAllShapes();}});
+        canvas.addEventListener('pointerup',()=>{if(isDrawing){saveDrawingState();ensureRoom();}isDrawing=false;lastDrawPt=null;});
 
         const btnHideDrawings=document.getElementById('btn-hide-drawings');
         btnHideDrawings.addEventListener('click',()=>{drawingsVisible=!drawingsVisible;btnHideDrawings.innerHTML=drawingsVisible?'Hide':'Show';if(!drawingsVisible)btnHideDrawings.classList.add('active');else btnHideDrawings.classList.remove('active');renderAllShapes();});
@@ -1670,8 +1961,9 @@
                 clone.querySelectorAll('.broll-card').forEach(card => card.remove());
                 // Also strip has-note class since notes are stored separately
                 clone.querySelectorAll('.highlight-container.has-note').forEach(hl => hl.classList.remove('has-note'));
-                // Strip per-paragraph export buttons (regenerated on load)
-                clone.querySelectorAll('.para-export-btn').forEach(b => b.remove());
+                // Strip per-paragraph export buttons + checkboxes (regenerated on load)
+                clone.querySelectorAll('.para-export-btn, .para-check').forEach(b => b.remove());
+                clone.querySelectorAll('.para-checked').forEach(p => p.classList.remove('para-checked'));
                 // Strip highlight hover-copy buttons (regenerated on load)
                 clone.querySelectorAll('.hl-copy-btn').forEach(b => b.remove());
 
@@ -1770,7 +2062,24 @@
         const btnToggleDraw=document.getElementById('toggle-draw'),drawToolsRow=document.getElementById('draw-tools'),toolBtns=document.querySelectorAll('.draw-tool');
         function setAppMode(m){appMode=m;btnToggleDraw.className='tool-btn mode-btn';btnToggleDraw.innerHTML='Draw';canvas.style.pointerEvents='none';commentPopup.style.display='none';window.getSelection().removeAllRanges();drawToolsRow.style.display='none';renderAllShapes();if(m==='draw'){btnToggleDraw.classList.add('active-draw');btnToggleDraw.innerHTML='Draw: ON';drawToolsRow.style.display='flex';canvas.style.pointerEvents='auto';}}
         btnToggleDraw.addEventListener('click',()=>setAppMode(appMode==='draw'?'view':'draw'));
-        toolBtns.forEach(b=>b.addEventListener('click',()=>{if(appMode!=='draw')setAppMode('draw');toolBtns.forEach(x=>x.classList.remove('active'));b.classList.add('active');currentTool=b.getAttribute('data-tool');}));
+        toolBtns.forEach(b=>b.addEventListener('click',()=>{if(appMode!=='draw')setAppMode('draw');toolBtns.forEach(x=>x.classList.remove('active'));b.classList.add('active');currentTool=b.getAttribute('data-tool');syncShapeSplit();}));
+
+        /* === SHAPE TOOL (rectangle / circle dropdown) === */
+        const shapeSplit=document.getElementById('shape-split'),shapeBtn=document.getElementById('tool-shape'),shapeCaret=document.getElementById('shape-caret');
+        const SHAPE_LABELS={rect:'Rectangle',ellipse:'Circle'};
+        function syncShapeSplit(){shapeSplit.classList.toggle('active',shapeBtn.classList.contains('active'));}
+        function chooseShape(kind){
+            shapeBtn.setAttribute('data-tool',kind);shapeBtn.setAttribute('data-icon',kind);shapeBtn.textContent=SHAPE_LABELS[kind];
+            shapeBtn.title=kind==='rect'?'Draw a rectangle (hold Shift for a square)':'Draw a circle / ellipse (hold Shift for a perfect circle)';
+            document.querySelectorAll('.shape-menu-item').forEach(i=>i.classList.toggle('selected',i.getAttribute('data-shape')===kind));
+            localStorage.setItem('broll-shape-kind',kind);
+            shapeSplit.classList.remove('open');
+            shapeBtn.click();
+        }
+        shapeCaret.addEventListener('click',(e)=>{e.stopPropagation();shapeSplit.classList.toggle('open');});
+        document.querySelectorAll('.shape-menu-item').forEach(i=>i.addEventListener('click',(e)=>{e.stopPropagation();chooseShape(i.getAttribute('data-shape'));}));
+        document.addEventListener('click',(e)=>{if(!e.target.closest('#shape-split'))shapeSplit.classList.remove('open');});
+        (function(){const k=localStorage.getItem('broll-shape-kind');if(k==='ellipse'){shapeBtn.setAttribute('data-tool','ellipse');shapeBtn.setAttribute('data-icon','ellipse');shapeBtn.textContent=SHAPE_LABELS.ellipse;document.querySelectorAll('.shape-menu-item').forEach(i=>i.classList.toggle('selected',i.getAttribute('data-shape')==='ellipse'));}})();
         document.getElementById('tool-undo').addEventListener('click',drawingUndo);
         document.getElementById('tool-clear').addEventListener('click',()=>{shapes=[];saveDrawingState();renderAllShapes();});
 
@@ -1961,11 +2270,11 @@
 
                 localStorage.setItem('broll-last-sync', new Date().toISOString());
                 updateSyncInfo();
-                btn.textContent = 'Push \u2191'; btn.classList.remove('syncing');
+                btn.textContent = 'Push'; btn.classList.remove('syncing');
                 showSyncStatus('Pushed to cloud.', 'success');
             } catch (err) {
                 console.error('Push error:', err);
-                btn.textContent = 'Push \u2191'; btn.classList.remove('syncing');
+                btn.textContent = 'Push'; btn.classList.remove('syncing');
                 showSyncStatus('Push failed: ' + err.message, 'error');
             }
         });
@@ -1985,13 +2294,13 @@
                 const remote = await readGist(pat, gistId);
 
                 if (!remote) {
-                    btn.textContent = 'Pull \u2193'; btn.classList.remove('syncing');
+                    btn.textContent = 'Pull'; btn.classList.remove('syncing');
                     showSyncStatus('No workspace found in that Gist. Push first from your main device.', 'error');
                     return;
                 }
 
                 if (!confirm('Pull will replace your current workspace with the cloud version. Continue?')) {
-                    btn.textContent = 'Pull \u2193'; btn.classList.remove('syncing');
+                    btn.textContent = 'Pull'; btn.classList.remove('syncing');
                     return;
                 }
 
@@ -1999,11 +2308,11 @@
                 document.getElementById('blocks-container').style.opacity = '1';
                 localStorage.setItem('broll-last-sync', new Date().toISOString());
                 updateSyncInfo();
-                btn.textContent = 'Pull \u2193'; btn.classList.remove('syncing');
+                btn.textContent = 'Pull'; btn.classList.remove('syncing');
                 showSyncStatus('Pulled from cloud. Workspace updated.', 'success');
             } catch (err) {
                 console.error('Pull error:', err);
-                btn.textContent = 'Pull \u2193'; btn.classList.remove('syncing');
+                btn.textContent = 'Pull'; btn.classList.remove('syncing');
                 showSyncStatus('Pull failed: ' + err.message, 'error');
             }
         });
@@ -2102,14 +2411,15 @@
             const c = block.querySelector('.document-content');
             if (!c) return 'Untitled block';
             const h = c.querySelector('h1,h2,h3,h4,h5,h6');
-            if (h && h.textContent.trim()) return h.textContent.trim();
+            if (h && oneLine(plainTextOf(h))) return oneLine(plainTextOf(h));
             const s = c.querySelector('strong,b');
-            if (s && s.textContent.trim()) return s.textContent.trim();
-            const t = c.textContent.replace(/\s+/g, ' ').trim();
+            if (s && oneLine(plainTextOf(s))) return oneLine(plainTextOf(s));
+            const t = oneLine(plainTextOf(c));
             return t ? (t.length > 72 ? t.slice(0, 72) + '\u2026' : t) : 'Empty block';
         }
 
         function refreshBlockNav() {
+            updateSelectPill();
             const blocks = Array.from(document.querySelectorAll('.document-block'));
             blockNavList.innerHTML = '';
             if (!blocks.length) {
@@ -2207,7 +2517,9 @@
             const block=document.querySelector('.document-block');if(!block){alert('No transcript block to pop out.');return;}
             if(!('documentPictureInPicture' in window)){alert('Document PiP requires Chrome 116+.');return;}
             try{
-                const contentEl=block.querySelector('.document-content'),contentHTML=contentEl.innerHTML;
+                const contentEl=block.querySelector('.document-content');
+                const pipClone=contentEl.cloneNode(true);pipClone.querySelectorAll('.para-export-btn,.para-check,.hl-copy-btn').forEach(b=>b.remove());pipClone.querySelectorAll('.para-checked').forEach(p=>p.classList.remove('para-checked'));
+                const contentHTML=pipClone.innerHTML;
                 pipWindow=await documentPictureInPicture.requestWindow({width:520,height:600});
                 const pd=pipWindow.document;
                 pd.head.innerHTML=`<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;}body{font-family:'Inter',sans-serif;line-height:1.8;color:#334155;font-size:16px;margin:0;padding:20px 24px 80px;background:#fff;overflow-y:auto;-webkit-font-smoothing:antialiased;}h2{margin-top:0;color:#0f172a;font-weight:700;font-size:20px;}.highlight-container{position:relative;display:inline;}.highlight-text{background-color:rgba(251,191,36,0.18);border-bottom:2px solid #fbbf24;cursor:pointer;padding:1px 2px;border-radius:2px;box-decoration-break:clone;-webkit-box-decoration-break:clone;}.highlight-container.has-note .highlight-text{background-color:rgba(251,191,36,0.25);border-bottom:2px dashed #f59e0b;}.highlight-container:hover .highlight-text{background-color:rgba(251,191,36,0.4);}.broll-card{display:none;}.pip-popup{display:none;position:fixed;z-index:800;background:rgba(255,255,255,0.95);backdrop-filter:blur(16px);padding:5px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.1);border:1px solid rgba(0,0,0,0.05);gap:4px;width:max-content;flex-direction:row;align-items:center;}.pip-btn{display:inline-flex;align-items:center;padding:7px 14px;border-radius:10px;font-size:13px;font-weight:600;color:#fff;border:none;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;}.pip-note-panel{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e7eb;padding:12px 16px;z-index:900;box-shadow:0 -4px 16px rgba(0,0,0,0.06);}.pip-note-panel textarea{width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #e5e7eb;border-radius:12px;font-family:'Inter',sans-serif;font-size:14px;resize:none;height:70px;margin-bottom:8px;color:#1e293b;background:#fafbfc;}.pip-note-panel textarea:focus{outline:none;border-color:#818cf8;background:#fff;box-shadow:0 0 0 3px rgba(129,140,248,0.1);}.pip-note-actions{display:flex;gap:8px;justify-content:flex-end;}.pip-note-actions button{padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;border:none;font-family:'Inter',sans-serif;}</style>`;
@@ -2216,13 +2528,13 @@
                 pd.addEventListener('mouseup',(ev)=>{if(ev.target.closest('.pip-popup')||ev.target.closest('.pip-note-panel'))return;const sel=pipWindow.getSelection();if(!sel.isCollapsed&&sel.toString().trim().length>0){pipRange=sel.getRangeAt(0).cloneRange();pipPopup.style.display='flex';pipPopup.style.left=`${Math.min(ev.clientX,pipWindow.innerWidth-260)}px`;pipPopup.style.top=`${ev.clientY-45}px`;}else{pipPopup.style.display='none';}});
                 pd.getElementById('pip-mark').addEventListener('mousedown',(ev)=>{ev.preventDefault();if(!pipRange)return;pipPopup.style.display='none';pipWrap(pipRange,null);});
                 pd.getElementById('pip-add-note').addEventListener('mousedown',(ev)=>{ev.preventDefault();if(!pipRange)return;pipPopup.style.display='none';pipNoteCont=pipWrap(pipRange,null);if(pipNoteCont){pipNoteInput.value='';pipNotePanel.style.display='block';pipNoteInput.focus();}});
-                pd.getElementById('pip-copy').addEventListener('mousedown',(ev)=>{ev.preventDefault();if(!pipRange)return;navigator.clipboard.writeText(pipRange.toString());pipPopup.style.display='none';pipWindow.getSelection().removeAllRanges();});
+                pd.getElementById('pip-copy').addEventListener('mousedown',(ev)=>{ev.preventDefault();if(!pipRange)return;navigator.clipboard.writeText(rangePlainText(pipRange));pipPopup.style.display='none';pipWindow.getSelection().removeAllRanges();});
                 pd.getElementById('pip-note-save').addEventListener('click',()=>{if(pipNoteCont&&pipNoteInput.value.trim()){pipNoteCont.classList.add('has-note');pipNoteCont.setAttribute('data-note',pipNoteInput.value.trim());}pipNotePanel.style.display='none';pipNoteCont=null;});
                 pipNoteInput.addEventListener('keydown',(ev)=>{if(ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();pd.getElementById('pip-note-save').click();}});
                 pd.getElementById('pip-note-cancel').addEventListener('click',()=>{pipNotePanel.style.display='none';pipNoteCont=null;});
                 pd.addEventListener('click',(ev)=>{const ht=ev.target.closest('.highlight-text');if(ht){const sel=pipWindow.getSelection();if(!sel.isCollapsed&&sel.toString().trim().length>0)return;const cont=ht.closest('.highlight-container');if(!cont)return;pipNoteCont=cont;pipNoteInput.value=cont.getAttribute('data-note')||'';pipNotePanel.style.display='block';pipNoteInput.focus();}});
                 function pipWrap(range){const c=pd.createElement('span');c.className='highlight-container';const ts=pd.createElement('span');ts.className='highlight-text';try{ts.appendChild(range.extractContents());c.appendChild(ts);range.insertNode(c);pipWindow.getSelection().removeAllRanges();pipRange=null;return c;}catch(err){return null;}}
-                pipWindow.addEventListener('pagehide',()=>{const pipHTML=pipContent.innerHTML;contentEl.innerHTML=pipHTML;contentEl.querySelectorAll('.highlight-container').forEach(cont=>{const nd=cont.getAttribute('data-note');if(nd){cont.classList.add('has-note');if(!cont.querySelector('.broll-card')){const card=document.createElement('div');card.className='broll-card';card.innerHTML=`<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${nd}</div>`;cont.appendChild(card);}cont.removeAttribute('data-note');}bindHoverEvents(cont);});pipWindow=null;});
+                pipWindow.addEventListener('pagehide',()=>{const pipHTML=pipContent.innerHTML;contentEl.innerHTML=pipHTML;contentEl.querySelectorAll('.highlight-container').forEach(cont=>{const nd=cont.getAttribute('data-note');if(nd){cont.classList.add('has-note');if(!cont.querySelector('.broll-card')){const card=document.createElement('div');card.className='broll-card';card.innerHTML=`<div class="broll-card-header"><strong class="broll-title">B-Roll Note</strong><button class="btn-edit-note" title="Edit" contenteditable="false">&#x270F;&#xFE0F;</button></div><div class="broll-note-text">${nd}</div>`;cont.appendChild(card);}cont.removeAttribute('data-note');}bindHoverEvents(cont);});refreshParaExportButtons(contentEl);pipWindow=null;});
             }catch(err){console.error('PiP error:',err);alert('Could not open PiP. Use Chrome 116+ with page focused.');}
         });
     </script>
