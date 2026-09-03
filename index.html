@@ -151,6 +151,9 @@
     .claude-ignore-btn.on { background: #f59e0b; color: #fff; border-color: #f59e0b; }
     .claude-ignore-btn.on:hover { background: #d97706; border-color: #d97706; }
     body.dark .claude-ignore-btn.on { background: #f59e0b; color: #1e293b; border-color: #f59e0b; }
+    .ai-prompt-btn.on { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+    .ai-prompt-btn.on:hover { background: #4338ca; border-color: #4338ca; }
+    body.dark .ai-prompt-btn.on { background: #6366f1; color: #fff; border-color: #6366f1; }
 
     /* ---- Per-line checkboxes (left of each line) ---- */
     .para-check {
@@ -879,7 +882,7 @@
                 <label class="input-label" style="margin-bottom:0;">Note</label>
                 <div class="note-label-actions">
                     <button id="note-claude-ignore" class="phrase-copy-btn claude-ignore-btn" title="Add 'Claude Ignore' to this note so Claude skips it">Claude Ignore</button>
-                    <button id="note-copy-phrase" class="phrase-copy-btn" title="Copy the highlighted phrase as a single line">Copy phrase</button>
+                    <button id="note-ai-prompt" class="phrase-copy-btn ai-prompt-btn" title="Add 'Relevant AI Image/Video Prompt' to this note">AI prompt</button>
                 </div>
             </div>
             <textarea id="note-modal-input" placeholder="Describe the B-roll visual..."></textarea>
@@ -1011,6 +1014,7 @@
                 <input type="color" id="custom-color" class="custom-color-input" value="#f43f5e" title="Custom">
             </div>
             <div class="divider"></div>
+            <button id="tool-select" class="tool-btn draw-tool" data-tool="select" data-icon="cursor" title="Select a drawing to move or resize it (Esc deselects, Delete removes)">Select</button>
             <button id="tool-pen" class="tool-btn active draw-tool" data-tool="pen" data-icon="pen">Pen</button>
             <button id="tool-arrow" class="tool-btn draw-tool" data-tool="arrow" data-icon="arrow" title="Hold Shift to snap to 45&deg;">Arrow</button>
             <div class="shape-split" id="shape-split">
@@ -1056,7 +1060,8 @@
                 arrow: 'M5 12h14M13 6l6 6-6 6',
                 rect: 'M4 4h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z',
                 ellipse: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z',
-                undo: 'M3 7v6h6M21 17a9 9 0 0 0-15-6.7L3 13'
+                undo: 'M3 7v6h6M21 17a9 9 0 0 0-15-6.7L3 13',
+                cursor: 'M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3zM13 13l6 6'
             };
             let css = '';
             for (const k in P) {
@@ -1519,45 +1524,46 @@
             noteModalPhrase = phrase || '';
             noteInput.placeholder = 'Describe the B-roll visual...';
 
-            // Show/hide the Copy phrase button based on whether we have a phrase
-            const copyBtn = document.getElementById('note-copy-phrase');
-            copyBtn.style.display = noteModalPhrase ? 'inline-flex' : 'none';
-
             resetNoteModalPos();
             noteModal.style.display = 'block';
-            refreshClaudeIgnoreBtn();
+            refreshStampBtns();
             noteInput.focus();
             noteModalCallback = cb;
         }
 
-        // Copy phrase button in note modal — always a single line
-        document.getElementById('note-copy-phrase').addEventListener('click', (e) => {
-            if (!noteModalPhrase) return;
-            copyTextToClipboard(oneLine(noteModalPhrase));
-            const btn = e.currentTarget; const o = btn.textContent;
-            btn.textContent = 'Copied!';
-            setTimeout(() => btn.textContent = o, 1200);
+        // Stamp buttons — each one adds a fixed phrase to the note on its own line,
+        // and clicking again removes it. The button lights up while the phrase is present.
+        //   Claude Ignore  -> goes on the FIRST line (a directive to Claude)
+        //   AI prompt      -> goes on the LAST line (a request for a prompt)
+        const STAMPS = [
+            { id: 'note-claude-ignore', text: 'Claude Ignore', re: /[ \t]*\bclaude ignore\b[ \t]*\n?/ig, where: 'first' },
+            { id: 'note-ai-prompt', text: 'Relevant AI Image/Video Prompt', re: /[ \t]*\brelevant ai image\s*\/\s*video prompt\b[ \t]*\n?/ig, where: 'last' }
+        ];
+        function refreshStampBtns() {
+            STAMPS.forEach(st => {
+                const btn = document.getElementById(st.id);
+                st.re.lastIndex = 0;
+                btn.classList.toggle('on', st.re.test(noteInput.value));
+                st.re.lastIndex = 0;
+            });
+        }
+        STAMPS.forEach(st => {
+            document.getElementById(st.id).addEventListener('click', () => {
+                const v = noteInput.value;
+                st.re.lastIndex = 0;
+                const has = st.re.test(v); st.re.lastIndex = 0;
+                if (has) {
+                    noteInput.value = v.replace(st.re, '').replace(/\n{3,}/g, '\n\n').trim();
+                } else {
+                    const body = v.trim();
+                    noteInput.value = !body ? st.text : (st.where === 'first' ? st.text + '\n' + body : body + '\n' + st.text);
+                }
+                refreshStampBtns();
+                noteInput.focus();
+                noteInput.setSelectionRange(noteInput.value.length, noteInput.value.length);
+            });
         });
-
-        // "Claude Ignore" button — stamps the note with a phrase that tells Claude to skip it.
-        // Click again to remove it.
-        const CLAUDE_IGNORE = 'Claude Ignore';
-        const claudeIgnoreBtn = document.getElementById('note-claude-ignore');
-        function noteHasClaudeIgnore() { return /\bclaude ignore\b/i.test(noteInput.value); }
-        function refreshClaudeIgnoreBtn() { claudeIgnoreBtn.classList.toggle('on', noteHasClaudeIgnore()); }
-        claudeIgnoreBtn.addEventListener('click', () => {
-            const v = noteInput.value;
-            if (noteHasClaudeIgnore()) {
-                noteInput.value = v.replace(/[ \t]*\bclaude ignore\b[ \t]*\n?/ig, '').replace(/\n{3,}/g, '\n\n').trim();
-            } else {
-                const body = v.trim();
-                noteInput.value = body ? CLAUDE_IGNORE + '\n' + body : CLAUDE_IGNORE;
-            }
-            refreshClaudeIgnoreBtn();
-            noteInput.focus();
-            noteInput.setSelectionRange(noteInput.value.length, noteInput.value.length);
-        });
-        noteInput.addEventListener('input', refreshClaudeIgnoreBtn);
+        noteInput.addEventListener('input', refreshStampBtns);
 
         document.getElementById('note-modal-cancel').addEventListener('click', () => { noteModal.style.display='none'; noteModalCallback=null; });
         document.getElementById('note-modal-save').addEventListener('click', saveAndCloseNoteModal);
@@ -1626,6 +1632,7 @@
 
         /* Drawing redo */
         function drawingUndo() {
+            selectedShape = -1;
             if (undoStack.length > 0) {
                 const current = JSON.parse(JSON.stringify(shapes));
                 undoStack.pop();
@@ -1636,6 +1643,7 @@
         }
 
         function drawingRedo() {
+            selectedShape = -1;
             if (!drawRedoStack.length) return;
             const state = drawRedoStack.pop();
             shapes = state;
@@ -1839,16 +1847,183 @@
 
         function renderAllShapes(){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);if(!drawingsVisible)return;applyWorldTransform();shapes.forEach(s=>{ctx.globalCompositeOperation=s.type==='eraser'?'destination-out':'source-over';ctx.strokeStyle=s.color;ctx.lineWidth=s.width||3;ctx.lineCap='round';ctx.lineJoin='round';if(s.type==='pen'||s.type==='eraser'){if(!s.points.length)return;ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);ctx.stroke();}else if(s.type==='arrow'){const hl=16,a=Math.atan2(s.endY-s.startY,s.endX-s.startX);ctx.strokeStyle=s.color;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(s.startX,s.startY);ctx.lineTo(s.endX,s.endY);ctx.lineTo(s.endX-hl*Math.cos(a-Math.PI/6),s.endY-hl*Math.sin(a-Math.PI/6));ctx.moveTo(s.endX,s.endY);ctx.lineTo(s.endX-hl*Math.cos(a+Math.PI/6),s.endY-hl*Math.sin(a+Math.PI/6));ctx.stroke();}
         else if(s.type==='rect'){const x=Math.min(s.startX,s.endX),y=Math.min(s.startY,s.endY),w=Math.abs(s.endX-s.startX),h=Math.abs(s.endY-s.startY);if(!w&&!h)return;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,Math.min(4,w/2,h/2));else ctx.rect(x,y,w,h);ctx.stroke();}
-        else if(s.type==='ellipse'){const rx=Math.abs(s.endX-s.startX)/2,ry=Math.abs(s.endY-s.startY)/2;if(!rx&&!ry)return;ctx.beginPath();ctx.ellipse((s.startX+s.endX)/2,(s.startY+s.endY)/2,rx,ry,0,0,Math.PI*2);ctx.stroke();}});}
+        else if(s.type==='ellipse'){const rx=Math.abs(s.endX-s.startX)/2,ry=Math.abs(s.endY-s.startY)/2;if(!rx&&!ry)return;ctx.beginPath();ctx.ellipse((s.startX+s.endX)/2,(s.startY+s.endY)/2,rx,ry,0,0,Math.PI*2);ctx.stroke();}});drawSelection();}
         // Shift constrains a rectangle to a square, an ellipse to a circle, an arrow to 45-degree steps.
         let lastDrawPt=null;
         function setShapeEnd(cs,co,shift){let ex=co.x,ey=co.y;const dx=ex-startX,dy=ey-startY;if(shift){if(cs.type==='rect'||cs.type==='ellipse'){const s=Math.max(Math.abs(dx),Math.abs(dy));ex=startX+(dx<0?-s:s);ey=startY+(dy<0?-s:s);}else if(cs.type==='arrow'){const len=Math.hypot(dx,dy),a=Math.round(Math.atan2(dy,dx)/(Math.PI/4))*(Math.PI/4);ex=startX+len*Math.cos(a);ey=startY+len*Math.sin(a);}}cs.endX=ex;cs.endY=ey;}
         document.addEventListener('keydown',(e)=>{if(e.key==='Shift'&&isDrawing&&lastDrawPt){const cs=shapes[shapes.length-1];if(cs&&cs.type!=='pen'&&cs.type!=='eraser'){setShapeEnd(cs,lastDrawPt,true);renderAllShapes();}}});
         document.addEventListener('keyup',(e)=>{if(e.key==='Shift'&&isDrawing&&lastDrawPt){const cs=shapes[shapes.length-1];if(cs&&cs.type!=='pen'&&cs.type!=='eraser'){setShapeEnd(cs,lastDrawPt,false);renderAllShapes();}}});
         function getCC(e){return screenToWorld(e.clientX, e.clientY);}
-        canvas.addEventListener('pointerdown',(e)=>{if(appMode!=='draw'||isSpacePanning)return;const co=getCC(e);startX=co.x;startY=co.y;lastX=startX;lastY=startY;isDrawing=true;let ns={type:currentTool,color:currentColor,width:currentTool==='eraser'?40:3};if(currentTool==='pen'||currentTool==='eraser')ns.points=[{x:startX,y:startY}];else{ns.startX=startX;ns.startY=startY;ns.endX=startX;ns.endY=startY;}shapes.push(ns);});
-        canvas.addEventListener('pointermove',(e)=>{if(!isDrawing||appMode!=='draw')return;e.preventDefault();const co=getCC(e);let cs=shapes[shapes.length-1];if(currentTool==='pen'||currentTool==='eraser'){cs.points.push({x:co.x,y:co.y});applyWorldTransform();ctx.globalCompositeOperation=currentTool==='eraser'?'destination-out':'source-over';ctx.strokeStyle=currentTool==='eraser'?'rgba(0,0,0,1)':currentColor;ctx.lineWidth=cs.width;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(co.x,co.y);ctx.stroke();lastX=co.x;lastY=co.y;}else{lastDrawPt=co;setShapeEnd(cs,co,e.shiftKey);renderAllShapes();}});
-        canvas.addEventListener('pointerup',()=>{if(isDrawing){saveDrawingState();ensureRoom();}isDrawing=false;lastDrawPt=null;});
+        /* === SELECT / MOVE / RESIZE DRAWINGS ===
+         * Any rectangle, circle or arrow is selected the moment it is drawn, so it can be
+         * dragged (grab its body) or stretched (grab a handle) straight away. The Select tool
+         * picks any drawing, pen strokes included. Esc deselects, Delete removes.
+         */
+        let selectedShape = -1, dragMode = null, dragHandle = null, dragOrig = null, dragOrigBox = null, dragStart = null;
+        const HANDLE_PX = 8, HIT_PX = 8;
+        function shapeBox(s) {
+            if (s.points) {
+                if (!s.points.length) return null;
+                let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+                s.points.forEach(p => { x1 = Math.min(x1, p.x); y1 = Math.min(y1, p.y); x2 = Math.max(x2, p.x); y2 = Math.max(y2, p.y); });
+                return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
+            }
+            return { x: Math.min(s.startX, s.endX), y: Math.min(s.startY, s.endY), w: Math.abs(s.endX - s.startX), h: Math.abs(s.endY - s.startY) };
+        }
+        function distToSeg(px, py, ax, ay, bx, by) {
+            const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+            let t = l2 ? ((px - ax) * dx + (py - ay) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t));
+            return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+        }
+        function hitShape(s, x, y, tol) {
+            if (s.type === 'eraser') return false;
+            if (s.type === 'pen') {
+                const r = tol + (s.width || 3) / 2;
+                if (s.points.length === 1) return Math.hypot(x - s.points[0].x, y - s.points[0].y) <= r;
+                for (let i = 1; i < s.points.length; i++) if (distToSeg(x, y, s.points[i-1].x, s.points[i-1].y, s.points[i].x, s.points[i].y) <= r) return true;
+                return false;
+            }
+            if (s.type === 'arrow') return distToSeg(x, y, s.startX, s.startY, s.endX, s.endY) <= tol;
+            const b = shapeBox(s);
+            if (s.type === 'rect') return x >= b.x - tol && x <= b.x + b.w + tol && y >= b.y - tol && y <= b.y + b.h + tol;
+            if (s.type === 'ellipse') {
+                const rx = b.w / 2 + tol, ry = b.h / 2 + tol; if (!rx || !ry) return false;
+                const dx = (x - (b.x + b.w / 2)) / rx, dy = (y - (b.y + b.h / 2)) / ry; return dx * dx + dy * dy <= 1;
+            }
+            return false;
+        }
+        function shapeAt(x, y) { const tol = HIT_PX / zoomLevel; for (let i = shapes.length - 1; i >= 0; i--) if (hitShape(shapes[i], x, y, tol)) return i; return -1; }
+        function handlesFor(s) {
+            if (s.type === 'arrow') return [{ id: 'start', x: s.startX, y: s.startY, cur: 'move' }, { id: 'end', x: s.endX, y: s.endY, cur: 'move' }];
+            const b = shapeBox(s); if (!b) return [];
+            return [
+                { id: 'nw', x: b.x, y: b.y, cur: 'nwse-resize' }, { id: 'n', x: b.x + b.w / 2, y: b.y, cur: 'ns-resize' }, { id: 'ne', x: b.x + b.w, y: b.y, cur: 'nesw-resize' },
+                { id: 'e', x: b.x + b.w, y: b.y + b.h / 2, cur: 'ew-resize' }, { id: 'se', x: b.x + b.w, y: b.y + b.h, cur: 'nwse-resize' }, { id: 's', x: b.x + b.w / 2, y: b.y + b.h, cur: 'ns-resize' },
+                { id: 'sw', x: b.x, y: b.y + b.h, cur: 'nesw-resize' }, { id: 'w', x: b.x, y: b.y + b.h / 2, cur: 'ew-resize' }
+            ];
+        }
+        function handleAt(s, x, y) { const r = (HANDLE_PX + 3) / zoomLevel; return handlesFor(s).find(h => Math.abs(x - h.x) <= r && Math.abs(y - h.y) <= r) || null; }
+        function selectShape(i) { selectedShape = i; renderAllShapes(); }
+        function selectionValid() { return selectedShape >= 0 && selectedShape < shapes.length; }
+        function drawSelection() {
+            if (!selectionValid()) return;
+            const s = shapes[selectedShape], b = shapeBox(s); if (!b) return;
+            applyWorldTransform();
+            const k = 1 / zoomLevel, hs = HANDLE_PX * k;
+            ctx.save(); ctx.globalCompositeOperation = 'source-over';
+            ctx.strokeStyle = '#6366f1'; ctx.lineWidth = 1.5 * k; ctx.setLineDash([5 * k, 4 * k]);
+            if (s.type !== 'arrow') { const pad = 6 * k; ctx.strokeRect(b.x - pad, b.y - pad, b.w + 2 * pad, b.h + 2 * pad); }
+            ctx.setLineDash([]);
+            handlesFor(s).forEach(h => {
+                ctx.fillStyle = '#fff'; ctx.strokeStyle = '#6366f1'; ctx.lineWidth = 1.5 * k; ctx.beginPath();
+                if (s.type === 'arrow') ctx.arc(h.x, h.y, hs * 0.65, 0, Math.PI * 2); else ctx.rect(h.x - hs / 2, h.y - hs / 2, hs, hs);
+                ctx.fill(); ctx.stroke();
+            });
+            ctx.restore();
+        }
+        // Map a shape from its original box onto a new box (used for handle resizing).
+        function fitShapeToBox(s, o, ob, nb) {
+            const sx = ob.w ? nb.w / ob.w : 1, sy = ob.h ? nb.h / ob.h : 1;
+            const fx = v => ob.w ? nb.x + (v - ob.x) * sx : nb.x + nb.w / 2, fy = v => ob.h ? nb.y + (v - ob.y) * sy : nb.y + nb.h / 2;
+            if (o.points) s.points = o.points.map(p => ({ x: fx(p.x), y: fy(p.y) }));
+            else { s.startX = fx(o.startX); s.startY = fy(o.startY); s.endX = fx(o.endX); s.endY = fy(o.endY); }
+        }
+        function resizeBox(ob, id, dx, dy, shift, mode) {
+            let x1 = ob.x, y1 = ob.y, x2 = ob.x + ob.w, y2 = ob.y + ob.h;
+            if (id.includes('w')) x1 += dx; if (id.includes('e')) x2 += dx; if (id.includes('n')) y1 += dy; if (id.includes('s')) y2 += dy;
+            if (shift && id.length === 2) {          // corner handle + Shift: square, or keep the original aspect
+                let w = x2 - x1, h = y2 - y1;
+                const ratio = mode === 'square' ? 1 : (ob.h ? ob.w / ob.h : 1);
+                if (Math.abs(w) / ratio >= Math.abs(h)) h = Math.sign(h || 1) * Math.abs(w) / ratio; else w = Math.sign(w || 1) * Math.abs(h) * ratio;
+                if (id.includes('w')) x1 = x2 - w; else x2 = x1 + w;
+                if (id.includes('n')) y1 = y2 - h; else y2 = y1 + h;
+            }
+            return { x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1) };
+        }
+        function beginDrag(e, mode, handle, co) {
+            const s = shapes[selectedShape];
+            dragMode = mode; dragHandle = handle; dragOrig = JSON.parse(JSON.stringify(s)); dragOrigBox = shapeBox(s); dragStart = co;
+            try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+            if (appMode !== 'draw' || isSpacePanning) return;
+            const co = getCC(e);
+            // 1. Something is selected: grab a handle to resize, or its body to move (not while erasing)
+            if (selectionValid() && currentTool !== 'eraser') {
+                const s = shapes[selectedShape];
+                const h = handleAt(s, co.x, co.y);
+                if (h) { beginDrag(e, 'resize', h.id, co); return; }
+                if (hitShape(s, co.x, co.y, HIT_PX / zoomLevel)) { beginDrag(e, 'move', null, co); return; }
+            }
+            // 2. Select tool: pick whatever is under the cursor and start moving it
+            if (currentTool === 'select') {
+                selectShape(shapeAt(co.x, co.y));
+                if (selectionValid()) beginDrag(e, 'move', null, co);
+                return;
+            }
+            // 3. Otherwise start a new drawing
+            if (selectionValid()) selectShape(-1);
+            startX = co.x; startY = co.y; lastX = startX; lastY = startY; isDrawing = true;
+            let ns = { type: currentTool, color: currentColor, width: currentTool === 'eraser' ? 40 : 3 };
+            if (currentTool === 'pen' || currentTool === 'eraser') ns.points = [{ x: startX, y: startY }];
+            else { ns.startX = startX; ns.startY = startY; ns.endX = startX; ns.endY = startY; }
+            shapes.push(ns);
+        });
+        canvas.addEventListener('pointermove', (e) => {
+            if (appMode !== 'draw') return;
+            const co = getCC(e);
+            if (dragMode) {
+                e.preventDefault();
+                const s = shapes[selectedShape]; if (!s) { dragMode = null; return; }
+                const dx = co.x - dragStart.x, dy = co.y - dragStart.y;
+                if (dragMode === 'move') {
+                    if (s.points) s.points = dragOrig.points.map(p => ({ x: p.x + dx, y: p.y + dy }));
+                    else { s.startX = dragOrig.startX + dx; s.startY = dragOrig.startY + dy; s.endX = dragOrig.endX + dx; s.endY = dragOrig.endY + dy; }
+                } else if (s.type === 'arrow') {
+                    // Drag an arrow endpoint; Shift snaps to 45-degree steps around the other end
+                    const ax = dragHandle === 'start' ? s.endX : s.startX, ay = dragHandle === 'start' ? s.endY : s.startY;
+                    let nx = co.x, ny = co.y;
+                    if (e.shiftKey) { const ddx = nx - ax, ddy = ny - ay, len = Math.hypot(ddx, ddy), a = Math.round(Math.atan2(ddy, ddx) / (Math.PI / 4)) * (Math.PI / 4); nx = ax + len * Math.cos(a); ny = ay + len * Math.sin(a); }
+                    if (dragHandle === 'start') { s.startX = nx; s.startY = ny; } else { s.endX = nx; s.endY = ny; }
+                } else {
+                    const nb = resizeBox(dragOrigBox, dragHandle, dx, dy, e.shiftKey, (s.type === 'rect' || s.type === 'ellipse') ? 'square' : 'aspect');
+                    fitShapeToBox(s, dragOrig, dragOrigBox, nb);
+                }
+                renderAllShapes(); return;
+            }
+            if (!isDrawing) {
+                // Hover feedback
+                let cur = currentTool === 'select' ? 'default' : 'crosshair';
+                if (selectionValid() && currentTool !== 'eraser') {
+                    const s = shapes[selectedShape], h = handleAt(s, co.x, co.y);
+                    if (h) cur = h.cur; else if (hitShape(s, co.x, co.y, HIT_PX / zoomLevel)) cur = 'move';
+                }
+                if (cur !== 'move' && currentTool === 'select' && shapeAt(co.x, co.y) >= 0) cur = 'move';
+                canvas.style.cursor = cur; return;
+            }
+            e.preventDefault();
+            let cs = shapes[shapes.length - 1];
+            if (currentTool === 'pen' || currentTool === 'eraser') {
+                cs.points.push({ x: co.x, y: co.y });
+                applyWorldTransform();
+                ctx.globalCompositeOperation = currentTool === 'eraser' ? 'destination-out' : 'source-over';
+                ctx.strokeStyle = currentTool === 'eraser' ? 'rgba(0,0,0,1)' : currentColor; ctx.lineWidth = cs.width; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(co.x, co.y); ctx.stroke();
+                lastX = co.x; lastY = co.y;
+            } else { lastDrawPt = co; setShapeEnd(cs, co, e.shiftKey); renderAllShapes(); }
+        });
+        canvas.addEventListener('pointerup', () => {
+            if (dragMode) { dragMode = null; dragHandle = null; dragOrig = null; saveDrawingState(); renderAllShapes(); return; }
+            if (isDrawing) {
+                const cs = shapes[shapes.length - 1];
+                const isGeo = cs && (cs.type === 'rect' || cs.type === 'ellipse' || cs.type === 'arrow');
+                const b = cs ? shapeBox(cs) : null;
+                if (isGeo && b && b.w < 2 && b.h < 2) { shapes.pop(); renderAllShapes(); }   // a bare click: nothing to keep
+                else { saveDrawingState(); ensureRoom(); if (isGeo) selectShape(shapes.length - 1); }
+            }
+            isDrawing = false; lastDrawPt = null;
+        });
 
         const btnHideDrawings=document.getElementById('btn-hide-drawings');
         btnHideDrawings.addEventListener('click',()=>{drawingsVisible=!drawingsVisible;btnHideDrawings.innerHTML=drawingsVisible?'Hide':'Show';if(!drawingsVisible)btnHideDrawings.classList.add('active');else btnHideDrawings.classList.remove('active');renderAllShapes();});
@@ -1922,7 +2097,7 @@
                 ib.innerHTML=`<div class="document-header"><span>&#x2807; ${id.label||'Image'}</span><button class="delete-btn">&times;</button></div><div class="image-wrapper"><img src="${id.src}" alt="${id.label||'Image'}" data-img-type="${id.imgType||'url'}"></div><div class="resize-handle"></div>`;
                 blocksContainer.appendChild(ib);makeImageBlockInteractive(ib);
             });
-            shapes=pd.shapes||[];undoStack=[];refreshBlockNav();
+            shapes=pd.shapes||[];undoStack=[];selectedShape=-1;refreshBlockNav();
             renderAllShapes();
             if(pd.viewport){
                 zoomLevel=pd.viewport.zoom||1;
@@ -2008,6 +2183,11 @@
         let isSpacePanning=false,hasPannedDuringSpace=false,spaceTarget=null,panStartX=0,panStartY=0,scrollStartX=0,scrollStartY=0;
 
         document.addEventListener('keydown',(e)=>{
+            // Selected drawing: Delete/Backspace removes it, Esc deselects
+            if(appMode==='draw'&&selectionValid()&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)&&!document.activeElement.isContentEditable){
+                if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();shapes.splice(selectedShape,1);selectedShape=-1;saveDrawingState();renderAllShapes();return;}
+                if(e.key==='Escape'){selectShape(-1);return;}
+            }
             // Ctrl+Z: Undo
             if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!e.shiftKey){
                 if(appMode==='draw'){e.preventDefault();drawingUndo();}
@@ -2060,7 +2240,7 @@
 
         /* === MODE SWITCHING === */
         const btnToggleDraw=document.getElementById('toggle-draw'),drawToolsRow=document.getElementById('draw-tools'),toolBtns=document.querySelectorAll('.draw-tool');
-        function setAppMode(m){appMode=m;btnToggleDraw.className='tool-btn mode-btn';btnToggleDraw.innerHTML='Draw';canvas.style.pointerEvents='none';commentPopup.style.display='none';window.getSelection().removeAllRanges();drawToolsRow.style.display='none';renderAllShapes();if(m==='draw'){btnToggleDraw.classList.add('active-draw');btnToggleDraw.innerHTML='Draw: ON';drawToolsRow.style.display='flex';canvas.style.pointerEvents='auto';}}
+        function setAppMode(m){appMode=m;selectedShape=-1;dragMode=null;canvas.style.cursor='';btnToggleDraw.className='tool-btn mode-btn';btnToggleDraw.innerHTML='Draw';canvas.style.pointerEvents='none';commentPopup.style.display='none';window.getSelection().removeAllRanges();drawToolsRow.style.display='none';renderAllShapes();if(m==='draw'){btnToggleDraw.classList.add('active-draw');btnToggleDraw.innerHTML='Draw';btnToggleDraw.title='Drawing mode is on - click to return to editing';drawToolsRow.style.display='flex';canvas.style.pointerEvents='auto';}}
         btnToggleDraw.addEventListener('click',()=>setAppMode(appMode==='draw'?'view':'draw'));
         toolBtns.forEach(b=>b.addEventListener('click',()=>{if(appMode!=='draw')setAppMode('draw');toolBtns.forEach(x=>x.classList.remove('active'));b.classList.add('active');currentTool=b.getAttribute('data-tool');syncShapeSplit();}));
 
@@ -2081,13 +2261,13 @@
         document.addEventListener('click',(e)=>{if(!e.target.closest('#shape-split'))shapeSplit.classList.remove('open');});
         (function(){const k=localStorage.getItem('broll-shape-kind');if(k==='ellipse'){shapeBtn.setAttribute('data-tool','ellipse');shapeBtn.setAttribute('data-icon','ellipse');shapeBtn.textContent=SHAPE_LABELS.ellipse;document.querySelectorAll('.shape-menu-item').forEach(i=>i.classList.toggle('selected',i.getAttribute('data-shape')==='ellipse'));}})();
         document.getElementById('tool-undo').addEventListener('click',drawingUndo);
-        document.getElementById('tool-clear').addEventListener('click',()=>{shapes=[];saveDrawingState();renderAllShapes();});
+        document.getElementById('tool-clear').addEventListener('click',()=>{shapes=[];selectedShape=-1;saveDrawingState();renderAllShapes();});
 
         // Erase only the drawings (keeps transcripts, marks and notes).
         document.getElementById('btn-clear-drawings').addEventListener('click', () => {
             if (!shapes.length) { alert('There are no drawings to erase.'); return; }
             if (!confirm('Erase all drawings? Transcripts, marks and notes are kept.')) return;
-            shapes = []; undoStack = []; drawRedoStack = [];
+            shapes = []; undoStack = []; drawRedoStack = []; selectedShape = -1;
             renderAllShapes();
             autoSave();
             const pat = localStorage.getItem('broll-gist-pat') || '';
@@ -2125,7 +2305,7 @@
             blocksContainer.innerHTML = '';
 
             // Clear drawings
-            shapes = []; undoStack = []; markUndoStack = []; markRedoStack = []; drawRedoStack = [];
+            shapes = []; undoStack = []; markUndoStack = []; markRedoStack = []; drawRedoStack = []; selectedShape = -1;
             renderAllShapes();
 
             // Add back a fresh default block
