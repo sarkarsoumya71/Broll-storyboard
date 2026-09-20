@@ -881,7 +881,7 @@
             <div class="note-label-row">
                 <label class="input-label" style="margin-bottom:0;">Note</label>
                 <div class="note-label-actions">
-                    <button id="note-claude-ignore" class="phrase-copy-btn claude-ignore-btn" title="Add 'Claude Ignore' to this note so Claude skips it">Claude Ignore</button>
+                    <button id="note-claude-ignore" class="phrase-copy-btn claude-ignore-btn" title="Add 'Claude Ignore; Line Broll' to this note so Claude skips it">Claude Ignore</button>
                     <button id="note-ai-prompt" class="phrase-copy-btn ai-prompt-btn" title="Add 'Relevant AI Image/Video Prompt' to this note">AI prompt</button>
                 </div>
             </div>
@@ -1533,10 +1533,11 @@
 
         // Stamp buttons — each one adds a fixed phrase to the note on its own line,
         // and clicking again removes it. The button lights up while the phrase is present.
-        //   Claude Ignore  -> goes on the FIRST line (a directive to Claude)
+        //   Claude Ignore  -> stamps "Claude Ignore; Line Broll" on the FIRST line (a directive to Claude);
+        //                     the regex also matches the older bare "Claude Ignore" so old notes still toggle
         //   AI prompt      -> goes on the LAST line (a request for a prompt)
         const STAMPS = [
-            { id: 'note-claude-ignore', text: 'Claude Ignore', re: /[ \t]*\bclaude ignore\b[ \t]*\n?/ig, where: 'first' },
+            { id: 'note-claude-ignore', text: 'Claude Ignore; Line Broll', re: /[ \t]*\bclaude ignore\b(?:[ \t]*;[ \t]*line broll\b)?[ \t]*\n?/ig, where: 'first' },
             { id: 'note-ai-prompt', text: 'Relevant AI Image/Video Prompt', re: /[ \t]*\brelevant ai image\s*\/\s*video prompt\b[ \t]*\n?/ig, where: 'last' }
         ];
         function refreshStampBtns() {
